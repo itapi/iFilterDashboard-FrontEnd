@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Read(/C:\\Users\\itamary_binaa\\Downloads/**)",
+      "Bash(php -l:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
