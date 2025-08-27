@@ -37,7 +37,7 @@ function AppContent() {
 
   return (
     <ModalProvider>
-      <Router>
+      <Router basename="/iFilterDashboard-FrontEnd">
         <div className="min-h-screen bg-gray-50 flex" dir="rtl">
           <Sidebar />
           <main className="flex-1 overflow-hidden">

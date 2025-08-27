@@ -282,13 +282,27 @@ const TicketsTable = () => {
       id: 'subject',
       key: 'subject',
       label: 'נושא',
-      type: 'text',
-      render: (row) => (
-        <div>
-          <div className="font-medium text-gray-900">{row.subject}</div>
-          <div className="text-sm text-gray-500 truncate max-w-xs">{row.description}</div>
-        </div>
-      )
+      type: 'custom',
+      render: (row) => {
+        const getHebrewSubject = (subject) => {
+          switch (subject) {
+            case 'app_upload':
+              return 'העלאת אפליקציה'
+            case 'report':
+              return 'דיווח'
+            case 'other':
+              return 'אחר'
+            default:
+              return subject // fallback to original value
+          }
+        }
+        
+        return (
+          <div>
+            <div className="font-medium text-gray-900">{getHebrewSubject(row.subject)}</div>
+          </div>
+        )
+      }
     },
     {
       id: 'client_name',

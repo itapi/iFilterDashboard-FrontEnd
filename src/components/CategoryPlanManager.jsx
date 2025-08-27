@@ -1,10 +1,27 @@
 import { useState, useEffect } from 'react'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
+import { FolderOpen } from 'lucide-react'
 import apiClient from '../utils/api'
 import { useModal } from '../contexts/ModalContext'
-import { FolderOpen, Clipboard, Link, X } from 'lucide-react'
+import CategoryCard from './CategoryCard'
+import PlanColumn from './PlanColumn'
+import Statistics from './Statistics'
 
 const CategoryPlanManager = () => {
   const { openConfirmModal } = useModal()
@@ -14,6 +31,18 @@ const CategoryPlanManager = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [lastUpdate, setLastUpdate] = useState(Date.now())
+  const [activeId, setActiveId] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 0, // Start drag immediately
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => {
     loadData()
@@ -140,29 +169,35 @@ const CategoryPlanManager = () => {
     }
   }
 
-  const handleDragEnd = async (result) => {
-    if (!result.destination) return
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id)
+  }
 
-    const { source, destination, draggableId } = result
+  const getActiveCategory = () => {
+    if (!activeId) return null
+    const categoryId = parseInt(activeId.split('-')[1])
+    return categories.find(cat => cat.category_id === categoryId)
+  }
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event
+    setActiveId(null)
+    
+    if (!over) return
 
     // Only allow dragging FROM the bank (not between plans)
-    if (source.droppableId !== 'category-bank') {
-      return
-    }
-
-    // If dropped in the same position, do nothing
-    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+    if (!active.id.includes('-bank')) {
       return
     }
 
     // If dropped back in bank, do nothing
-    if (destination.droppableId === 'category-bank') {
+    if (over.id === 'category-bank') {
       return
     }
 
-    // Extract category ID from draggableId (format: category-123-bank)
-    const categoryId = parseInt(draggableId.split('-')[1])
-    const newPlanId = parseInt(destination.droppableId.replace('plan-', ''))
+    // Extract category ID from active.id (format: category-123-bank)
+    const categoryId = parseInt(active.id.split('-')[1])
+    const newPlanId = parseInt(over.id.replace('plan-', ''))
 
     // Check if already assigned to this plan
     const isAlreadyAssigned = categoryPlanAvailability.some(
@@ -246,246 +281,7 @@ const CategoryPlanManager = () => {
     )
   }
 
-  const CategoryCard = ({ category, index, sourceLocation, planName }) => {
-    const isFromBank = sourceLocation === 'bank'
-    const assignedPlansCount = categoryPlanAvailability.filter(
-      item => item.category_id === parseInt(category.category_id)
-    ).length
-    
-    // Check if this category assignment is optimistic (pending server response)
-    const isOptimistic = !isFromBank && categoryPlanAvailability.some(
-      item => item.category_id === parseInt(category.category_id) && 
-               item.plan_id === parseInt(sourceLocation.replace('plan-', '')) &&
-               item.isOptimistic
-    )
-    
-    if (!isFromBank) {
-      // Non-draggable category in plans - just display with remove option
-      return (
-        <div className="relative group">
-          <div
-            className={`w-12 h-12 rounded-full shadow-sm border-2 flex items-center justify-center cursor-default transition-all duration-200 ${
-              isOptimistic 
-                ? 'bg-yellow-50 border-yellow-300 animate-pulse' 
-                : 'bg-gray-50 border-gray-300'
-            }`}
-            data-tooltip-id="category-tooltip"
-            data-tooltip-content={`${category.category_name} - ${isOptimistic ? 'שומר...' : 'מוקצה לתכנית'}`}
-            data-tooltip-place="top"
-            role="button"
-            tabIndex={0}
-            aria-label={`קטגוריה: ${category.category_name} - ${isOptimistic ? 'שומר...' : 'מוקצה לתכנית זו'}`}
-          >
-            {category.category_icon ? (
-              <img 
-                src={category.category_icon} 
-                alt={category.category_name}
-                className={`w-6 h-6 rounded-full pointer-events-none transition-opacity ${
-                  isOptimistic ? 'opacity-60' : 'opacity-80'
-                }`}
-                onError={(e) => {
-                  e.target.style.display = 'none'
-                  e.target.nextSibling.style.display = 'block'
-                }}
-              />
-            ) : (
-              <FolderOpen className={`w-6 h-6 text-gray-600 pointer-events-none transition-opacity ${
-                isOptimistic ? 'opacity-60' : 'opacity-80'
-              }`} />
-            )}
-            <FolderOpen className="w-6 h-6 text-gray-600 hidden pointer-events-none opacity-80" />
-          </div>
-          {/* Remove button */}
-          {!isOptimistic && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleRemoveClick(category.category_id, sourceLocation.replace('plan-', ''), category.category_name, planName)
-              }}
-              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
-              data-tooltip-id="category-tooltip"
-              data-tooltip-content="הסר מהתכנית"
-              aria-label="הסר קטגוריה מהתכנית"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      )
-    }
-    
-    // Draggable category from bank
-    return (
-      <div className="relative">
-        <Draggable draggableId={`category-${category.category_id}-${sourceLocation}`} index={index}>
-          {(provided, snapshot) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.draggableProps}
-              {...provided.dragHandleProps}
-              className={`w-12 h-12 bg-white rounded-full shadow-sm border-2 border-gray-200 flex items-center justify-center ${
-                snapshot.isDragging 
-                  ? 'shadow-2xl border-purple-500 bg-purple-50 cursor-grabbing transform scale-105' 
-                  : 'hover:shadow-md hover:border-purple-300 hover:scale-105 transition-all duration-200 cursor-grab'
-              }`}
-              data-tooltip-id="category-tooltip"
-              data-tooltip-content={`${category.category_name} - גרור לתכנית${assignedPlansCount > 0 ? ` (מוקצה ל-${assignedPlansCount} תכניות)` : ''}`}
-              data-tooltip-place="top"
-              role="button"
-              tabIndex={0}
-              aria-label={`קטגוריה: ${category.category_name} - ניתן לגרירה`}
-              style={provided.draggableProps.style}
-            >
-              {category.category_icon ? (
-                <img 
-                  src={category.category_icon} 
-                  alt={category.category_name}
-                  className="w-6 h-6 rounded-full pointer-events-none"
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                    e.target.nextSibling.style.display = 'block'
-                  }}
-                />
-              ) : (
-                <FolderOpen className="w-6 h-6 text-blue-600 pointer-events-none" />
-              )}
-              <FolderOpen className="w-6 h-6 text-blue-600 hidden pointer-events-none" />
-            </div>
-          )}
-        </Draggable>
-   
-      </div>
-    )
-  }
 
-  const PlanColumn = ({ plan, isCategoryBank = false }) => {
-    const planCategories = isCategoryBank ? getAllCategories() : getCategoriesForPlan(plan?.plan_id)
-    
-    return (
-      <div className="flex flex-col items-center">
-        {/* Plan Circle Container */}
-        <div className={`relative w-80 h-80 rounded-full flex flex-col items-center justify-center transition-all duration-200 ${
-          isCategoryBank ? 'bg-gradient-to-br from-blue-50 to-indigo-100 border-4 border-blue-400 shadow-2xl ring-4 ring-blue-200 ring-opacity-50' : 'bg-gradient-to-br from-white to-gray-50 border-4 border-gray-200 shadow-lg hover:shadow-xl'
-        }`}>
-          
-          {/* Plan Header - Center Top */}
-          <div className="absolute top-8 text-center">
-            {isCategoryBank ? (
-              <>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-blue-900">🏦 בנק הקטגוריות</h3>
-                <p className="text-sm text-blue-700 font-medium">כל הקטגוריות הזמינות</p>
-                <p className="text-xs text-blue-600 bg-blue-100 px-3 py-1 rounded-full mt-2 shadow-sm">← גרור לתכניות (ניתן לכמה) ←</p>
-              </>
-            ) : (
-              <>
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  {plan.image_url ? (
-                    <img 
-                      src={plan.image_url} 
-                      alt={plan.plan_name}
-                      className="w-8 h-8 rounded-full object-cover"
-                      onError={(e) => {
-                        e.target.style.display = 'none'
-                        e.target.nextSibling.style.display = 'block'
-                      }}
-                    />
-                  ) : (
-                    <Clipboard className="w-6 h-6 text-blue-600" />
-                  )}
-                  <Clipboard className="w-6 h-6 text-blue-600 hidden" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">{plan.plan_name}</h3>
-                <p className="text-xs text-gray-600">{plan.price}</p>
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                  {planCategories.length}
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* Drop Zone - Center Circle Area */}
-          <Droppable droppableId={isCategoryBank ? 'category-bank' : `plan-${plan.plan_id}`} type="CATEGORY">
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className={`absolute inset-6 top-24 rounded-full flex items-center justify-center transition-all duration-300 min-h-[200px] ${
-                  snapshot.isDraggingOver ? 'bg-purple-50 border-2 border-dashed border-purple-400 scale-105' : ''
-                }`}
-                style={{
-                  minHeight: '200px'
-                }}
-              >
-                {/* Categories Grid */}
-                <div className="grid grid-cols-6 gap-2 p-4 w-full h-full items-center justify-items-center content-center relative">
-                  {planCategories.map((category, index) => (
-                    <div key={category.category_id} className="relative">
-                      <CategoryCard 
-                        category={category} 
-                        index={index} 
-                        sourceLocation={isCategoryBank ? 'bank' : `plan-${plan.plan_id}`}
-                        planName={plan?.plan_name}
-                      />
-                    </div>
-                  ))}
-                  {provided.placeholder}
-                </div>
-                
-                {planCategories.length === 0 && !snapshot.isDraggingOver && (
-                  <div className="text-center text-gray-400 absolute inset-0 flex flex-col items-center justify-center">
-                    <svg className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H5a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <p className="text-sm text-gray-600 font-medium">גרור קטגוריות לכאן</p>
-                    <p className="text-xs text-gray-500 mt-1">✨ אזור ריק - מוכן לקבלת קטגוריות</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </Droppable>
-        </div>
-
-        {/* Plan Features - Below Circle */}
-        {!isCategoryBank && plan && (
-          <div className="mt-4 text-center max-w-xs">
-            {(plan.feature1 || plan.feature2 || plan.feature3) && (
-              <div className="space-y-1">
-                {plan.feature1 && (
-                  <div className="flex items-center justify-center text-xs text-gray-600">
-                    <svg className="w-3 h-3 text-green-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {plan.feature1}
-                  </div>
-                )}
-                {plan.feature2 && (
-                  <div className="flex items-center justify-center text-xs text-gray-600">
-                    <svg className="w-3 h-3 text-green-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {plan.feature2}
-                  </div>
-                )}
-                {plan.feature3 && (
-                  <div className="flex items-center justify-center text-xs text-gray-600">
-                    <svg className="w-3 h-3 text-green-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {plan.feature3}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
 
   if (loading) {
     return (
@@ -502,11 +298,21 @@ const CategoryPlanManager = () => {
   }
 
   return (
-    <div className="p-8" dir="rtl">
+    <div className="p-8 drag-container" >
+      <style dangerouslySetInnerHTML={{__html: `
+        /* Fix z-index for dragged items */
+        [data-rbd-draggable-id][style*="position: fixed"] {
+          z-index: 9999 !important;
+        }
+        /* Ensure drag portal renders above everything */
+        [data-rbd-drag-handle-context-id] {
+          z-index: 10000 !important;
+        }
+      `}} />
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-reverse space-x-3">
+          <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
@@ -544,67 +350,32 @@ const CategoryPlanManager = () => {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center ml-3">
-                <Clipboard className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">תכניות סינון</p>
-                <p className="text-xl font-bold text-gray-900">{plans.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center ml-3">
-                <FolderOpen className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">קטגוריות</p>
-                <p className="text-xl font-bold text-gray-900">{categories.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center ml-3">
-                <Link className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">הקצאות</p>
-                <p className="text-xl font-bold text-gray-900">{categoryPlanAvailability.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center ml-3">
-                <X className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">לא מוקצות</p>
-                <p className="text-xl font-bold text-gray-900">{categories.length - categoryPlanAvailability.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Statistics 
+          plans={plans}
+          categories={categories}
+          categoryPlanAvailability={categoryPlanAvailability}
+        />
       </div>
 
 
 
       {/* Drag and Drop Plans - Schema Layout */}
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
         <div className="relative">
           {/* Category Bank - Top Center */}
           <div className="flex justify-center mb-16">
             <PlanColumn 
               key={`bank-${categories.length}-${categoryPlanAvailability.length}-${lastUpdate}`} 
               isCategoryBank={true} 
+              categories={categories}
+              categoryPlanAvailability={categoryPlanAvailability}
+              searchTerm={searchTerm}
+              onRemoveClick={handleRemoveClick}
             />
           </div>
           
@@ -661,11 +432,34 @@ const CategoryPlanManager = () => {
               <PlanColumn 
                 key={`${plan.plan_id}-${categoryPlanAvailability.length}-${categoryPlanAvailability.filter(item => item.plan_id === plan.plan_id).length}-${lastUpdate}`} 
                 plan={plan} 
+                categories={categories}
+                categoryPlanAvailability={categoryPlanAvailability}
+                searchTerm={searchTerm}
+                onRemoveClick={handleRemoveClick}
               />
             ))}
           </div>
         </div>
-      </DragDropContext>
+        
+        <DragOverlay>
+          {activeId ? (
+            <div className="w-12 h-12 bg-white rounded-full shadow-lg border-2 border-purple-500 flex items-center justify-center opacity-90">
+              {(() => {
+                const activeCategory = getActiveCategory()
+                return activeCategory?.category_icon ? (
+                  <img 
+                    src={activeCategory.category_icon} 
+                    alt={activeCategory.category_name}
+                    className="w-6 h-6 rounded-full"
+                  />
+                ) : (
+                  <FolderOpen className="w-6 h-6 text-purple-600" />
+                )
+              })()}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {plans.length === 0 && !loading && (
         <div className="text-center py-16">

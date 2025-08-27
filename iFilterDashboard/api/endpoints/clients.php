@@ -12,6 +12,20 @@ class ClientsAPI extends BaseAPI {
         $method = $_SERVER['REQUEST_METHOD'];
         $action = $_GET['action'] ?? '';
         
+        // Handle URL path for individual client operations
+        $request = $_SERVER['REQUEST_URI'];
+        $path = parse_url($request, PHP_URL_PATH);
+        $pathSegments = explode('/', trim($path, '/'));
+        
+        // Find the clients segment and get the client ID
+        $clientsIndex = array_search('clients', $pathSegments);
+        $clientId = ($clientsIndex !== false && isset($pathSegments[$clientsIndex + 1])) ? $pathSegments[$clientsIndex + 1] : null;
+        
+        // Set PATH_INFO for BaseAPI if we have a client ID
+        if ($clientId && empty($action)) {
+            $_SERVER['PATH_INFO'] = '/' . $clientId;
+        }
+        
         switch ($action) {
             case 'with_details':
                 $this->getClientsWithDetails();
@@ -146,33 +160,32 @@ class ClientsAPI extends BaseAPI {
             }
             
             // Base clients query
-            $baseQuery = "
-                SELECT 
-                    c.*,
-                    CONCAT(c.first_name, ' ', c.last_name) as full_name,
-                    fp.plan_name,
-                    fp.price as plan_price,
-                    fp.feature1,
-                    fp.feature2,
-                    fp.feature3,
-                    cl.level_name,
-                    CASE 
-                        WHEN c.last_sync > DATE_SUB(NOW(), INTERVAL 1 DAY) THEN 'recent'
-                        WHEN c.last_sync > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 'normal'
-                        WHEN c.last_sync IS NOT NULL THEN 'stale'
-                        ELSE 'never'
-                    END as sync_status,
-                    CASE 
-                        WHEN c.plan_expiry_date < NOW() THEN 'expired'
-                        WHEN c.plan_expiry_date < DATE_ADD(NOW(), INTERVAL 7 DAY) THEN 'expiring_soon'
-                        WHEN c.plan_expiry_date < DATE_ADD(NOW(), INTERVAL 30 DAY) THEN 'expiring_month'
-                        ELSE 'active'
-                    END as expiry_status,
-                    DATEDIFF(c.plan_expiry_date, NOW()) as days_until_expiry
-                FROM clients c
-                LEFT JOIN filtering_plans fp ON c.plan_id = fp.plan_id
-                LEFT JOIN client_levels cl ON c.client_level_id = cl.id
-            ";
+    // Base clients query 
+$baseQuery = " 
+    SELECT  
+        c.*, 
+        CONCAT(c.first_name, ' ', c.last_name) as full_name, 
+        fp.plan_name, 
+        fp.price as plan_price, 
+        cl.level_name, 
+        CASE  
+            WHEN c.last_sync > DATE_SUB(NOW(), INTERVAL 1 DAY) THEN 'recent' 
+            WHEN c.last_sync > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 'normal' 
+            WHEN c.last_sync IS NOT NULL THEN 'stale' 
+            ELSE 'never' 
+        END as sync_status, 
+        CASE  
+            WHEN c.plan_expiry_date < NOW() THEN 'expired' 
+            WHEN c.plan_expiry_date < DATE_ADD(NOW(), INTERVAL 7 DAY) THEN 'expiring_soon' 
+            WHEN c.plan_expiry_date < DATE_ADD(NOW(), INTERVAL 30 DAY) THEN 'expiring_month' 
+            ELSE 'active' 
+        END as expiry_status, 
+        DATEDIFF(c.plan_expiry_date, NOW()) as days_until_expiry 
+    FROM clients c 
+    LEFT JOIN filtering_plans fp ON c.plan_id = fp.plan_id 
+    LEFT JOIN client_levels cl ON c.client_level_id = cl.id 
+"; 
+
             
             // Build main query with filters and pagination
             $queryData = $filterBuilder->buildQuery($baseQuery, $_GET);
@@ -307,7 +320,7 @@ class ClientsAPI extends BaseAPI {
             APIResponse::error('Client unique ID and status are required', 400);
         }
         
-        $validStatuses = ['trial', 'active', 'expired', 'suspended', 'pending'];
+        $validStatuses = ['active', 'trial', 'inactive'];
         if (!in_array($status, $validStatuses)) {
             APIResponse::error('Invalid status provided', 400);
         }

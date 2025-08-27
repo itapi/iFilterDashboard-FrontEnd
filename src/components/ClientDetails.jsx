@@ -20,7 +20,6 @@ import {
   AlertTriangle,
   Edit3,
   Save,
-  RefreshCw,
   Activity
 } from 'lucide-react'
 
@@ -67,11 +66,28 @@ const ClientDetails = () => {
     try {
       setSaving(true)
       
-      // Here you would typically update the client data
-      // For now, we'll just update the local state
-      setClient(formData)
-      setEditMode(false)
-      toast.success('פרטי הלקוח עודכנו בהצלחה')
+      // Filter out computed/readonly fields that shouldn't be sent to the API
+      const allowedFields = [
+        'first_name', 'last_name', 'email', 'phone', 'imei', 'deviceID',
+        'model', 'android_version', 'points_balance'
+      ]
+      
+      const updateData = Object.keys(formData)
+        .filter(key => allowedFields.includes(key))
+        .reduce((obj, key) => {
+          obj[key] = formData[key]
+          return obj
+        }, {})
+      
+      const response = await apiClient.updateClient(clientUniqueId, updateData)
+      
+      if (response.success) {
+        setClient(formData)
+        setEditMode(false)
+        toast.success('פרטי הלקוח עודכנו בהצלחה')
+      } else {
+        toast.error(response.message || 'שגיאה בשמירת הנתונים')
+      }
     } catch (err) {
       toast.error('שגיאה בשמירת הנתונים')
       console.error('Error saving client:', err)
@@ -80,55 +96,20 @@ const ClientDetails = () => {
     }
   }
 
-  const handleStatusChange = async (newStatus) => {
-    try {
-      setSaving(true)
-      const response = await apiClient.updateClientStatus(clientUniqueId, newStatus)
-      
-      if (response.success) {
-        setClient(prev => ({ ...prev, plan_status: newStatus }))
-        setFormData(prev => ({ ...prev, plan_status: newStatus }))
-        toast.success('סטטוס הלקוח עודכן בהצלחה')
-      }
-    } catch (err) {
-      toast.error('שגיאה בעדכון הסטטוס')
-      console.error('Error updating status:', err)
-    } finally {
-      setSaving(false)
-    }
-  }
 
-  const handleSyncUpdate = async () => {
-    try {
-      setSaving(true)
-      const response = await apiClient.updateClientSyncStatus(clientUniqueId)
-      
-      if (response.success) {
-        setClient(prev => ({ 
-          ...prev, 
-          last_sync: response.data.last_sync,
-          sync_status: 'recent'
-        }))
-        toast.success('סטטוס הסינכרון עודכן')
-      }
-    } catch (err) {
-      toast.error('שגיאה בעדכון הסינכרון')
-      console.error('Error updating sync:', err)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const getStatusBadge = (status) => {
     const statusConfig = {
       active: { color: 'bg-green-100 text-green-800 border-green-200', label: 'פעיל', icon: CheckCircle },
       trial: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'ניסיון', icon: Zap },
-      expired: { color: 'bg-red-100 text-red-800 border-red-200', label: 'פג תוקף', icon: X },
-      suspended: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', label: 'מושעה', icon: AlertTriangle },
-      pending: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'ממתין', icon: Clock }
+      inactive: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X },
+      // Legacy status mapping for backward compatibility
+      expired: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X },
+      suspended: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X },
+      pending: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X }
     }
     
-    const config = statusConfig[status] || statusConfig.pending
+    const config = statusConfig[status] || statusConfig.inactive
     const Icon = config.icon
     
     return (
@@ -216,15 +197,6 @@ const ClientDetails = () => {
           </div>
           
           <div className="flex   space-x-2">
-            <button 
-              onClick={handleSyncUpdate}
-              disabled={saving}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center   space-x-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>סנכרן</span>
-            </button>
-            
             {editMode ? (
               <>
                 <button 
@@ -262,8 +234,7 @@ const ClientDetails = () => {
               { id: 'overview', label: 'סקירה כללית', icon: User },
               { id: 'plan', label: 'תוכנית ומנוי', icon: Crown },
               { id: 'device', label: 'מכשיר', icon: Smartphone },
-              { id: 'activity', label: 'פעילות', icon: Activity },
-              { id: 'settings', label: 'הגדרות', icon: Settings }
+
             ].map(tab => {
               const Icon = tab.icon
               return (
@@ -379,22 +350,7 @@ const ClientDetails = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">סטטוס תוכנית</label>
-                  <div className="flex items-center justify-between">
-                    {getStatusBadge(client.plan_status)}
-                    {!editMode && (
-                      <select
-                        onChange={(e) => handleStatusChange(e.target.value)}
-                        value=""
-                        className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="">שנה סטטוס</option>
-                        <option value="active">פעיל</option>
-                        <option value="trial">ניסיון</option>
-                        <option value="suspended">מושעה</option>
-                        <option value="expired">פג תוקף</option>
-                      </select>
-                    )}
-                  </div>
+                  {getStatusBadge(client.plan_status)}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">יתרת נקודות</label>
@@ -446,34 +402,7 @@ const ClientDetails = () => {
               </div>
             </div>
 
-            {/* Trial Information */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Zap className="w-5 h-5 ml-2" />
-                מידע ניסיון
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">סטטוס ניסיון</label>
-                  <p className="text-gray-900">
-                    {{
-                      'not_started': 'לא החל',
-                      'active': 'פעיל',
-                      'expired': 'פג תוקף',
-                      'converted': 'הומר למנוי'
-                    }[client.trial_status] || client.trial_status}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">תאריך התחלת ניסיון</label>
-                  <p className="text-gray-900">{formatDate(client.trial_started_date)}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">תאריך תפוגת ניסיון</label>
-                  <p className="text-gray-900">{formatDate(client.trial_expiry_date)}</p>
-                </div>
-              </div>
-            </div>
+     
           </div>
         )}
 
@@ -528,33 +457,7 @@ const ClientDetails = () => {
           </div>
         )}
 
-        {activeTab === 'activity' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Activity className="w-5 h-5 ml-2" />
-              היסטוריית פעילות
-            </h3>
-            <div className="text-center py-8 text-gray-500">
-              <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>אין פעילות להצגה</p>
-              <p className="text-sm">היסטוריית הפעילות תופיע כאן</p>
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'settings' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Settings className="w-5 h-5 ml-2" />
-              הגדרות חשבון
-            </h3>
-            <div className="text-center py-8 text-gray-500">
-              <Settings className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>אין הגדרות זמינות</p>
-              <p className="text-sm">הגדרות החשבון יופיעו כאן</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

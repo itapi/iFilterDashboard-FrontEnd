@@ -18,7 +18,6 @@ import {
   AlertTriangle,
   CheckCircle,
   X,
-  RefreshCw,
   Zap
 } from 'lucide-react'
 
@@ -32,8 +31,7 @@ const ClientsTable = () => {
     all: 0,
     active: 0,
     trial: 0,
-    expired: 0,
-    pending: 0
+    inactive: 0
   })
   const [selectedClients, setSelectedClients] = useState([])
   
@@ -145,8 +143,7 @@ const ClientsTable = () => {
       all: stats.totals?.all_clients || 0,
       active: stats.plan_status?.active || 0,
       trial: stats.plan_status?.trial || 0,
-      expired: stats.plan_status?.expired || 0,
-      pending: stats.plan_status?.pending || 0
+      inactive: (stats.plan_status?.expired || 0) + (stats.plan_status?.suspended || 0) + (stats.plan_status?.pending || 0) + (stats.plan_status?.inactive || 0)
     }
     setFilterCounts(counts)
   }
@@ -176,36 +173,19 @@ const ClientsTable = () => {
     }
   }
 
-  const handleSyncUpdate = async (clientUniqueId) => {
-    try {
-      const response = await apiClient.updateClientSyncStatus(clientUniqueId)
-      if (response.success) {
-        setClients(prev => prev.map(client => 
-          client.client_unique_id === clientUniqueId 
-            ? { 
-                ...client, 
-                last_sync: response.data.last_sync,
-                sync_status: 'recent'
-              }
-            : client
-        ))
-      }
-    } catch (err) {
-      toast.error('שגיאה בעדכון סטטוס הסינכרון')
-      console.error('Error updating sync status:', err)
-    }
-  }
 
   const getStatusBadge = (status) => {
     const statusConfig = {
       active: { color: 'bg-green-100 text-green-800', label: 'פעיל', icon: CheckCircle },
       trial: { color: 'bg-blue-100 text-blue-800', label: 'ניסיון', icon: Zap },
-      expired: { color: 'bg-red-100 text-red-800', label: 'פג תוקף', icon: X },
-      suspended: { color: 'bg-yellow-100 text-yellow-800', label: 'מושעה', icon: AlertTriangle },
-      pending: { color: 'bg-gray-100 text-gray-800', label: 'ממתין', icon: Clock }
+      inactive: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X },
+      // Legacy status mapping for backward compatibility
+      expired: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X },
+      suspended: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X },
+      pending: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X }
     }
     
-    const config = statusConfig[status] || statusConfig.pending
+    const config = statusConfig[status] || statusConfig.inactive
     const Icon = config.icon
     
     return (
@@ -301,25 +281,12 @@ const ClientsTable = () => {
     {
       id: 'plan_status',
       key: 'plan_status',
-      label: 'סטטוס תוכנית',
+      label: 'סטטוס מנוי',
       type: 'custom',
       render: (row) => getStatusBadge(row.plan_status)
     },
-    {
-      id: 'trial_status',
-      key: 'trial_status',
-      label: 'ניסיון',
-      type: 'text',
-      render: (row) => {
-        const trialConfig = {
-          not_started: 'לא החל',
-          active: 'פעיל',
-          expired: 'פג תוקף',
-          converted: 'הומר'
-        }
-        return trialConfig[row.trial_status] || row.trial_status
-      }
-    },
+    
+  
     {
       id: 'device_info',
       key: 'model',
@@ -372,21 +339,9 @@ const ClientsTable = () => {
             <option value="">שנה סטטוס</option>
             <option value="active">פעיל</option>
             <option value="trial">ניסיון</option>
-            <option value="suspended">מושעה</option>
-            <option value="expired">פג תוקף</option>
+            <option value="inactive">לא פעיל</option>
           </select>
           
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleSyncUpdate(row.client_unique_id)
-            }}
-            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
-            data-tooltip-id="sync-tooltip"
-            data-tooltip-content="עדכן סינכרון"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
       )
     }
@@ -474,24 +429,12 @@ const ClientsTable = () => {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center ml-4">
-                <X className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">פג תוקף</p>
-                <p className="text-2xl font-bold text-gray-900">{filterCounts.expired}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center">
               <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center ml-4">
-                <Clock className="w-6 h-6 text-gray-600" />
+                <X className="w-6 h-6 text-gray-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">ממתינים</p>
-                <p className="text-2xl font-bold text-gray-900">{filterCounts.pending}</p>
+                <p className="text-sm text-gray-600">לא פעילים</p>
+                <p className="text-2xl font-bold text-gray-900">{filterCounts.inactive}</p>
               </div>
             </div>
           </div>
@@ -524,17 +467,11 @@ const ClientsTable = () => {
                     icon: <Zap className="w-4 h-4" />
                   },
                   { 
-                    id: 'expired', 
-                    label: 'פג תוקף', 
-                    count: filterCounts.expired,
+                    id: 'inactive', 
+                    label: 'לא פעילים', 
+                    count: filterCounts.inactive,
                     icon: <X className="w-4 h-4" />
-                  },
-                  { 
-                    id: 'pending', 
-                    label: 'ממתינים', 
-                    count: filterCounts.pending,
-                    icon: <Clock className="w-4 h-4" />
-                  }
+  }
                 ]}
                 value={statusFilter}
                 onChange={handleFilterChange}
@@ -593,20 +530,6 @@ const ClientsTable = () => {
         </div>
       )}
 
-      {/* Tooltips */}
-      <Tooltip
-        id="sync-tooltip"
-        style={{
-          backgroundColor: '#1f2937',
-          color: '#f9fafb',
-          borderRadius: '8px',
-          padding: '8px 12px',
-          fontSize: '14px',
-          fontWeight: '500',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          zIndex: 10000
-        }}
-      />
     </div>
   )
 }

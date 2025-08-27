@@ -51,7 +51,7 @@ abstract class BaseAPI {
     public function handleRequest() {
         $method = $_SERVER['REQUEST_METHOD'];
         $pathInfo = $_SERVER['PATH_INFO'] ?? '';
-        $segments = array_filter(explode('/', $pathInfo));
+        $segments = array_values(array_filter(explode('/', $pathInfo)));
         
         switch ($method) {
             case 'GET':

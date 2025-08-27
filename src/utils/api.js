@@ -419,6 +419,13 @@ class ApiClient {
   async getClientByUniqueId(clientUniqueId) {
     return this.apiRequest(`clients/${clientUniqueId}`);
   }
+
+  async updateClient(clientUniqueId, clientData) {
+    return this.apiRequest(`clients/${clientUniqueId}`, {
+      method: 'PUT',
+      body: clientData
+    });
+  }
 }
 
 // Create a singleton instance
