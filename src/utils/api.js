@@ -232,6 +232,13 @@ class ApiClient {
     return this.apiRequest('filtering-plans?action=with_categories');
   }
 
+  async updatePlan(planId, planData) {
+    return this.apiRequest(`filtering-plans/${planId}`, {
+      method: 'PUT',
+      body: planData
+    });
+  }
+
   // Category Plan Availability API
   async getCategoryPlanAvailability() {
     return this.apiRequest('category-plan-availability');

@@ -19,10 +19,11 @@ export const ModalProvider = ({ children }) => {
     props: {},
     onConfirm: null,
     onCancel: null,
-    size: 'lg'
+    size: 'lg',
+    footer: null
   })
 
-  const openModal = ({ type, title, content, props = {}, onConfirm, onCancel, size = 'lg' }) => {
+  const openModal = ({ type, title, content, props = {}, onConfirm, onCancel, size = 'lg', footer = null }) => {
     setModalState({
       isOpen: true,
       type,
@@ -31,7 +32,8 @@ export const ModalProvider = ({ children }) => {
       props,
       onConfirm,
       onCancel,
-      size
+      size,
+      footer
     })
   }
 
@@ -51,7 +53,8 @@ export const ModalProvider = ({ children }) => {
         props: {},
         onConfirm: null,
         onCancel: null,
-        size: 'lg'
+        size: 'lg',
+        footer: null
       })
     }, 300)
   }

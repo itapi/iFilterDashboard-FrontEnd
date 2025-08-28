@@ -29,6 +29,7 @@ const GlobalModal = () => {
       title={modalState.title}
       size={modalState.size}
       showCloseButton={modalState.type !== 'confirm'}
+      footer={modalState.footer}
     >
       {renderModalContent()}
     </Modal>
