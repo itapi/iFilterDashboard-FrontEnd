@@ -166,7 +166,7 @@ $baseQuery = "
         c.*, 
         CONCAT(c.first_name, ' ', c.last_name) as full_name, 
         fp.plan_name, 
-        fp.price as plan_price, 
+ 
         cl.level_name, 
         CASE  
             WHEN c.last_sync > DATE_SUB(NOW(), INTERVAL 1 DAY) THEN 'recent' 

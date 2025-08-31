@@ -404,6 +404,35 @@ class ApiClient {
     });
   }
 
+  async deleteClient(clientUniqueId) {
+    return this.apiRequest(`clients/${clientUniqueId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // Payments API methods
+  async getPaymentsByClient(clientUniqueId, page = 1, limit = 20, sortBy = 'payment_date', sortOrder = 'DESC') {
+    const params = new URLSearchParams({
+      action: 'by_client',
+      client_unique_id: clientUniqueId,
+      page: page.toString(),
+      limit: limit.toString(),
+      sort_by: sortBy,
+      sort_order: sortOrder
+    });
+    
+    return this.apiRequest(`payments?${params.toString()}`);
+  }
+
+  async getClientPaymentSummary(clientUniqueId) {
+    const params = new URLSearchParams({
+      action: 'client_summary',
+      client_unique_id: clientUniqueId
+    });
+    
+    return this.apiRequest(`payments?${params.toString()}`);
+  }
+
   async updateClientPlan(clientUniqueId, planId, startDate, expiryDate) {
     return this.apiRequest('clients?action=update_plan', {
       method: 'PUT',

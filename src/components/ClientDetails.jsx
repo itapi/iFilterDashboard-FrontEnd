@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
+import PaymentsTab from './PaymentsTab'
 import { 
   ArrowRight,
   User,
@@ -234,6 +235,7 @@ const ClientDetails = () => {
               { id: 'overview', label: 'סקירה כללית', icon: User },
               { id: 'plan', label: 'תוכנית ומנוי', icon: Crown },
               { id: 'device', label: 'מכשיר', icon: Smartphone },
+              { id: 'payments', label: 'תשלומים', icon: CreditCard },
 
             ].map(tab => {
               const Icon = tab.icon
@@ -457,6 +459,9 @@ const ClientDetails = () => {
           </div>
         )}
 
+        {activeTab === 'payments' && (
+          <PaymentsTab clientUniqueId={clientUniqueId} />
+        )}
 
       </div>
     </div>

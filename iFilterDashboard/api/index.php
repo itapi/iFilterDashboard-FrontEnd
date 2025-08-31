@@ -42,6 +42,9 @@ switch ($endpoint) {
     case 'clients':
         require_once 'endpoints/clients.php';
         break;
+    case 'payments':
+        require_once 'endpoints/payments.php';
+        break;
     case 'app-configs':
         require_once 'endpoints/app_configs.php';
         break;
@@ -73,6 +76,7 @@ switch ($endpoint) {
                 'categories' => '/api/categories',
                 'users' => '/api/users',
                 'clients' => '/api/clients',
+                'payments' => '/api/payments',
                 'app-configs' => '/api/app-configs',
                 'filtering-plans' => '/api/filtering-plans',
                 'devices' => '/api/devices',
@@ -89,7 +93,7 @@ switch ($endpoint) {
             'success' => false, 
             'error' => "Endpoint '$endpoint' not found",
             'available_endpoints' => [
-                'apps', 'categories', 'users', 'clients', 
+                'apps', 'categories', 'users', 'clients', 'payments',
                 'app-configs', 'filtering-plans', 'devices', 
                 'tickets', 'remote-commands', 'stats'
             ]

@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom'
 import apiClient from '../utils/api'
 import { Table } from './Table/Table'
 import { Toggle } from './Toggle'
+import ConfirmModal from './Modal/ConfirmModal'
+import { Modal } from './Modal/Modal'
+import DebouncedSearch from './DebouncedSearch'
 import { 
   Users, 
   Search, 
@@ -18,7 +21,8 @@ import {
   AlertTriangle,
   CheckCircle,
   X,
-  Zap
+  Zap,
+  Trash2
 } from 'lucide-react'
 
 const ClientsTable = () => {
@@ -35,24 +39,61 @@ const ClientsTable = () => {
   })
   const [selectedClients, setSelectedClients] = useState([])
   
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    client: null
+  })
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [filterLoading, setFilterLoading] = useState(false)
   const itemsPerPage = 25
 
   useEffect(() => {
     loadInitialData()
   }, [])
 
-  // Reload data when filters change
+  // Reload data when status filter changes
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      loadFilteredData()
-    }, 300) // Debounce search
-    
-    return () => clearTimeout(timeoutId)
-  }, [statusFilter, searchTerm])
+    loadFilteredData()
+  }, [statusFilter])
+
+  // Handle search term changes (debounced by component)
+  const handleSearchChange = (newSearchTerm) => {
+    setSearchTerm(newSearchTerm)
+    loadFilteredDataWithTerm(newSearchTerm)
+  }
+
+  const loadFilteredDataWithTerm = async (term = searchTerm) => {
+    try {
+      setSearchLoading(true)
+      setCurrentPage(1)
+      
+      const filters = {
+        plan_status: statusFilter,
+        search: term
+      }
+      
+      const response = await apiClient.getClientsWithDetails(1, itemsPerPage, filters)
+      
+      if (response.success) {
+        const responseData = response.data?.data || response.data || []
+        const pagination = response.data?.pagination
+        
+        setClients(responseData)
+        setHasMore(pagination?.has_more || false)
+      }
+    } catch (err) {
+      toast.error('שגיאה בטעינת הנתונים')
+      console.error('Error loading filtered data:', err)
+    } finally {
+      setSearchLoading(false)
+    }
+  }
 
   const loadInitialData = async () => {
     try {
@@ -84,7 +125,7 @@ const ClientsTable = () => {
 
   const loadFilteredData = async () => {
     try {
-      setLoading(true)
+      setFilterLoading(true)
       setCurrentPage(1)
       
       const filters = {
@@ -105,7 +146,7 @@ const ClientsTable = () => {
       toast.error('שגיאה בטעינת הנתונים')
       console.error('Error loading filtered data:', err)
     } finally {
-      setLoading(false)
+      setFilterLoading(false)
     }
   }
 
@@ -171,6 +212,37 @@ const ClientsTable = () => {
       toast.error('שגיאה בעדכון סטטוס הלקוח')
       console.error('Error updating client status:', err)
     }
+  }
+
+  const handleDeleteClick = (client) => {
+    setDeleteModal({
+      isOpen: true,
+      client
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.client) return
+    
+    try {
+      const response = await apiClient.deleteClient(deleteModal.client.client_unique_id)
+      if (response.success) {
+        setClients(prev => prev.filter(client => 
+          client.client_unique_id !== deleteModal.client.client_unique_id
+        ))
+        toast.success('הלקוח נמחק בהצלחה')
+        setDeleteModal({ isOpen: false, client: null })
+      } else {
+        toast.error('שגיאה במחיקת הלקוח')
+      }
+    } catch (err) {
+      toast.error('שגיאה במחיקת הלקוח')
+      console.error('Error deleting client:', err)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, client: null })
   }
 
 
@@ -342,6 +414,17 @@ const ClientsTable = () => {
             <option value="inactive">לא פעיל</option>
           </select>
           
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDeleteClick(row)
+            }}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="מחק לקוח"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+          
         </div>
       )
     }
@@ -483,16 +566,13 @@ const ClientsTable = () => {
             {/* Search */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">חיפוש</label>
-              <div className="relative">
-                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pr-10 pl-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="חפש לפי שם, אימייל, טלפון או IMEI..."
-                />
-              </div>
+              <DebouncedSearch
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="חפש לפי שם, אימייל, טלפון או IMEI..."
+                delay={300}
+                className="w-full"
+              />
             </div>
           </div>
         </div>
@@ -506,7 +586,7 @@ const ClientsTable = () => {
         tableConfig={tableConfig}
         onLoadMore={loadMoreClients}
         hasMore={hasMore}
-        loading={loadingMore}
+        loading={loadingMore || searchLoading || filterLoading}
         stickyHeader={true}
         onSelectionChange={setSelectedClients}
       />
@@ -529,6 +609,36 @@ const ClientsTable = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteCancel}
+        title="מחיקת לקוח"
+      >
+        <ConfirmModal
+          message={
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                האם אתה בטוח שברצונך למחוק את הלקוח?
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <p className="font-medium text-gray-900">{deleteModal.client?.full_name}</p>
+                <p className="text-sm text-gray-600">{deleteModal.client?.email}</p>
+                <p className="text-xs text-gray-500 font-mono">#{deleteModal.client?.client_unique_id}</p>
+              </div>
+              <p className="text-sm text-red-600">
+                פעולה זו לא ניתנת לביטול ותמחק את כל הנתונים הקשורים ללקוח
+              </p>
+            </div>
+          }
+          variant="danger"
+          confirmText="מחק לקוח"
+          cancelText="ביטול"
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+        />
+      </Modal>
 
     </div>
   )
