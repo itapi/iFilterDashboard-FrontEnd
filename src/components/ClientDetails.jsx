@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
 import PaymentsTab from './PaymentsTab'
+import EditableSection from './EditableSection'
+import { useModal } from '../contexts/ModalContext'
 import { 
   ArrowRight,
   User,
@@ -21,7 +23,16 @@ import {
   AlertTriangle,
   Edit3,
   Save,
-  Activity
+  Activity,
+  Shield,
+  MapPin,
+  Globe,
+  Wifi,
+  RefreshCw,
+  CalendarPlus,
+  Target,
+  CheckCircle2,
+  Search
 } from 'lucide-react'
 
 const ClientDetails = () => {
@@ -33,16 +44,16 @@ const ClientDetails = () => {
   const [loading, setLoading] = useState(!client)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
-  const [editMode, setEditMode] = useState(false)
-  const [formData, setFormData] = useState({})
+  const [availablePlans, setAvailablePlans] = useState([])
+  const [loadingPlans, setLoadingPlans] = useState(false)
+  const { openConfirmModal } = useModal()
 
   useEffect(() => {
     if (!client) {
       loadClientDetails()
-    } else {
-      setFormData(client)
     }
-  }, [clientUniqueId])
+    loadAvailablePlans()
+  }, [clientUniqueId, client])
 
   const loadClientDetails = async () => {
     try {
@@ -51,7 +62,6 @@ const ClientDetails = () => {
       
       if (response.success) {
         setClient(response.data)
-        setFormData(response.data)
       } else {
         toast.error('לקוח לא נמצא')
       }
@@ -63,39 +73,91 @@ const ClientDetails = () => {
     }
   }
 
-  const handleSave = async () => {
+  const loadAvailablePlans = async () => {
+    try {
+      setLoadingPlans(true)
+      const response = await apiClient.getFilteringPlans()
+      if (response.success) {
+        setAvailablePlans(response.data || [])
+      }
+    } catch (err) {
+      console.error('❌ Error loading plans:', err)
+    } finally {
+      setLoadingPlans(false)
+    }
+  }
+
+  const handlePlanChange = (newPlanId, planName) => {
+    const currentPlanName = client.plan_name || 'ללא תוכנית'
+    
+    openConfirmModal({
+      title: 'שינוי תוכנית מנוי',
+      message: (
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">
+            האם אתה בטוח שברצונך לשנות את התוכנית של הלקוח?
+          </p>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <div>
+                <span className="text-gray-500">מ:</span>
+                <span className="font-medium text-gray-900 mr-2">{currentPlanName}</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+              <div>
+                <span className="text-gray-500">אל:</span>
+                <span className="font-medium text-purple-600 mr-2">{planName}</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            פעולה זו תעדכן את התוכנית מיידית
+          </p>
+        </div>
+      ),
+      variant: 'info',
+      confirmText: 'שנה תוכנית',
+      cancelText: 'ביטול',
+      onConfirm: () => executeplanChange(newPlanId, planName)
+    })
+  }
+
+  const executeplanChange = async (newPlanId, planName) => {
     try {
       setSaving(true)
       
-      // Filter out computed/readonly fields that shouldn't be sent to the API
-      const allowedFields = [
-        'first_name', 'last_name', 'email', 'phone', 'imei', 'deviceID',
-        'model', 'android_version', 'points_balance'
-      ]
+      // Set plan start date to today if changing from inactive
+      const updateData = {
+        plan_id: newPlanId,
+        plan_status: 'active'
+      }
       
-      const updateData = Object.keys(formData)
-        .filter(key => allowedFields.includes(key))
-        .reduce((obj, key) => {
-          obj[key] = formData[key]
-          return obj
-        }, {})
+      if (client.plan_status === 'inactive' || !client.plan_start_date) {
+        updateData.plan_start_date = new Date().toISOString().split('T')[0]
+      }
       
       const response = await apiClient.updateClient(clientUniqueId, updateData)
       
       if (response.success) {
-        setClient(formData)
-        setEditMode(false)
-        toast.success('פרטי הלקוח עודכנו בהצלחה')
+        setClient(prev => ({
+          ...prev,
+          plan_id: newPlanId,
+          plan_name: planName,
+          plan_status: 'active',
+          plan_start_date: updateData.plan_start_date || prev.plan_start_date
+        }))
+        toast.success(`התוכנית עודכנה בהצלחה ל"${planName}"`)
       } else {
-        toast.error(response.message || 'שגיאה בשמירת הנתונים')
+        toast.error(response.message || 'שגיאה בשינוי התוכנית')
       }
-    } catch (err) {
-      toast.error('שגיאה בשמירת הנתונים')
-      console.error('Error saving client:', err)
+    } catch (error) {
+      console.error('Error changing plan:', error)
+      toast.error('שגיאה בשינוי התוכנית')
     } finally {
       setSaving(false)
     }
   }
+
 
 
 
@@ -197,46 +259,17 @@ const ClientDetails = () => {
             </div>
           </div>
           
-          <div className="flex   space-x-2">
-            {editMode ? (
-              <>
-                <button 
-                  onClick={() => setEditMode(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  ביטול
-                </button>
-                <button 
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center   space-x-2"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{saving ? 'שומר...' : 'שמור'}</span>
-                </button>
-              </>
-            ) : (
-              <button 
-                onClick={() => setEditMode(true)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center   space-x-2"
-              >
-                <Edit3 className="w-4 h-4" />
-                <span>עריכה</span>
-              </button>
-            )}
-          </div>
         </div>
 
 
         {/* Tabs */}
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-8  ">
+          <nav className="flex space-x-8">
             {[
               { id: 'overview', label: 'סקירה כללית', icon: User },
               { id: 'plan', label: 'תוכנית ומנוי', icon: Crown },
               { id: 'device', label: 'מכשיר', icon: Smartphone },
               { id: 'payments', label: 'תשלומים', icon: CreditCard },
-
             ].map(tab => {
               const Icon = tab.icon
               return (
@@ -249,7 +282,7 @@ const ClientDetails = () => {
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center   space-x-2">
+                  <div className="flex items-center space-x-2">
                     <Icon className="w-4 h-4" />
                     <span>{tab.label}</span>
                   </div>
@@ -260,77 +293,70 @@ const ClientDetails = () => {
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="space-y-6">
+      {/* Tab Content with better spacing */}
+      <div className="mt-8 space-y-8">
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Personal Information */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <User className="w-5 h-5 ml-2" />
-                פרטים אישיים
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">שם פרטי</label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      value={formData.first_name || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">{client.first_name}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">שם משפחה</label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      value={formData.last_name || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    />
-                  ) : (
-                    <p className="text-gray-900">{client.last_name}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">אימייל</label>
-                  {editMode ? (
-                    <input
-                      type="email"
-                      value={formData.email || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    />
-                  ) : (
-                    <div className="flex items-center   space-x-2">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{client.email}</p>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">טלפון</label>
-                  {editMode ? (
-                    <input
-                      type="tel"
-                      value={formData.phone || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    />
-                  ) : (
-                    <div className="flex items-center   space-x-2">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{client.phone}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Personal Information - Now using EditableSection */}
+            <EditableSection
+              title="פרטים אישיים"
+              description="מידע בסיסי על הלקוח"
+              icon={User}
+              data={client}
+              onSave={async (updatedData) => {
+                const allowedFields = ['first_name', 'last_name', 'email', 'phone']
+                const updateData = Object.keys(updatedData)
+                  .filter(key => allowedFields.includes(key))
+                  .reduce((obj, key) => {
+                    obj[key] = updatedData[key]
+                    return obj
+                  }, {})
+                
+                const response = await apiClient.updateClient(clientUniqueId, updateData)
+                if (response.success) {
+                  setClient(prev => ({ ...prev, ...updatedData }))
+                } else {
+                  throw new Error(response.message || 'שגיאה בשמירת הנתונים')
+                }
+              }}
+              fields={[
+                {
+                  key: 'first_name',
+                  label: 'שם פרטי',
+                  type: 'text',
+                  required: true,
+                  placeholder: 'הכנס שם פרטי',
+                  validate: (value) => value && value.length < 2 ? 'שם פרטי חייב להיות לפחות 2 תווים' : true
+                },
+                {
+                  key: 'last_name',
+                  label: 'שם משפחה',
+                  type: 'text',
+                  required: true,
+                  placeholder: 'הכנס שם משפחה',
+                  validate: (value) => value && value.length < 2 ? 'שם משפחה חייב להיות לפחות 2 תווים' : true
+                },
+                {
+                  key: 'email',
+                  label: 'כתובת אימייל',
+                  type: 'email',
+                  icon: Mail,
+                  required: true,
+                  placeholder: 'example@domain.com'
+                },
+                {
+                  key: 'phone',
+                  label: 'מספר טלפון',
+                  type: 'tel',
+                  icon: Phone,
+                  placeholder: '050-1234567',
+                  validate: (value) => {
+                    const phoneRegex = /^[0-9-+\s()]+$/
+                    return value && !phoneRegex.test(value) ? 'מספר טלפון לא תקין' : true
+                  }
+                }
+              ]}
+            />
 
             {/* Account Information */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -365,46 +391,564 @@ const ClientDetails = () => {
 
         {activeTab === 'plan' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Current Plan */}
+            {/* Current Plan Display */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Crown className="w-5 h-5 ml-2" />
-                תוכנית נוכחית
+                תוכנית נוכחית ומנוי
               </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">שם התוכנית</label>
-                  <p className="text-gray-900 font-medium">{client.plan_name || 'ללא תוכנית'}</p>
-                </div>
-                {client.plan_price && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">מחיר</label>
-                    <p className="text-gray-900">₪{client.plan_price}</p>
+              
+              {/* Current Plan Info */}
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h4 className="text-lg font-bold text-gray-900 mb-1">
+                      {client.plan_name || 'ללא תוכנית מוגדרת'}
+                    </h4>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      {client.plan_price && (
+                        <span className="font-medium">₪{client.plan_price}/חודש</span>
+                      )}
+                      <span>סטטוס: {getStatusBadge(client.plan_status)}</span>
+                    </div>
                   </div>
-                )}
+                  
+                  {/* Change Plan Button - Right in the plan display */}
+                  <button 
+                    onClick={() => {
+                      const otherPlans = availablePlans.filter(p => p.plan_id !== client.plan_id)
+                      
+                      if (otherPlans.length === 0) {
+                        toast.info('אין תוכניות זמינות לשינוי')
+                        return
+                      }
+                      
+                      openConfirmModal({
+                        title: 'בחירת תוכנית חדשה',
+                        message: (
+                          <div className="space-y-4" dir="rtl">
+                            <p className="text-gray-600 text-center mb-4">
+                              בחר תוכנית חדשה עבור הלקוח:
+                            </p>
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                              {otherPlans.map(plan => (
+                                <button
+                                  key={plan.plan_id}
+                                  onClick={() => {
+                                    handlePlanChange(plan.plan_id, plan.plan_name)
+                                  }}
+                                  className="w-full p-3 text-right border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-medium text-gray-900">{plan.plan_name}</h4>
+                                      <p className="text-sm text-gray-500">
+                                        ₪{plan.price_monthly}/חודש
+                                      </p>
+                                    </div>
+                                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ),
+                        variant: 'info',
+                        confirmText: '',
+                        cancelText: 'סגור'
+                      })
+                    }}
+                    disabled={loadingPlans || saving || availablePlans.length <= 1}
+                    className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    שנה תוכנית
+                  </button>
+                </div>
+              </div>
+              
+              {/* Plan Details Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">תאריך התחלה</label>
-                  <p className="text-gray-900">{formatDate(client.plan_start_date)}</p>
+                  <label className="block text-gray-500 mb-1">תאריך התחלה</label>
+                  <p className="font-medium text-gray-900">{formatDate(client.plan_start_date)}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">תאריך תפוגה</label>
+                  <label className="block text-gray-500 mb-1">תאריך תפוגה</label>
                   <p className={`font-medium ${
                     client.days_until_expiry < 0 ? 'text-red-600' : 
-                    client.days_until_expiry < 7 ? 'text-yellow-600' : 
-                    'text-gray-900'
+                    client.days_until_expiry < 7 ? 'text-yellow-600' : 'text-gray-900'
                   }`}>
                     {formatDate(client.plan_expiry_date)}
-                    {client.days_until_expiry !== undefined && (
-                      <span className="text-sm text-gray-500 mr-2">
-                        ({client.days_until_expiry < 0 ? 'פג תוקף' : `${client.days_until_expiry} ימים נותרו`})
-                      </span>
-                    )}
                   </p>
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">ימים נותרו</label>
+                  <p className={`font-medium ${
+                    client.days_until_expiry < 0 ? 'text-red-600' : 
+                    client.days_until_expiry < 7 ? 'text-yellow-600' : 'text-green-600'
+                  }`}>
+                    {client.days_until_expiry < 0 ? 'פג תוקף' : `${client.days_until_expiry} ימים`}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">יתרת נקודות</label>
+                  <p className="font-medium text-gray-900">{client.points_balance || 0} נקודות</p>
                 </div>
               </div>
             </div>
 
-     
+            {/* Plan Management Section */}
+            <EditableSection
+              title="עריכת פרטי מנוי"
+              description="עדכון סטטוס מנוי ותאריכים"
+              icon={Settings}
+              data={client}
+              editButtonText="ערוך מנוי"
+              saveButtonText="עדכן מנוי"
+              onSave={async (updatedData) => {
+                // Handle plan management updates
+                const planFields = ['plan_status', 'plan_expiry_date', 'plan_start_date']
+                const updateData = Object.keys(updatedData)
+                  .filter(key => planFields.includes(key))
+                  .reduce((obj, key) => {
+                    obj[key] = updatedData[key]
+                    return obj
+                  }, {})
+                
+                const response = await apiClient.updateClientPlan(clientUniqueId, updateData)
+                if (response.success) {
+                  setClient(prev => ({ ...prev, ...updatedData }))
+                } else {
+                  throw new Error(response.message || 'שגיאה בעדכון המנוי')
+                }
+              }}
+              fields={[
+                {
+                  key: 'plan_status',
+                  label: 'סטטוס מנוי',
+                  type: 'select',
+                  options: [
+                    { value: 'active', label: '✅ פעיל' },
+                    { value: 'trial', label: '🔍 תקופת ניסיון' },
+                    { value: 'inactive', label: '❌ לא פעיל' }
+                  ],
+                  className: 'font-semibold'
+                },
+                {
+                  key: 'plan_expiry_date',
+                  label: 'תאריך תפוגה',
+                  type: 'date',
+                  placeholder: 'בחר תאריך תפוגה חדש',
+                  className: client.days_until_expiry < 0 ? 'text-red-600 font-semibold' : 
+                            client.days_until_expiry < 7 ? 'text-yellow-600 font-semibold' : 'text-gray-900',
+                  validate: (value) => {
+                    const selectedDate = new Date(value)
+                    const today = new Date()
+                    return selectedDate < today ? 'תאריך התפוגה צריך להיות עתידי' : true
+                  }
+                }
+              ]}
+            >
+           
+                <div className="space-y-4">
+                  {/* Quick Actions - Always visible */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <h4 className="text-sm font-medium text-blue-900 mb-3">פעולות מהירות {console.log('🎯 Quick Actions section rendering')}</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {/* Change Plan Button */}
+                        <button 
+                          onClick={() => {
+                            console.log('🔄 Change Plan button clicked!')
+                            console.log('📊 Current client:', client)
+                            console.log('📋 Available plans:', availablePlans)
+                            console.log('🆔 Client plan_id:', client.plan_id)
+                            
+                            const otherPlans = availablePlans.filter(p => p.plan_id !== client.plan_id)
+                            console.log('🎯 Other plans:', otherPlans)
+                            
+                            if (otherPlans.length === 0) {
+                              console.log('⚠️ No other plans available')
+                              toast.info('אין תוכניות זמינות לשינוי')
+                              return
+                            }
+                            
+                            // Show plan selection modal
+                            openConfirmModal({
+                              title: 'בחירת תוכנית חדשה',
+                              message: (
+                                <div className="space-y-4" dir="rtl">
+                                  <p className="text-gray-600 text-center mb-4">
+                                    בחר תוכנית חדשה עבור הלקוח:
+                                  </p>
+                                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    {otherPlans.map(plan => (
+                                      <button
+                                        key={plan.plan_id}
+                                        onClick={() => {
+                                          handlePlanChange(plan.plan_id, plan.plan_name)
+                                        }}
+                                        className="w-full p-3 text-right border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <h4 className="font-medium text-gray-900">{plan.plan_name}</h4>
+                                            <p className="text-sm text-gray-500">
+                                              ₪{plan.price_monthly}/חודש
+                                            </p>
+                                          </div>
+                                          <ArrowRight className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ),
+                              variant: 'info',
+                              confirmText: '',
+                              cancelText: 'סגור'
+                            })
+                          }}
+                          disabled={loadingPlans || saving || availablePlans.length <= 1}
+                          className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        >
+                          {/* Debug info */}
+                          {console.log('🔘 Button render - loadingPlans:', loadingPlans, 'saving:', saving, 'availablePlans.length:', availablePlans.length)}
+                          {/* End debug */}
+                          {saving ? (
+                            <>
+                              <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                              מעדכן...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3 h-3" />
+                              שנה תוכנית
+                            </>
+                          )}
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            try {
+                              // Extend by 1 month
+                              const newDate = new Date(client.plan_expiry_date || new Date())
+                              newDate.setMonth(newDate.getMonth() + 1)
+                              
+                              const response = await apiClient.updateClient(clientUniqueId, {
+                                plan_expiry_date: newDate.toISOString().split('T')[0]
+                              })
+                              
+                              if (response.success) {
+                                setClient(prev => ({ 
+                                  ...prev, 
+                                  plan_expiry_date: newDate.toISOString().split('T')[0]
+                                }))
+                                toast.success('המנוי הוארך בחודש')
+                              } else {
+                                toast.error('שגיאה בהארכת המנוי')
+                              }
+                            } catch {
+                              toast.error('שגיאה בהארכת המנוי')
+                            }
+                          }}
+                          className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                          🗓️ הארך חודש
+                        </button>
+                        
+                        {client.plan_status === 'trial' && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                const response = await apiClient.updateClient(clientUniqueId, {
+                                  plan_status: 'active'
+                                })
+                                
+                                if (response.success) {
+                                  setClient(prev => ({ ...prev, plan_status: 'active' }))
+                                  toast.success('הלקוח הוחל לפעיל')
+                                } else {
+                                  toast.error('שגיאה בעדכון סטטוס')
+                                }
+                              } catch {
+                                toast.error('שגיאה בעדכון סטטוס')
+                              }
+                            }}
+                            className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                          >
+                            ✅ הפוך לפעיל
+                          </button>
+                        )}
+                        
+                        {client.plan_status !== 'trial' && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                // Start 30-day trial
+                                const trialEndDate = new Date()
+                                trialEndDate.setDate(trialEndDate.getDate() + 30)
+                                
+                                const response = await apiClient.updateClient(clientUniqueId, {
+                                  plan_status: 'trial',
+                                  plan_expiry_date: trialEndDate.toISOString().split('T')[0]
+                                })
+                                
+                                if (response.success) {
+                                  setClient(prev => ({ 
+                                    ...prev, 
+                                    plan_status: 'trial',
+                                    plan_expiry_date: trialEndDate.toISOString().split('T')[0]
+                                  }))
+                                  toast.success('תקופת ניסיון של 30 יום הופעלה')
+                                } else {
+                                  toast.error('שגיאה בהפעלת תקופת ניסיון')
+                                }
+                              } catch {
+                                toast.error('שגיאה בהפעלת תקופת ניסיון')
+                              }
+                            }}
+                            className="px-3 py-1.5 text-xs bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+                          >
+                            🔍 תקופת ניסיון 30 יום
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  
+                  {/* Current Plan Info - Always visible */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">מידע נוכחי</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">תוכנית:</span>
+                        <span className="font-medium text-gray-900 mr-2">{client.plan_name || 'ללא תוכנית'}</span>
+                      </div>
+                      {client.plan_price && (
+                        <div>
+                          <span className="text-gray-600">מחיר:</span>
+                          <span className="font-medium text-gray-900 mr-2">₪{client.plan_price}</span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-gray-600">התחלה:</span>
+                        <span className="font-medium text-gray-900 mr-2">{formatDate(client.plan_start_date)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">ימים נותרו:</span>
+                        <span className={`font-medium mr-2 ${
+                          client.days_until_expiry < 0 ? 'text-red-600' : 
+                          client.days_until_expiry < 7 ? 'text-yellow-600' : 
+                          'text-green-600'
+                        }`}>
+                          {client.days_until_expiry < 0 ? 'פג תוקף' : `${client.days_until_expiry} ימים`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+             
+            </EditableSection>
+
+            {/* Quick Actions for Plan Management */}
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+              <h4 className="text-sm font-medium text-blue-900 mb-3">פעולות מהירות</h4>
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={async () => {
+                    try {
+                      setSaving(true)
+                      
+                      const response = await apiClient.extendSubscription(clientUniqueId, 'month')
+                      
+                      if (response.success) {
+                        // Update client with new expiry date from backend
+                        setClient(prev => ({ 
+                          ...prev, 
+                          plan_expiry_date: response.data.new_expiry_date,
+                          days_until_expiry: response.data.days_until_expiry
+                        }))
+                        toast.success(`המנוי הוארך בחודש - תפוגה חדשה: ${new Date(response.data.new_expiry_date).toLocaleDateString('he-IL')}`)
+                      } else {
+                        toast.error(response.message || 'שגיאה בהארכת המנוי')
+                      }
+                    } catch (error) {
+                      console.error('Extend subscription error:', error)
+                      toast.error('שגיאה בהארכת המנוי')
+                    } finally {
+                      setSaving(false)
+                    }
+                  }}
+                  disabled={saving}
+                  className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  {saving ? (
+                    <>
+                      <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                      מאריך...
+                    </>
+                  ) : (
+                    <>
+                      <CalendarPlus className="w-3 h-3" />
+                      הארך חודש
+                    </>
+                  )}
+                </button>
+                
+                <button 
+                  onClick={async () => {
+                    try {
+                      setSaving(true)
+                      
+                      const response = await apiClient.extendSubscription(clientUniqueId, 'week')
+                      
+                      if (response.success) {
+                        setClient(prev => ({ 
+                          ...prev, 
+                          plan_expiry_date: response.data.new_expiry_date,
+                          days_until_expiry: response.data.days_until_expiry
+                        }))
+                        toast.success(`המנוי הוארך בשבוע - תפוגה חדשה: ${new Date(response.data.new_expiry_date).toLocaleDateString('he-IL')}`)
+                      } else {
+                        toast.error(response.message || 'שגיאה בהארכת המנוי')
+                      }
+                    } catch (error) {
+                      console.error('Extend subscription error:', error)
+                      toast.error('שגיאה בהארכת המנוי')
+                    } finally {
+                      setSaving(false)
+                    }
+                  }}
+                  disabled={saving}
+                  className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  {saving ? (
+                    <>
+                      <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                      מאריך...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="w-3 h-3" />
+                      הארך שבוע
+                    </>
+                  )}
+                </button>
+                
+                <button 
+                  onClick={async () => {
+                    try {
+                      setSaving(true)
+                      
+                      const response = await apiClient.extendSubscription(clientUniqueId, 'year')
+                      
+                      if (response.success) {
+                        setClient(prev => ({ 
+                          ...prev, 
+                          plan_expiry_date: response.data.new_expiry_date,
+                          days_until_expiry: response.data.days_until_expiry
+                        }))
+                        toast.success(`המנוי הוארך בשנה - תפוגה חדשה: ${new Date(response.data.new_expiry_date).toLocaleDateString('he-IL')}`)
+                      } else {
+                        toast.error(response.message || 'שגיאה בהארכת המנוי')
+                      }
+                    } catch (error) {
+                      console.error('Extend subscription error:', error)
+                      toast.error('שגיאה בהארכת המנוי')
+                    } finally {
+                      setSaving(false)
+                    }
+                  }}
+                  disabled={saving}
+                  className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  {saving ? (
+                    <>
+                      <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                      מאריך...
+                    </>
+                  ) : (
+                    <>
+                      <Target className="w-3 h-3" />
+                      הארך שנה
+                    </>
+                  )}
+                </button>
+                
+                {client.plan_status === 'trial' && (
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const response = await apiClient.updateClient(clientUniqueId, {
+                          plan_status: 'active'
+                        })
+                        
+                        if (response.success) {
+                          setClient(prev => ({ ...prev, plan_status: 'active' }))
+                          toast.success('הלקוח הוחל לפעיל')
+                        } else {
+                          toast.error('שגיאה בעדכון סטטוס')
+                        }
+                      } catch {
+                        toast.error('שגיאה בעדכון סטטוס')
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-1"
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    הפוך לפעיל
+                  </button>
+                )}
+                
+                {client.plan_status !== 'trial' && (
+                  <button 
+                    onClick={async () => {
+                      try {
+                        // Start 30-day trial
+                        const trialEndDate = new Date()
+                        trialEndDate.setDate(trialEndDate.getDate() + 30)
+                        
+                        const response = await apiClient.updateClient(clientUniqueId, {
+                          plan_status: 'trial',
+                          plan_expiry_date: trialEndDate.toISOString().split('T')[0]
+                        })
+                        
+                        if (response.success) {
+                          setClient(prev => ({ 
+                            ...prev, 
+                            plan_status: 'trial',
+                            plan_expiry_date: trialEndDate.toISOString().split('T')[0]
+                          }))
+                          toast.success('תקופת ניסיון של 30 יום הופעלה')
+                        } else {
+                          toast.error('שגיאה בהפעלת תקופת ניסיון')
+                        }
+                      } catch {
+                        toast.error('שגיאה בהפעלת תקופת ניסיון')
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors flex items-center gap-1"
+                  >
+                    <Search className="w-3 h-3" />
+                    תקופת ניסיון 30 יום
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Plan History & Analytics */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <History className="w-5 h-5 ml-2" />
+                היסטוריה ונתונים
+              </h3>
+              <div className="space-y-4">
+                <div className="text-center py-8 text-gray-500">
+                  <History className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-600 mb-2">היסטוריית מנויים ושינויים</p>
+                  <p className="text-sm text-gray-500">בפיתוח...</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -464,6 +1008,7 @@ const ClientDetails = () => {
         )}
 
       </div>
+
     </div>
   )
 }

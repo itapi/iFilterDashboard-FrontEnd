@@ -462,6 +462,17 @@ class ApiClient {
       body: clientData
     });
   }
+
+  // Subscription Management
+  async extendSubscription(clientUniqueId, extendBy) {
+    return this.apiRequest('clients?action=extend_subscription', {
+      method: 'POST',
+      body: { 
+        client_unique_id: clientUniqueId,
+        extend_by: extendBy
+      }
+    });
+  }
 }
 
 // Create a singleton instance

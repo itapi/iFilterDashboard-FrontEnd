@@ -45,6 +45,9 @@ class ClientsAPI extends BaseAPI {
             case 'sync_status':
                 $this->updateSyncStatus();
                 break;
+            case 'extend_subscription':
+                $this->extendSubscription();
+                break;
             default:
                 parent::handleRequest();
         }
@@ -426,6 +429,101 @@ $baseQuery = "
         } catch (Exception $e) {
             APIResponse::error('Failed to update sync status: ' . $e->getMessage(), 500);
         }
+    }
+    
+    private function extendSubscription() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            APIResponse::error('Method not allowed', 405);
+        }
+        
+        $input = $this->getJsonInput();
+        $clientUniqueId = $input['client_unique_id'] ?? null;
+        $extendBy = $input['extend_by'] ?? null;
+        
+        if (!$clientUniqueId) {
+            APIResponse::error('Client unique ID is required', 400);
+        }
+        
+        if (!$extendBy) {
+            APIResponse::error('Extension period is required', 400);
+        }
+        
+        // Validate extend_by parameter
+        $validPeriods = ['week', 'month', 'year'];
+        if (!in_array($extendBy, $validPeriods)) {
+            APIResponse::error('Invalid extension period. Must be: week, month, or year', 400);
+        }
+        
+        try {
+            // First, get the current client data
+            $sql = "SELECT plan_expiry_date, plan_status FROM clients WHERE client_unique_id = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param("i", $clientUniqueId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows === 0) {
+                APIResponse::error('Client not found', 404);
+            }
+            
+            $client = $result->fetch_assoc();
+            $currentExpiry = $client['plan_expiry_date'];
+            
+            // Calculate new expiry date based on current expiry or today (whichever is later)
+            $baseDate = $currentExpiry ? max(date('Y-m-d'), $currentExpiry) : date('Y-m-d');
+            $newExpiryDate = $this->calculateNewExpiryDate($baseDate, $extendBy);
+            
+            // Update the client's expiry date
+            $updateSql = "UPDATE clients SET plan_expiry_date = ? WHERE client_unique_id = ?";
+            $updateStmt = $this->conn->prepare($updateSql);
+            $updateStmt->bind_param("si", $newExpiryDate, $clientUniqueId);
+            
+            if ($updateStmt->execute()) {
+                if ($updateStmt->affected_rows > 0) {
+                    // Calculate days until expiry
+                    $daysUntilExpiry = $this->calculateDaysUntilExpiry($newExpiryDate);
+                    
+                    APIResponse::success([
+                        'client_unique_id' => $clientUniqueId,
+                        'new_expiry_date' => $newExpiryDate,
+                        'days_until_expiry' => $daysUntilExpiry,
+                        'extended_by' => $extendBy
+                    ], 'Subscription extended successfully');
+                } else {
+                    APIResponse::error('No changes made', 400);
+                }
+            } else {
+                APIResponse::error('Failed to extend subscription', 500);
+            }
+        } catch (Exception $e) {
+            APIResponse::error('Failed to extend subscription: ' . $e->getMessage(), 500);
+        }
+    }
+    
+    private function calculateNewExpiryDate($baseDate, $extendBy) {
+        $date = new DateTime($baseDate);
+        
+        switch ($extendBy) {
+            case 'week':
+                $date->add(new DateInterval('P7D'));
+                break;
+            case 'month':
+                $date->add(new DateInterval('P1M'));
+                break;
+            case 'year':
+                $date->add(new DateInterval('P1Y'));
+                break;
+        }
+        
+        return $date->format('Y-m-d');
+    }
+    
+    private function calculateDaysUntilExpiry($expiryDate) {
+        $today = new DateTime();
+        $expiry = new DateTime($expiryDate);
+        $interval = $today->diff($expiry);
+        
+        return $interval->invert ? -$interval->days : $interval->days;
     }
 }
 
