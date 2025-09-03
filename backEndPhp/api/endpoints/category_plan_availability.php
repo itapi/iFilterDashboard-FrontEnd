@@ -104,7 +104,8 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
                 SELECT 
                     cpa.*,
                     fp.plan_name,
-                    fp.price,
+                    fp.price_monthly,
+                    fp.price_yearly,
                     fp.image_url
                 FROM category_plan_availability cpa
                 JOIN filtering_plans fp ON cpa.plan_id = fp.plan_id
@@ -136,7 +137,8 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
                     c.category_icon,
                     c.category_description,
                     fp.plan_name,
-                    fp.price,
+                    fp.price_monthly,
+                    fp.price_yearly,
                     fp.image_url,
                     fp.feature1,
                     fp.feature2,

@@ -524,54 +524,110 @@ const CategoryPlanManager = () => {
 
             {/* Gentle Flow Indicator */}
             {plans.length > 0 && (
-              <div className="flex justify-center mb-8">
-                <div className="flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-sm animate-pulse"></div>
-                  <span className="text-sm font-medium text-gray-600">גרור למטה כדי להקצות</span>
-                  <div className="w-2 h-2 bg-blue-500 rounded-sm animate-pulse animation-delay-500"></div>
+              <div className="flex justify-center mb-12">
+                <div className="flex items-center gap-4 px-8 py-4 bg-white/90 backdrop-blur-md rounded-2xl border border-gray-200 shadow-lg">
+                  <svg className="w-5 h-5 text-blue-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                  <span className="text-sm font-semibold text-gray-700">גרור קטגוריות מהבנק אל התכניות</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                    <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Plan Cards - Elegant Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {plans.map(plan => (
-                <div key={plan.plan_id} className="group">
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02]">
-                    {/* Plan Header */}
-                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 border-b border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-bold text-gray-900 text-lg">{plan.plan_name}</h3>
-                          <p className="text-sm text-gray-600">{plan.plan_price ? `₪${plan.plan_price}` : 'מחיר לא הוגדר'}</p>
+            {/* Plan Cards - Modern Grid Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+              {plans.map(plan => {
+                const planCategories = getCategoriesForPlan(plan.plan_id)
+                const monthlyPrice = plan.price_monthly || plan.plan_price || 0
+                const yearlyPrice = plan.price_yearly || (monthlyPrice * 12) || 0
+                
+                return (
+                  <div key={plan.plan_id} className="group">
+                    <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                      {/* Plan Header */}
+                      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 p-6 border-b border-gray-100">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                              {plan.image_url ? (
+                                <img 
+                                  src={plan.image_url} 
+                                  alt={plan.plan_name}
+                                  className="w-8 h-8 rounded-lg object-cover"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none'
+                                    e.target.nextSibling.style.display = 'flex'
+                                  }}
+                                />
+                              ) : null}
+                              <svg 
+                                className={`w-6 h-6 text-white ${plan.image_url ? 'hidden' : 'flex'}`} 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-gray-900 text-xl leading-tight">{plan.plan_name}</h3>
+                              <p className="text-sm text-gray-500 mt-1">{planCategories.length} קטגוריות</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleEditPlan(plan)}
+                            className="w-9 h-9 flex items-center justify-center bg-white/80 hover:bg-white text-gray-600 hover:text-blue-600 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
+                            title="ערוך תכנית"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleEditPlan(plan)}
-                          className="w-8 h-8 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                          title="ערוך תכנית"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
+                        
+                        {/* Pricing */}
+                        <div className="flex items-center gap-4">
+                          {monthlyPrice > 0 && (
+                            <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
+                              <span className="text-sm font-semibold text-gray-700">₪{monthlyPrice}</span>
+                              <span className="text-xs text-gray-500 mr-1">/חודש</span>
+                            </div>
+                          )}
+                          {yearlyPrice > 0 && monthlyPrice !== yearlyPrice && (
+                            <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
+                              <span className="text-sm font-semibold text-gray-700">₪{yearlyPrice}</span>
+                              <span className="text-xs text-gray-500 mr-1">/שנה</span>
+                            </div>
+                          )}
+                          {!monthlyPrice && !yearlyPrice && (
+                            <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
+                              <span className="text-sm text-gray-500">מחיר לא הוגדר</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Plan Content */}
+                      <div className="p-6">
+                        <PlanColumn 
+                          key={`${plan.plan_id}-${categoryPlanAvailability.length}-${categoryPlanAvailability.filter(item => item.plan_id === plan.plan_id).length}-${lastUpdate}`} 
+                          plan={plan} 
+                          categories={categories}
+                          categoryPlanAvailability={categoryPlanAvailability}
+                          searchTerm={searchTerm}
+                          onRemoveClick={handleRemoveClick}
+                          onEditPlan={() => handleEditPlan(plan)}
+                        />
                       </div>
                     </div>
-
-                    {/* Plan Content */}
-                    <div className="p-4">
-                      <PlanColumn 
-                        key={`${plan.plan_id}-${categoryPlanAvailability.length}-${categoryPlanAvailability.filter(item => item.plan_id === plan.plan_id).length}-${lastUpdate}`} 
-                        plan={plan} 
-                        categories={categories}
-                        categoryPlanAvailability={categoryPlanAvailability}
-                        searchTerm={searchTerm}
-                        onRemoveClick={handleRemoveClick}
-                        onEditPlan={() => handleEditPlan(plan)}
-                      />
-                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
             
             <DragOverlay>

@@ -3,3 +3,35 @@
 @theme {
   --font-family-sans: "Rubik", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
+
+@layer base {
+  /* Global button cursor styles with maximum specificity */
+  button:not(:disabled):not([disabled]),
+  [role="button"]:not(:disabled):not([disabled]),
+  input[type="button"]:not(:disabled):not([disabled]),
+  input[type="submit"]:not(:disabled):not([disabled]),
+  input[type="reset"]:not(:disabled):not([disabled]) {
+    cursor: pointer !important;
+  }
+
+  button:disabled,
+  button[disabled],
+  [role="button"]:disabled,
+  [role="button"][disabled] {
+    cursor: not-allowed !important;
+  }
+}
+
+@layer utilities {
+  /* Override any Tailwind cursor utilities on buttons */
+  button:not(:disabled):not([disabled]),
+  [role="button"]:not(:disabled):not([disabled]) {
+    cursor: pointer !important;
+  }
+  
+  button.cursor-default:not(:disabled):not([disabled]),
+  button.cursor-auto:not(:disabled):not([disabled]),
+  button.cursor-text:not(:disabled):not([disabled]) {
+    cursor: pointer !important;
+  }
+}

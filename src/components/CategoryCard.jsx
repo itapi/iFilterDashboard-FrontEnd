@@ -24,10 +24,10 @@ const CategoryCard = ({
     return (
       <div className="relative group">
         <div
-          className={`w-12 h-12 rounded-full shadow-sm border-2 flex items-center justify-center cursor-default transition-all duration-200 ${
+          className={`w-12 h-12 rounded-xl shadow-sm border-2 flex items-center justify-center cursor-default transition-all duration-200 ${
             isOptimistic 
-              ? 'bg-yellow-50 border-yellow-300 animate-pulse' 
-              : 'bg-gray-50 border-gray-300'
+              ? 'bg-amber-50 border-amber-200 animate-pulse shadow-amber-100/50' 
+              : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'
           }`}
           data-tooltip-id="category-tooltip"
           data-tooltip-content={`${category.category_name} - ${isOptimistic ? 'שומר...' : 'מוקצה לתכנית'}`}
@@ -40,8 +40,8 @@ const CategoryCard = ({
             <img 
               src={category.category_icon} 
               alt={category.category_name}
-              className={`w-6 h-6 rounded-full pointer-events-none transition-opacity ${
-                isOptimistic ? 'opacity-60' : 'opacity-80'
+              className={`w-7 h-7 rounded-lg object-cover pointer-events-none transition-opacity ${
+                isOptimistic ? 'opacity-60' : 'opacity-90'
               }`}
               onError={(e) => {
                 e.target.style.display = 'none'
@@ -49,11 +49,11 @@ const CategoryCard = ({
               }}
             />
           ) : (
-            <FolderOpen className={`w-6 h-6 text-gray-600 pointer-events-none transition-opacity ${
+            <FolderOpen className={`w-6 h-6 text-blue-600 pointer-events-none transition-opacity ${
               isOptimistic ? 'opacity-60' : 'opacity-80'
             }`} />
           )}
-          <FolderOpen className="w-6 h-6 text-gray-600 hidden pointer-events-none opacity-80" />
+          <FolderOpen className="w-6 h-6 text-blue-600 hidden pointer-events-none opacity-80" />
         </div>
         {!isOptimistic && (
           <button
@@ -61,7 +61,7 @@ const CategoryCard = ({
               e.stopPropagation()
               onRemoveClick(category.category_id, sourceLocation.replace('plan-', ''), category.category_name, planName)
             }}
-            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
+            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-red-600 shadow-md hover:shadow-lg"
             data-tooltip-id="category-tooltip"
             data-tooltip-content="הסר מהתכנית"
             aria-label="הסר קטגוריה מהתכנית"
@@ -88,16 +88,16 @@ const CategoryCard = ({
   } : undefined
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <div
         ref={setNodeRef}
         style={style}
         {...listeners}
         {...attributes}
-        className={`w-12 h-12 bg-white rounded-full shadow-sm border-2 border-gray-200 flex items-center justify-center ${
+        className={`w-14 h-14 bg-white rounded-xl shadow-md border-2 border-gray-200 flex items-center justify-center transition-all duration-200 ${
           isDragging 
-            ? 'opacity-0' 
-            : 'hover:shadow-md hover:border-purple-300 hover:scale-105 transition-all duration-200 cursor-grab'
+            ? 'opacity-0 scale-95' 
+            : 'hover:shadow-lg hover:border-blue-400 hover:scale-105 cursor-grab active:cursor-grabbing group-hover:ring-2 group-hover:ring-blue-200'
         }`}
         data-tooltip-id="category-tooltip"
         data-tooltip-content={`${category.category_name} - גרור לתכנית${assignedPlansCount > 0 ? ` (מוקצה ל-${assignedPlansCount} תכניות)` : ''}`}
@@ -110,17 +110,24 @@ const CategoryCard = ({
           <img 
             src={category.category_icon} 
             alt={category.category_name}
-            className="w-6 h-6 rounded-full pointer-events-none"
+            className="w-8 h-8 rounded-lg object-cover pointer-events-none"
             onError={(e) => {
               e.target.style.display = 'none'
               e.target.nextSibling.style.display = 'block'
             }}
           />
         ) : (
-          <FolderOpen className="w-6 h-6 text-blue-600 pointer-events-none" />
+          <FolderOpen className="w-7 h-7 text-blue-600 pointer-events-none" />
         )}
-        <FolderOpen className="w-6 h-6 text-blue-600 hidden pointer-events-none" />
+        <FolderOpen className="w-7 h-7 text-blue-600 hidden pointer-events-none" />
       </div>
+      
+      {/* Subtle visual indicator for multi-assigned categories */}
+      {assignedPlansCount > 1 && (
+        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md">
+          {assignedPlansCount}
+        </div>
+      )}
     </div>
   )
 }
