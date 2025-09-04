@@ -11,6 +11,7 @@ import ClientsTable from './components/ClientsTable'
 import ClientDetails from './components/ClientDetails'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
+import MagiskModules from './components/MagiskModules'
 import { ModalProvider } from './contexts/ModalContext'
 import { UserProvider, useUser } from './contexts/UserContext'
 import 'react-toastify/dist/ReactToastify.css'
@@ -55,6 +56,31 @@ function AppContent() {
                   <div className="text-center py-12">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">ניהול משתמשים</h2>
                     <p className="text-gray-600">עמוד זה בפיתוח...</p>
+                  </div>
+                </div>
+              } />
+              <Route path="/uploads/magisk-modules" element={<MagiskModules />} />
+              <Route path="/uploads/xposed-modules" element={
+                <div className="p-8">
+                  <div className="text-center py-12">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">מודולי Xposed</h2>
+                    <p className="text-gray-600">העלאת מודולי Xposed (קבצי APK)</p>
+                  </div>
+                </div>
+              } />
+              <Route path="/uploads/required-apps" element={
+                <div className="p-8">
+                  <div className="text-center py-12">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">אפליקציות נדרשות</h2>
+                    <p className="text-gray-600">העלאת אפליקציות נדרשות (קבצי APK)</p>
+                  </div>
+                </div>
+              } />
+              <Route path="/uploads/other" element={
+                <div className="p-8">
+                  <div className="text-center py-12">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">קבצים אחרים</h2>
+                    <p className="text-gray-600">העלאת קבצים נוספים</p>
                   </div>
                 </div>
               } />

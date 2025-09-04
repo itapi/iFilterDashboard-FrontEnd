@@ -69,6 +69,12 @@ switch ($endpoint) {
     case 'custom-plan-apps':
         require_once 'endpoints/custom_plan_apps.php';
         break;
+    case 'upload':
+        require_once 'endpoints/upload.php';
+        break;
+    case 'uploads':
+        require_once 'endpoints/uploads.php';
+        break;
     case '':
         // API root - show available endpoints
         echo json_encode([
@@ -86,7 +92,9 @@ switch ($endpoint) {
                 'tickets' => '/api/tickets',
                 'remote-commands' => '/api/remote-commands',
                 'stats' => '/api/stats',
-                'custom-plan-apps' => '/api/custom-plan-apps'
+                'custom-plan-apps' => '/api/custom-plan-apps',
+                'upload' => '/api/upload',
+                'uploads' => '/api/uploads'
             ],
             'documentation' => '/api/docs'
         ]);
@@ -99,7 +107,8 @@ switch ($endpoint) {
             'available_endpoints' => [
                 'apps', 'categories', 'users', 'clients', 'payments',
                 'app-configs', 'filtering-plans', 'devices', 
-                'tickets', 'remote-commands', 'stats', 'custom-plan-apps'
+                'tickets', 'remote-commands', 'stats', 'custom-plan-apps',
+                'upload', 'uploads'
             ]
         ]);
 }

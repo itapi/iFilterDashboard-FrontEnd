@@ -5,7 +5,15 @@ import { useUser } from '../contexts/UserContext'
 const Sidebar = () => {
   const { user, logout, userName, userInitials } = useUser()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [expandedMenus, setExpandedMenus] = useState({})
   const location = useLocation()
+
+  const toggleSubmenu = (menuId) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuId]: !prev[menuId]
+    }))
+  }
 
   const menuItems = [
     { 
@@ -69,6 +77,38 @@ const Sidebar = () => {
       )
     },
     { 
+      id: 'uploads',
+      path: '/uploads', 
+      name: 'העלאות קבצים', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      ),
+      submenu: [
+        { 
+          id: 'magisk-modules',
+          path: '/uploads/magisk-modules', 
+          name: 'מודולי Magisk'
+        },
+        { 
+          id: 'xposed-modules',
+          path: '/uploads/xposed-modules', 
+          name: 'מודולי Xposed'
+        },
+        { 
+          id: 'required-apps',
+          path: '/uploads/required-apps', 
+          name: 'אפליקציות נדרשות'
+        },
+        { 
+          id: 'other-uploads',
+          path: '/uploads/other', 
+          name: 'קבצים אחרים'
+        }
+      ]
+    },
+    { 
       id: 'settings',
       path: '/settings', 
       name: 'הגדרות', 
@@ -127,33 +167,99 @@ const Sidebar = () => {
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path
+            const isSubmenuActive = item.submenu && item.submenu.some(subItem => location.pathname === subItem.path)
+            const hasActiveSubmenu = isActive || isSubmenuActive
+            
             return (
               <li key={item.id}>
-                <Link
-                  to={item.path}
-                  className={`w-full flex items-center  space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 shadow-md border border-blue-200'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                  title={isCollapsed ? item.name : ''}
-                >
-                  <div className={`flex-shrink-0 ${
-                    isActive 
-                      ? 'text-blue-600' 
-                      : 'text-gray-400 group-hover:text-gray-600'
-                  }`}>
-                    {item.icon}
-                  </div>
-                  {!isCollapsed && (
-                    <span className="transition-opacity duration-200">{item.name}</span>
-                  )}
-                  {!isCollapsed && isActive && (
-                    <div className="mr-auto">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                {item.submenu ? (
+                  <>
+                    {/* Parent menu item with submenu */}
+                    <button
+                      onClick={() => toggleSubmenu(item.id)}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                        hasActiveSubmenu
+                          ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 shadow-md border border-blue-200'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                      title={isCollapsed ? item.name : ''}
+                    >
+                      <div className={`flex-shrink-0 ${
+                        hasActiveSubmenu 
+                          ? 'text-blue-600' 
+                          : 'text-gray-400 group-hover:text-gray-600'
+                      }`}>
+                        {item.icon}
+                      </div>
+                      {!isCollapsed && (
+                        <>
+                          <span className="flex-1 text-right transition-opacity duration-200">{item.name}</span>
+                          <svg 
+                            className={`w-4 h-4 transition-transform duration-200 ${
+                              expandedMenus[item.id] ? 'rotate-180' : ''
+                            }`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                    
+                    {/* Submenu items */}
+                    {!isCollapsed && expandedMenus[item.id] && (
+                      <ul className="mt-2 mr-4 space-y-1">
+                        {item.submenu.map((subItem) => {
+                          const isSubActive = location.pathname === subItem.path
+                          return (
+                            <li key={subItem.id}>
+                              <Link
+                                to={subItem.path}
+                                className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                                  isSubActive
+                                    ? 'bg-blue-500 text-white shadow-md'
+                                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                                }`}
+                              >
+                                <div className="w-2 h-2 bg-current rounded-full flex-shrink-0"></div>
+                                <span className="transition-opacity duration-200">{subItem.name}</span>
+                              </Link>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  /* Regular menu item */
+                  <Link
+                    to={item.path}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 shadow-md border border-blue-200'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                    title={isCollapsed ? item.name : ''}
+                  >
+                    <div className={`flex-shrink-0 ${
+                      isActive 
+                        ? 'text-blue-600' 
+                        : 'text-gray-400 group-hover:text-gray-600'
+                    }`}>
+                      {item.icon}
                     </div>
-                  )}
-                </Link>
+                    {!isCollapsed && (
+                      <span className="transition-opacity duration-200">{item.name}</span>
+                    )}
+                    {!isCollapsed && isActive && (
+                      <div className="mr-auto">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      </div>
+                    )}
+                  </Link>
+                )}
               </li>
             )
           })}
