@@ -473,6 +473,43 @@ class ApiClient {
       }
     });
   }
+
+  // Custom Plan Apps Management
+  async getClientSelectedApps(clientUniqueId) {
+    return this.apiRequest(`custom-plan-apps?action=get_client_apps&client_unique_id=${clientUniqueId}`);
+  }
+
+  async getAvailableAppsForCustomPlan(clientUniqueId, filters = {}) {
+    let url = `custom-plan-apps?action=get_available_apps&client_unique_id=${clientUniqueId}`;
+    
+    if (filters.categoryId) {
+      url += `&category_id=${filters.categoryId}`;
+    }
+    
+    if (filters.search) {
+      url += `&search=${encodeURIComponent(filters.search)}`;
+    }
+    
+    if (filters.page) {
+      url += `&page=${filters.page}`;
+    }
+    
+    if (filters.limit) {
+      url += `&limit=${filters.limit}`;
+    }
+    
+    return this.apiRequest(url);
+  }
+
+  async updateClientSelectedApps(clientUniqueId, selectedAppIds) {
+    return this.apiRequest('custom-plan-apps?action=update_client_apps', {
+      method: 'POST',
+      body: {
+        client_unique_id: clientUniqueId,
+        selected_app_ids: selectedAppIds
+      }
+    });
+  }
 }
 
 // Create a singleton instance

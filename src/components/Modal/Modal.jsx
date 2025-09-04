@@ -135,7 +135,7 @@ export const Modal = ({
 
         {/* Footer */}
         {footer && (
-          <div className={`p-6 border-t border-gray-100 bg-gray-50 ${footerClassName}`}>
+          <div className={`p-2 border-t border-gray-100 bg-gray-50 ${footerClassName}`}>
             {footer}
           </div>
         )}
