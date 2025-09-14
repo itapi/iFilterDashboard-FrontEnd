@@ -4,7 +4,7 @@ require_once __DIR__ . '/../core/APIResponse.php';
 
 class FilteringPlansAPI extends BaseAPI {
     public function __construct() {
-        parent::__construct('filtering_plans', 'plan_id');
+        parent::__construct('filtering_plans', 'plan_unique_id');
     }
     
     public function handleRequest() {
@@ -26,8 +26,8 @@ class FilteringPlansAPI extends BaseAPI {
     private function getPlansWithCategories() {
         try {
             $sql = "
-                SELECT 
-                    fp.plan_id,
+                SELECT
+                    fp.plan_unique_id,
                     fp.plan_name,
                     fp.image_url,
                     fp.price,
@@ -40,9 +40,9 @@ class FilteringPlansAPI extends BaseAPI {
                         SEPARATOR '|'
                     ) as available_categories
                 FROM filtering_plans fp
-                LEFT JOIN category_plan_availability cpa ON fp.plan_id = cpa.plan_id
+                LEFT JOIN category_plan_availability cpa ON fp.plan_unique_id = cpa.plan_unique_id
                 LEFT JOIN apps_categories ac ON cpa.category_id = ac.category_id
-                GROUP BY fp.plan_id
+                GROUP BY fp.plan_unique_id
                 ORDER BY fp.plan_name
             ";
             
@@ -75,10 +75,10 @@ class FilteringPlansAPI extends BaseAPI {
     }
     
     private function getAvailableCategories() {
-        $planId = $_GET['plan_id'] ?? null;
-        
-        if (!$planId) {
-            APIResponse::error('Plan ID is required', 400);
+        $planUniqueId = $_GET['plan_unique_id'] ?? null;
+
+        if (!$planUniqueId) {
+            APIResponse::error('Plan unique ID is required', 400);
         }
         
         try {
@@ -90,12 +90,12 @@ class FilteringPlansAPI extends BaseAPI {
                     cpa.created_at
                 FROM category_plan_availability cpa
                 JOIN apps_categories ac ON cpa.category_id = ac.category_id
-                WHERE cpa.plan_id = ? AND ac.is_active = 1
+                WHERE cpa.plan_unique_id = ? AND ac.is_active = 1
                 ORDER BY ac.category_name
             ";
             
             $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("i", $planId);
+            $stmt->bind_param("s", $planUniqueId);
             $stmt->execute();
             
             $categories = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);

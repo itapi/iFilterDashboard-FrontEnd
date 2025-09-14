@@ -36,21 +36,21 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
         
         $input = $this->getJsonInput();
         $categoryId = $input['category_id'] ?? null;
-        $planId = $input['plan_id'] ?? null;
-        
-        if (!$categoryId || !$planId) {
-            APIResponse::error('Category ID and Plan ID are required', 400);
+        $planUniqueId = $input['plan_unique_id'] ?? null;
+
+        if (!$categoryId || !$planUniqueId) {
+            APIResponse::error('Category ID and Plan unique ID are required', 400);
         }
         
         try {
-            $sql = "DELETE FROM category_plan_availability WHERE category_id = ? AND plan_id = ?";
+            $sql = "DELETE FROM category_plan_availability WHERE category_id = ? AND plan_unique_id = ?";
             $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("ii", $categoryId, $planId);
+            $stmt->bind_param("is", $categoryId, $planUniqueId);
             
             if ($stmt->execute()) {
                 APIResponse::success([
                     'category_id' => $categoryId,
-                    'plan_id' => $planId
+                    'plan_unique_id' => $planUniqueId
                 ], 'Assignment removed successfully');
             } else {
                 APIResponse::error('Failed to remove assignment', 500);
@@ -61,10 +61,10 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
     }
     
     private function getByPlan() {
-        $planId = $_GET['plan_id'] ?? null;
-        
-        if (!$planId) {
-            APIResponse::error('Plan ID is required', 400);
+        $planUniqueId = $_GET['plan_unique_id'] ?? null;
+
+        if (!$planUniqueId) {
+            APIResponse::error('Plan unique ID is required', 400);
         }
         
         try {
@@ -76,12 +76,12 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
                     c.category_description
                 FROM category_plan_availability cpa
                 JOIN apps_categories c ON cpa.category_id = c.category_id
-                WHERE cpa.plan_id = ? AND c.is_active = 1
+                WHERE cpa.plan_unique_id = ? AND c.is_active = 1
                 ORDER BY c.category_name
             ";
             
             $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("i", $planId);
+            $stmt->bind_param("s", $planUniqueId);
             $stmt->execute();
             
             $assignments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -108,7 +108,7 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
                     fp.price_yearly,
                     fp.image_url
                 FROM category_plan_availability cpa
-                JOIN filtering_plans fp ON cpa.plan_id = fp.plan_id
+                JOIN filtering_plans fp ON cpa.plan_unique_id = fp.plan_unique_id
                 WHERE cpa.category_id = ?
                 ORDER BY fp.plan_name
             ";
@@ -131,7 +131,7 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
                 SELECT 
                     cpa.id,
                     cpa.category_id,
-                    cpa.plan_id,
+                    cpa.plan_unique_id,
                     cpa.created_at,
                     c.category_name,
                     c.category_icon,
@@ -142,11 +142,10 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
                     fp.image_url,
                     fp.feature1,
                     fp.feature2,
-                    fp.feature3,
-                    fp.plan_key
+                    fp.feature3
                 FROM category_plan_availability cpa
                 JOIN apps_categories c ON cpa.category_id = c.category_id
-                JOIN filtering_plans fp ON cpa.plan_id = fp.plan_id
+                JOIN filtering_plans fp ON cpa.plan_unique_id = fp.plan_unique_id
                 WHERE c.is_active = 1
                 ORDER BY fp.plan_name, c.category_name
             ";
@@ -168,15 +167,15 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
         }
         
         // Validate required fields
-        if (!isset($input['category_id']) || !isset($input['plan_id'])) {
-            APIResponse::error('Category ID and Plan ID are required', 400);
+        if (!isset($input['category_id']) || !isset($input['plan_unique_id'])) {
+            APIResponse::error('Category ID and Plan unique ID are required', 400);
         }
         
         try {
             // Check if assignment already exists
-            $checkSql = "SELECT id FROM category_plan_availability WHERE category_id = ? AND plan_id = ?";
+            $checkSql = "SELECT id FROM category_plan_availability WHERE category_id = ? AND plan_unique_id = ?";
             $checkStmt = $this->conn->prepare($checkSql);
-            $checkStmt->bind_param("ii", $input['category_id'], $input['plan_id']);
+            $checkStmt->bind_param("is", $input['category_id'], $input['plan_unique_id']);
             $checkStmt->execute();
             
             if ($checkStmt->get_result()->fetch_assoc()) {
@@ -184,16 +183,16 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
             }
             
             // Create new assignment
-            $sql = "INSERT INTO category_plan_availability (category_id, plan_id, created_at) VALUES (?, ?, NOW())";
+            $sql = "INSERT INTO category_plan_availability (category_id, plan_unique_id, created_at) VALUES (?, ?, NOW())";
             $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("ii", $input['category_id'], $input['plan_id']);
+            $stmt->bind_param("is", $input['category_id'], $input['plan_unique_id']);
             
             if ($stmt->execute()) {
                 $newId = $this->conn->insert_id;
                 APIResponse::success([
                     'id' => $newId,
                     'category_id' => $input['category_id'],
-                    'plan_id' => $input['plan_id']
+                    'plan_unique_id' => $input['plan_unique_id']
                 ], 'Assignment created successfully', 201);
             } else {
                 APIResponse::error('Failed to create assignment', 500);

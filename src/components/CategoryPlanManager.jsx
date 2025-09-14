@@ -473,6 +473,8 @@ const CategoryPlanManager = () => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
+
+            
             {/* Category Bank - Elegant Treasury */}
             <div className="mb-12">
               <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
@@ -519,6 +521,8 @@ const CategoryPlanManager = () => {
                     onRemoveClick={handleRemoveClick}
                   />
                 </div>
+
+                {/* <div></div> */}
               </div>
             </div>
 

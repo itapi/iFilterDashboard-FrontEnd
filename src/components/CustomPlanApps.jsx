@@ -29,8 +29,10 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
   }
 
   useEffect(() => {
-    loadData()
-  }, [clientUniqueId, currentPage, searchTerm, selectedCategory])
+    if (isOpen) {
+      loadData()
+    }
+  }, [clientUniqueId, currentPage, searchTerm, selectedCategory, isOpen])
 
   const loadData = async () => {
     try {
@@ -44,6 +46,18 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
         if (categoriesResponse.success) setCategories(categoriesResponse.data)
       }
 
+      // load currently selected apps from database (only on initial load)
+      if (currentPage === 1 && searchTerm === '' && selectedCategory === 'all' && selectedApps.size === 0) {
+        const selectedAppsResponse = await apiClient.getClientSelectedApps(clientUniqueId)
+        if (selectedAppsResponse.success) {
+          const currentlySelectedIds = new Set(
+            selectedAppsResponse.data.map(app => app.app_id)
+          )
+          setInitialSelectedAppIds(currentlySelectedIds)
+          setSelectedApps(currentlySelectedIds)
+        }
+      }
+
       // load available apps
       const filters = { page: currentPage, limit: 20 }
       if (searchTerm) filters.search = searchTerm
@@ -54,15 +68,6 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
         const newApps = appsResponse.data.data
         setAvailableApps(newApps)
         setPagination(appsResponse.data.pagination)
-
-        // extract initial selected apps on first page / default search
-        if (currentPage === 1 && searchTerm === '' && selectedCategory === 'all') {
-          const currentlySelected = new Set(
-            newApps.filter(app => app.is_selected).map(app => app.app_id)
-          )
-          setInitialSelectedAppIds(currentlySelected)
-          setSelectedApps(currentlySelected)
-        }
       }
 
     } catch (error) {

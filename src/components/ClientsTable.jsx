@@ -329,6 +329,17 @@ const ClientsTable = () => {
       )
     },
     {
+      id: 'email',
+      key: 'email',
+      label: 'אימייל',
+      type: 'text',
+      render: (row) => (
+        <div className="text-sm text-gray-900">
+          {row.email || 'לא זמין'}
+        </div>
+      )
+    },
+    {
       id: 'plan_info',
       key: 'plan_name',
       label: 'תוכנית',
