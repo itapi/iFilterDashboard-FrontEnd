@@ -131,7 +131,7 @@ const ClientDetails = () => {
       
       // Set plan start date to today if changing from inactive
       const updateData = {
-        plan_id: newPlanId,
+        plan_unique_id: newPlanId,
         plan_status: 'active'
       }
       
@@ -144,7 +144,7 @@ const ClientDetails = () => {
       if (response.success) {
         setClient(prev => ({
           ...prev,
-          plan_id: newPlanId,
+          plan_unique_id: newPlanId,
           plan_name: planName,
           plan_status: 'active',
           plan_start_date: updateData.plan_start_date || prev.plan_start_date
@@ -424,7 +424,7 @@ const ClientDetails = () => {
                   {/* Change Plan Button - Right in the plan display */}
                   <button 
                     onClick={() => {
-                      const otherPlans = availablePlans.filter(p => p.plan_id !== client.plan_id)
+                      const otherPlans = availablePlans.filter(p => p.plan_unique_id !== client.plan_unique_id)
                       
                       if (otherPlans.length === 0) {
                         toast.info('אין תוכניות זמינות לשינוי')
@@ -441,9 +441,9 @@ const ClientDetails = () => {
                             <div className="space-y-2 max-h-60 overflow-y-auto">
                               {otherPlans.map(plan => (
                                 <button
-                                  key={plan.plan_id}
+                                  key={plan.plan_unique_id}
                                   onClick={() => {
-                                    handlePlanChange(plan.plan_id, plan.plan_name)
+                                    handlePlanChange(plan.plan_unique_id, plan.plan_name)
                                   }}
                                   className="w-full p-3 text-right border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
                                 >
@@ -570,9 +570,9 @@ const ClientDetails = () => {
                             console.log('🔄 Change Plan button clicked!')
                             console.log('📊 Current client:', client)
                             console.log('📋 Available plans:', availablePlans)
-                            console.log('🆔 Client plan_id:', client.plan_id)
+                            console.log('🆔 Client plan_unique_id:', client.plan_unique_id)
                             
-                            const otherPlans = availablePlans.filter(p => p.plan_id !== client.plan_id)
+                            const otherPlans = availablePlans.filter(p => p.plan_unique_id !== client.plan_unique_id)
                             console.log('🎯 Other plans:', otherPlans)
                             
                             if (otherPlans.length === 0) {
@@ -592,9 +592,9 @@ const ClientDetails = () => {
                                   <div className="space-y-2 max-h-60 overflow-y-auto">
                                     {otherPlans.map(plan => (
                                       <button
-                                        key={plan.plan_id}
+                                        key={plan.plan_unique_id}
                                         onClick={() => {
-                                          handlePlanChange(plan.plan_id, plan.plan_name)
+                                          handlePlanChange(plan.plan_unique_id, plan.plan_name)
                                         }}
                                         className="w-full p-3 text-right border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
                                       >

@@ -106,14 +106,14 @@ class ClientsAPI extends BaseAPI {
                 unset($filters['trial_status']);
             }
             
-            // Map plan_id filter
-            if (isset($filters['plan_id']) && !empty($filters['plan_id'])) {
-                if (is_array($filters['plan_id'])) {
-                    $filterBuilder->addFilter('c.plan_id', $filters['plan_id'], 'in');
+            // Map plan_unique_id filter
+            if (isset($filters['plan_unique_id']) && !empty($filters['plan_unique_id'])) {
+                if (is_array($filters['plan_unique_id'])) {
+                    $filterBuilder->addFilter('c.plan_unique_id', $filters['plan_unique_id'], 'in');
                 } else {
-                    $filterBuilder->addFilter('c.plan_id', $filters['plan_id']);
+                    $filterBuilder->addFilter('c.plan_unique_id', $filters['plan_unique_id']);
                 }
-                unset($filters['plan_id']);
+                unset($filters['plan_unique_id']);
             }
             
             // Handle expiry filters
@@ -142,7 +142,7 @@ class ClientsAPI extends BaseAPI {
             $baseCountQuery = "
                 SELECT COUNT(DISTINCT c.client_unique_id) as total
                 FROM clients c
-                LEFT JOIN filtering_plans fp ON c.plan_id = fp.plan_id
+                LEFT JOIN filtering_plans fp ON c.plan_unique_id = fp.plan_unique_id
                 LEFT JOIN client_levels cl ON c.client_level_id = cl.id
             ";
             
@@ -184,8 +184,8 @@ $baseQuery = "
             ELSE 'active' 
         END as expiry_status, 
         DATEDIFF(c.plan_expiry_date, NOW()) as days_until_expiry 
-    FROM clients c 
-    LEFT JOIN filtering_plans fp ON c.plan_id = fp.plan_id 
+    FROM clients c
+    LEFT JOIN filtering_plans fp ON c.plan_unique_id = fp.plan_unique_id
     LEFT JOIN client_levels cl ON c.client_level_id = cl.id 
 "; 
 
@@ -357,32 +357,32 @@ $baseQuery = "
         
         $input = $this->getJsonInput();
         $clientUniqueId = $input['client_unique_id'] ?? null;
-        $planId = $input['plan_id'] ?? null;
+        $planUniqueId = $input['plan_unique_id'] ?? null;
         $startDate = $input['start_date'] ?? date('Y-m-d H:i:s');
         $expiryDate = $input['expiry_date'] ?? null;
-        
-        if (!$clientUniqueId || !$planId) {
-            APIResponse::error('Client unique ID and Plan ID are required', 400);
+
+        if (!$clientUniqueId || !$planUniqueId) {
+            APIResponse::error('Client unique ID and Plan unique ID are required', 400);
         }
         
         try {
             $sql = "
-                UPDATE clients 
-                SET 
-                    plan_id = ?,
+                UPDATE clients
+                SET
+                    plan_unique_id = ?,
                     plan_start_date = ?,
                     plan_expiry_date = ?,
                     plan_status = 'active'
                 WHERE client_unique_id = ?
             ";
             $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("issi", $planId, $startDate, $expiryDate, $clientUniqueId);
+            $stmt->bind_param("ssss", $planUniqueId, $startDate, $expiryDate, $clientUniqueId);
             
             if ($stmt->execute()) {
                 if ($stmt->affected_rows > 0) {
                     APIResponse::success([
                         'client_unique_id' => $clientUniqueId,
-                        'plan_id' => $planId,
+                        'plan_unique_id' => $planUniqueId,
                         'start_date' => $startDate,
                         'expiry_date' => $expiryDate
                     ], 'Client plan updated successfully');

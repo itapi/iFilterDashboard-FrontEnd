@@ -251,14 +251,14 @@ class ApiClient {
   async assignCategoryToPlan(categoryId, planId) {
     return this.apiRequest('category-plan-availability', {
       method: 'POST',
-      body: { category_id: categoryId, plan_id: planId }
+      body: { category_id: categoryId, plan_unique_id: planId }
     });
   }
 
   async removeCategoryFromPlan(categoryId, planId) {
     return this.apiRequest('category-plan-availability?action=remove', {
       method: 'DELETE',
-      body: { category_id: categoryId, plan_id: planId }
+      body: { category_id: categoryId, plan_unique_id: planId }
     });
   }
 
@@ -382,8 +382,8 @@ class ApiClient {
       url += `&search=${encodeURIComponent(filters.search)}`;
     }
     
-    if (filters.plan_id) {
-      url += `&plan_id=${filters.plan_id}`;
+    if (filters.plan_unique_id) {
+      url += `&plan_unique_id=${filters.plan_unique_id}`;
     }
     
     if (filters.expiring_soon) {
@@ -438,7 +438,7 @@ class ApiClient {
       method: 'PUT',
       body: { 
         client_unique_id: clientUniqueId, 
-        plan_id: planId,
+        plan_unique_id: planId,
         start_date: startDate,
         expiry_date: expiryDate
       }

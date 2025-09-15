@@ -311,7 +311,7 @@ const ClientsTable = () => {
     {
       id: 'client_info',
       key: 'full_name',
-      label: 'פרטי לקוח',
+      label: 'שם מלא ',
       type: 'text',
       render: (row) => (
         <div className="flex items-center   space-x-3">

@@ -31,7 +31,7 @@ const DroppableArea = ({ id, isCategoryBank, planCategories, onRemoveClick, cate
             key={category.category_id}
             category={category} 
             index={index} 
-            sourceLocation={isCategoryBank ? 'bank' : `plan-${plan?.plan_id}`}
+            sourceLocation={isCategoryBank ? 'bank' : `plan-${plan?.plan_unique_id}`}
             planName={plan?.plan_name}
             categoryPlanAvailability={categoryPlanAvailability}
             onRemoveClick={onRemoveClick}
@@ -83,11 +83,11 @@ const PlanColumn = ({
 }) => {
   const getCategoriesForPlan = (planId) => {
     const assignedCategoryIds = categoryPlanAvailability
-      .filter(item => item.plan_id === planId)
+      .filter(item => item.plan_unique_id == planId)
       .map(item => item.category_id)
-    
-    return categories.filter(category => 
-      assignedCategoryIds.includes(parseInt(category.category_id)) &&
+
+    return categories.filter(category =>
+      assignedCategoryIds.includes(category.category_id) &&
       category.category_name.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }
@@ -98,7 +98,7 @@ const PlanColumn = ({
     )
   }
 
-  const planCategories = isCategoryBank ? getAllCategories() : getCategoriesForPlan(plan?.plan_id)
+  const planCategories = isCategoryBank ? getAllCategories() : getCategoriesForPlan(plan?.plan_unique_id)
   
   if (isCategoryBank) {
     return (
@@ -117,7 +117,7 @@ const PlanColumn = ({
     <div className="w-full">
       {/* Plan Categories */}
       <DroppableArea 
-        id={`plan-${plan.plan_id}`}
+        id={`plan-${plan.plan_unique_id}`}
         isCategoryBank={false}
         planCategories={planCategories}
         onRemoveClick={onRemoveClick}

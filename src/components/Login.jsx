@@ -13,7 +13,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    
+
     if (!username || !password) {
       toast.error('נא למלא את כל השדות')
       setIsLoading(false)
@@ -22,7 +22,7 @@ function Login() {
 
     try {
       const response = await apiClient.login(username, password)
-      
+
       if (response.success) {
         toast.success('התחברת בהצלחה!')
         login(response.user, response.token)

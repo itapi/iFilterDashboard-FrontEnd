@@ -135,14 +135,7 @@ class CategoryPlanAvailabilityAPI extends BaseAPI {
                     cpa.created_at,
                     c.category_name,
                     c.category_icon,
-                    c.category_description,
-                    fp.plan_name,
-                    fp.price_monthly,
-                    fp.price_yearly,
-                    fp.image_url,
-                    fp.feature1,
-                    fp.feature2,
-                    fp.feature3
+                    c.category_description
                 FROM category_plan_availability cpa
                 JOIN apps_categories c ON cpa.category_id = c.category_id
                 JOIN filtering_plans fp ON cpa.plan_unique_id = fp.plan_unique_id

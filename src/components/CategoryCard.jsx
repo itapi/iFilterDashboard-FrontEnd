@@ -16,7 +16,7 @@ const CategoryCard = ({
   
   const isOptimistic = !isFromBank && categoryPlanAvailability.some(
     item => item.category_id === parseInt(category.category_id) && 
-             item.plan_id === parseInt(sourceLocation.replace('plan-', '')) &&
+             item.plan_unique_id === parseInt(sourceLocation.replace('plan-', '')) &&
              item.isOptimistic
   )
   

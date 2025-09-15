@@ -18,16 +18,16 @@ const AppCard = ({ app, isSelected, onToggle }) => {
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center flex-shrink-0">
               {app.icon_url && !imageError ? (
                 <img
                   src={app.icon_url}
                   alt={app.app_name}
-                  className="w-8 h-8 rounded-lg"
+                  className="w-12 h-12 rounded-lg"
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <Smartphone className="w-5 h-5 text-blue-600" />
+                <Smartphone className="w-6 h-6 text-blue-600" />
               )}
             </div>
 
@@ -51,22 +51,7 @@ const AppCard = ({ app, isSelected, onToggle }) => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <div className="flex items-center space-x-4">
-            {app.score && (
-              <div className="flex items-center space-x-1">
-                <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                <span>{parseFloat(app.score).toFixed(1)}</span>
-              </div>
-            )}
-            {app.size && (
-              <div className="flex items-center space-x-1">
-                <Download className="w-3 h-3" />
-                <span>{parseFloat(app.size).toFixed(1)}MB</span>
-              </div>
-            )}
-          </div>
-        </div>
+   
       </div>
     </div>
   )

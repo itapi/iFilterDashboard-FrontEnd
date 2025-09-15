@@ -1,26 +1,8 @@
 import { useState, useEffect } from 'react'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
-import { FolderOpen } from 'lucide-react'
+import { Settings, Plus, Check } from 'lucide-react'
 import apiClient from '../utils/api'
 import { useModal } from '../contexts/ModalContext'
-import CategoryCard from './CategoryCard'
-import PlanColumn from './PlanColumn'
 import Statistics from './Statistics'
 
 const CategoryPlanManager = () => {
@@ -29,21 +11,6 @@ const CategoryPlanManager = () => {
   const [categories, setCategories] = useState([])
   const [categoryPlanAvailability, setCategoryPlanAvailability] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [bankSearchTerm, setBankSearchTerm] = useState('')
-  const [lastUpdate, setLastUpdate] = useState(Date.now())
-  const [activeId, setActiveId] = useState(null)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 0,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
 
   useEffect(() => {
     loadData()
@@ -69,8 +36,8 @@ const CategoryPlanManager = () => {
 
       if (availabilityResponse.success) {
         const simpleAvailability = availabilityResponse.data.map(item => ({
-          category_id: parseInt(item.category_id),
-          plan_id: parseInt(item.plan_id),
+          category_id: item.category_id,
+          plan_unique_id: item.plan_unique_id,
           created_at: item.created_at
         }))
         console.log('Loaded availability data:', simpleAvailability)
@@ -84,188 +51,162 @@ const CategoryPlanManager = () => {
     }
   }
 
-  const handleRemoveClick = (categoryId, planId, categoryName, planName) => {
-    const message = (
-      <div>
-        <p className="text-gray-600 mb-4">
-          האם אתה בטוח שברצונך להסיר את הקטגוריה
-        </p>
-        <div className="bg-gray-50 rounded-xl p-4 mb-4">
-          <p className="font-bold text-gray-900">"{categoryName}"</p>
-          <p className="text-sm text-gray-600 mt-1">
-            מהתכנית: <span className="font-medium">{planName}</span>
-          </p>
+  // Get categories assigned to a specific plan
+  const getCategoriesForPlan = (planId) => {
+    const assignedCategoryIds = categoryPlanAvailability
+      .filter(item => item.plan_unique_id == planId)
+      .map(item => item.category_id)
+
+    return categories.filter(category =>
+      assignedCategoryIds.includes(category.category_id)
+    )
+  }
+
+  // Handle opening category management modal for a plan
+  const handleManageCategories = (plan) => {
+    const assignedCategoryIds = categoryPlanAvailability
+      .filter(item => item.plan_unique_id == plan.plan_unique_id)
+      .map(item => item.category_id)
+
+    const formContent = (
+      <div className="p-6" dir="rtl">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+              <Settings className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">{plan.plan_name}</h3>
+              <p className="text-sm text-gray-600">בחר קטגוריות להקצאה לתכנית</p>
+            </div>
+          </div>
         </div>
-        <p className="text-sm text-gray-500">
-          ✨ הקטגוריה תישאר זמינה בבנק הקטגוריות
-        </p>
+
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {categories.map(category => {
+            const isAssigned = assignedCategoryIds.includes(category.category_id)
+            return (
+              <label
+                key={category.category_id}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
+              >
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    defaultChecked={isAssigned}
+                    onChange={(e) => {
+                      const checkbox = e.target
+                      if (checkbox.checked) {
+                        checkbox.closest('label').classList.add('selected')
+                      } else {
+                        checkbox.closest('label').classList.remove('selected')
+                      }
+                    }}
+                    className="w-5 h-5 text-blue-600 bg-gray-50 border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <Check className="w-3 h-3 text-white absolute top-0.5 left-0.5 opacity-0 pointer-events-none" />
+                </div>
+
+                <div className="flex items-center gap-3 flex-1">
+                  {category.category_icon ? (
+                    <img
+                      src={category.category_icon}
+                      alt={category.category_name}
+                      className="w-8 h-8 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <span className="text-xs text-gray-500">📁</span>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{category.category_name}</p>
+                    <p className="text-sm text-gray-500">{category.app_count || 0} אפליקציות</p>
+                  </div>
+                </div>
+              </label>
+            )
+          })}
+        </div>
       </div>
     )
 
-    openConfirmModal({
-      title: 'הסרת קטגוריה',
-      message,
-      confirmText: 'הסר קטגוריה',
-      cancelText: 'ביטול',
-      variant: 'danger',
-      onConfirm: () => handleConfirmRemove(categoryId, planId),
-      onCancel: () => {}
+    const footer = (
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => closeModal()}
+          className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+        >
+          ביטול
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSaveCategoryAssignments(plan)}
+          className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+        >
+          💾 שמור שינויים
+        </button>
+      </div>
+    )
+
+    openModal({
+      type: 'custom',
+      title: 'ניהול קטגוריות',
+      content: formContent,
+      size: 'lg',
+      footer
     })
   }
 
-  const handleConfirmRemove = async (categoryId, planId) => {
-    console.log('Removing category:', { categoryId, planId })
-    console.log('Current availability before remove:', categoryPlanAvailability)
+  // Save category assignments for a plan
+  const handleSaveCategoryAssignments = async (plan) => {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]')
+    const selectedCategoryIds = []
 
-    const numericCategoryId = parseInt(categoryId)
-    const numericPlanId = parseInt(planId)
-
-    const itemToRemove = categoryPlanAvailability.find(item => 
-      item.category_id === numericCategoryId && item.plan_id === numericPlanId
-    )
-
-    if (!itemToRemove) {
-      toast.error('לא נמצאה הקטגוריה להסרה')
-      return
-    }
-
-    const originalItem = { ...itemToRemove }
-
-    setCategoryPlanAvailability(prevState => {
-      const newState = prevState.filter(item => 
-        !(item.category_id === numericCategoryId && item.plan_id === numericPlanId)
-      )
-      console.log('Optimistically removed, new state:', newState)
-      return newState
+    checkboxes.forEach((checkbox, index) => {
+      if (checkbox.checked) {
+        selectedCategoryIds.push(categories[index].category_id)
+      }
     })
 
-    setLastUpdate(Date.now())
-
-    try {
-      await apiClient.removeCategoryFromPlan(categoryId, planId)
-      
-      console.log('Category successfully removed from server')
-      toast.success('קטגוריה הוסרה מהתכנית בהצלחה! ♻️')
-    } catch (err) {
-      console.error('Error removing category from plan:', err)
-      
-      setCategoryPlanAvailability(prevState => {
-        const restoredState = [...prevState, originalItem]
-        console.log('Reverted removal, restored state:', restoredState)
-        return restoredState
-      })
-      
-      toast.error('שגיאה בהסרת הקטגוריה מהתכנית')
-      setLastUpdate(Date.now())
-    }
-  }
-
-  const handleDragStart = (event) => {
-    setActiveId(event.active.id)
-  }
-
-  const getActiveCategory = () => {
-    if (!activeId) return null
-    const categoryId = parseInt(activeId.split('-')[1])
-    return categories.find(cat => cat.category_id === categoryId)
-  }
-
-  const handleDragEnd = async (event) => {
-    const { active, over } = event
-    setActiveId(null)
-    
-    if (!over) return
-
-    if (!active.id.includes('-bank')) {
-      return
-    }
-
-    if (over.id === 'category-bank') {
-      return
-    }
-
-    const categoryId = parseInt(active.id.split('-')[1])
-    const newPlanId = parseInt(over.id.replace('plan-', ''))
-
-    const isAlreadyAssigned = categoryPlanAvailability.some(
-      item => item.category_id === categoryId && item.plan_id === newPlanId
-    )
-
-    if (isAlreadyAssigned) {
-      toast.error('הקטגוריה כבר מוקצית לתכנית זו')
-      return
-    }
-
-    const newAssignment = {
-      category_id: categoryId,
-      plan_id: newPlanId,
-      created_at: new Date().toISOString(),
-      isOptimistic: true
-    }
-
-    setCategoryPlanAvailability(prevState => [
-      ...prevState,
-      newAssignment
-    ])
-
-    setLastUpdate(Date.now())
-
-    try {
-      await apiClient.assignCategoryToPlan(categoryId, newPlanId)
-
-      setCategoryPlanAvailability(prevState => 
-        prevState.map(item => 
-          item.category_id === categoryId && 
-          item.plan_id === newPlanId && 
-          item.isOptimistic
-            ? { ...item, isOptimistic: false }
-            : item
-        )
-      )
-
-      console.log('Category plan availability updated successfully')
-      toast.success('קטגוריה הוקצתה לתכנית בהצלחה! 🎉')
-    } catch (err) {
-      console.error('Error updating category plan availability:', err)
-      
-      setCategoryPlanAvailability(prevState => 
-        prevState.filter(item => 
-          !(item.category_id === categoryId && 
-            item.plan_id === newPlanId && 
-            item.isOptimistic)
-        )
-      )
-      
-      toast.error('שגיאה בהקצאת הקטגוריה')
-      setLastUpdate(Date.now())
-    }
-  }
-
-  const getCategoriesForPlan = (planId) => {
-    const assignedCategoryIds = categoryPlanAvailability
-      .filter(item => item.plan_id === planId)
+    const currentAssignments = categoryPlanAvailability
+      .filter(item => item.plan_unique_id == plan.plan_unique_id)
       .map(item => item.category_id)
-    
-    const planCategories = categories.filter(category => 
-      assignedCategoryIds.includes(parseInt(category.category_id)) &&
-      category.category_name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    
-    console.log(`Plan ${planId} categories:`, planCategories.length, 'assigned IDs:', assignedCategoryIds, 'availability length:', categoryPlanAvailability.length)
-    return planCategories
+
+    // Find categories to add and remove
+    const toAdd = selectedCategoryIds.filter(id => !currentAssignments.includes(id))
+    const toRemove = currentAssignments.filter(id => !selectedCategoryIds.includes(id))
+
+    try {
+      // Add new assignments
+      for (const categoryId of toAdd) {
+        await apiClient.assignCategoryToPlan(categoryId, plan.plan_unique_id)
+        setCategoryPlanAvailability(prev => [...prev, {
+          category_id: categoryId,
+          plan_unique_id: plan.plan_unique_id,
+          created_at: new Date().toISOString()
+        }])
+      }
+
+      // Remove assignments
+      for (const categoryId of toRemove) {
+        await apiClient.removeCategoryFromPlan(categoryId, plan.plan_unique_id)
+        setCategoryPlanAvailability(prev =>
+          prev.filter(item =>
+            !(item.category_id == categoryId && item.plan_unique_id == plan.plan_unique_id)
+          )
+        )
+      }
+
+      toast.success(`קטגוריות עודכנו בהצלחה! 🎉`)
+      closeModal()
+    } catch (err) {
+      console.error('Error updating categories:', err)
+      toast.error('שגיאה בעדכון הקטגוריות')
+    }
   }
 
-  const getAllCategories = () => {
-    return categories.filter(category => 
-      category.category_name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }
-
-  const getBankCategories = () => {
-    return categories.filter(category => 
-      category.category_name.toLowerCase().includes(bankSearchTerm.toLowerCase())
-    )
-  }
 
   const handleEditPlan = (plan) => {
     console.log('Plan object structure:', plan)
@@ -392,11 +333,11 @@ const CategoryPlanManager = () => {
 
   const handleSavePlan = async (plan, planData) => {
     try {
-      await apiClient.updatePlan(plan.plan_id, planData)
+      await apiClient.updatePlan(plan.plan_unique_id, planData)
       
       setPlans(prevPlans => 
         prevPlans.map(p => 
-          p.plan_id === plan.plan_id 
+          p.plan_unique_id === plan.plan_unique_id 
             ? { ...p, ...planData }
             : p
         )
@@ -424,20 +365,6 @@ const CategoryPlanManager = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <style dangerouslySetInnerHTML={{__html: `
-        /* Fix z-index for dragged items */
-        [data-rbd-draggable-id][style*="position: fixed"] {
-          z-index: 9999 !important;
-        }
-        /* Ensure drag portal renders above everything */
-        [data-rbd-drag-handle-context-id] {
-          z-index: 10000 !important;
-        }
-        .animation-delay-500 {
-          animation-delay: 500ms;
-        }
-      `}} />
-      
       {/* Header */}
       <div className="px-8 pt-8 pb-6">
         <div className="max-w-7xl mx-auto">
@@ -449,13 +376,13 @@ const CategoryPlanManager = () => {
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">ניהול תכניות סינון</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              גרור קטגוריות מהבנק אל התכניות • ערוך מחירים ופיצ׳רים • נהל הקצאות בקלות
+              נהל קטגוריות לכל תכנית • ערוך מחירים ופיצ׳רים • הקצה קטגוריות בקלות
             </p>
           </div>
 
           {/* Statistics */}
           <div className="mb-8">
-            <Statistics 
+            <Statistics
               plans={plans}
               categories={categories}
               categoryPlanAvailability={categoryPlanAvailability}
@@ -464,202 +391,140 @@ const CategoryPlanManager = () => {
         </div>
       </div>
 
-      {/* Main Content - Gentle Flow Layout */}
+      {/* Plan Cards - Clean Grid Layout */}
       <div className="px-8 pb-8">
         <div className="max-w-7xl mx-auto">
-          <DndContext 
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+            {plans.map(plan => {
+              const planCategories = getCategoriesForPlan(plan.plan_unique_id)
+              const monthlyPrice = plan.price_monthly || plan.plan_price || 0
+              const yearlyPrice = plan.price_yearly || (monthlyPrice * 12) || 0
 
-            
-            {/* Category Bank - Elegant Treasury */}
-            <div className="mb-12">
-              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-                {/* Bank Header */}
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-8">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-white">🏛️ בנק הקטגוריות</h2>
-                        <p className="text-blue-100 mt-1">גרור קטגוריות מכאן אל התכניות למטה</p>
-                      </div>
-                    </div>
-                    {/* Search in Bank */}
-                    <div className="max-w-xs">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={bankSearchTerm}
-                          onChange={(e) => setBankSearchTerm(e.target.value)}
-                          className="w-full px-4 py-2 pl-10 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/70 focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all"
-                          placeholder="חפש בבנק..."
-                        />
-                        <svg className="absolute left-3 top-2.5 w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bank Content */}
-                <div className="p-8">
-                  <PlanColumn 
-                    key={`bank-${categories.length}-${categoryPlanAvailability.length}-${lastUpdate}`} 
-                    isCategoryBank={true} 
-                    categories={getBankCategories()}
-                    categoryPlanAvailability={categoryPlanAvailability}
-                    searchTerm={bankSearchTerm}
-                    onRemoveClick={handleRemoveClick}
-                  />
-                </div>
-
-                {/* <div></div> */}
-              </div>
-            </div>
-
-            {/* Gentle Flow Indicator */}
-            {plans.length > 0 && (
-              <div className="flex justify-center mb-12">
-                <div className="flex items-center gap-4 px-8 py-4 bg-white/90 backdrop-blur-md rounded-2xl border border-gray-200 shadow-lg">
-                  <svg className="w-5 h-5 text-blue-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                  </svg>
-                  <span className="text-sm font-semibold text-gray-700">גרור קטגוריות מהבנק אל התכניות</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                    <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Plan Cards - Modern Grid Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
-              {plans.map(plan => {
-                const planCategories = getCategoriesForPlan(plan.plan_id)
-                const monthlyPrice = plan.price_monthly || plan.plan_price || 0
-                const yearlyPrice = plan.price_yearly || (monthlyPrice * 12) || 0
-                
-                return (
-                  <div key={plan.plan_id} className="group">
-                    <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                      {/* Plan Header */}
-                      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 p-6 border-b border-gray-100">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                              {plan.image_url ? (
-                                <img 
-                                  src={plan.image_url} 
-                                  alt={plan.plan_name}
-                                  className="w-8 h-8 rounded-lg object-cover"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none'
-                                    e.target.nextSibling.style.display = 'flex'
-                                  }}
-                                />
-                              ) : null}
-                              <svg 
-                                className={`w-6 h-6 text-white ${plan.image_url ? 'hidden' : 'flex'}`} 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-gray-900 text-xl leading-tight">{plan.plan_name}</h3>
-                              <p className="text-sm text-gray-500 mt-1">{planCategories.length} קטגוריות</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleEditPlan(plan)}
-                            className="w-9 h-9 flex items-center justify-center bg-white/80 hover:bg-white text-gray-600 hover:text-blue-600 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
-                            title="ערוך תכנית"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              return (
+                <div key={plan.plan_unique_id} className="group">
+                  <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                    {/* Plan Header */}
+                    <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 p-6 border-b border-gray-100">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                            {plan.image_url ? (
+                              <img
+                                src={plan.image_url}
+                                alt={plan.plan_name}
+                                className="w-8 h-8 rounded-lg object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none'
+                                  e.target.nextSibling.style.display = 'flex'
+                                }}
+                              />
+                            ) : null}
+                            <svg
+                              className={`w-6 h-6 text-white ${plan.image_url ? 'hidden' : 'flex'}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                          </button>
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-xl leading-tight">{plan.plan_name}</h3>
+                            <p className="text-sm text-gray-500 mt-1">{planCategories.length} קטגוריות</p>
+                          </div>
                         </div>
-                        
-                        {/* Pricing */}
-                        <div className="flex items-center gap-4">
-                          {monthlyPrice > 0 && (
-                            <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
-                              <span className="text-sm font-semibold text-gray-700">₪{monthlyPrice}</span>
-                              <span className="text-xs text-gray-500 mr-1">/חודש</span>
-                            </div>
-                          )}
-                          {yearlyPrice > 0 && monthlyPrice !== yearlyPrice && (
-                            <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
-                              <span className="text-sm font-semibold text-gray-700">₪{yearlyPrice}</span>
-                              <span className="text-xs text-gray-500 mr-1">/שנה</span>
-                            </div>
-                          )}
-                          {!monthlyPrice && !yearlyPrice && (
-                            <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
-                              <span className="text-sm text-gray-500">מחיר לא הוגדר</span>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => handleEditPlan(plan)}
+                          className="w-9 h-9 flex items-center justify-center bg-white/80 hover:bg-white text-gray-600 hover:text-blue-600 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
+                          title="ערוך תכנית"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                       </div>
 
-                      {/* Plan Content */}
-                      <div className="p-6">
-                        <PlanColumn 
-                          key={`${plan.plan_id}-${categoryPlanAvailability.length}-${categoryPlanAvailability.filter(item => item.plan_id === plan.plan_id).length}-${lastUpdate}`} 
-                          plan={plan} 
-                          categories={categories}
-                          categoryPlanAvailability={categoryPlanAvailability}
-                          searchTerm={searchTerm}
-                          onRemoveClick={handleRemoveClick}
-                          onEditPlan={() => handleEditPlan(plan)}
-                        />
+                      {/* Pricing */}
+                      <div className="flex items-center gap-4">
+                        {monthlyPrice > 0 && (
+                          <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
+                            <span className="text-sm font-semibold text-gray-700">₪{monthlyPrice}</span>
+                            <span className="text-xs text-gray-500 mr-1">/חודש</span>
+                          </div>
+                        )}
+                        {yearlyPrice > 0 && monthlyPrice !== yearlyPrice && (
+                          <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
+                            <span className="text-sm font-semibold text-gray-700">₪{yearlyPrice}</span>
+                            <span className="text-xs text-gray-500 mr-1">/שנה</span>
+                          </div>
+                        )}
+                        {!monthlyPrice && !yearlyPrice && (
+                          <div className="bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1">
+                            <span className="text-sm text-gray-500">מחיר לא הוגדר</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-            
-            <DragOverlay>
-              {activeId ? (
-                <div className="px-4 py-2 bg-white rounded-xl shadow-xl border-2 border-blue-500 flex items-center gap-2 opacity-95 transform rotate-1">
-                  {(() => {
-                    const activeCategory = getActiveCategory()
-                    return (
-                      <>
-                        {activeCategory?.category_icon ? (
-                          <img 
-                            src={activeCategory.category_icon} 
-                            alt={activeCategory.category_name}
-                            className="w-6 h-6 rounded-lg"
-                          />
+
+                    {/* Plan Content & Category Management */}
+                    <div className="p-6">
+                      {/* Assigned Categories Preview */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-gray-900">קטגוריות מוקצות</h4>
+                          <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                            {planCategories.length}
+                          </span>
+                        </div>
+
+                        {planCategories.length > 0 ? (
+                          <div className="grid grid-cols-1 gap-2 mb-4">
+                            {planCategories.slice(0, 3).map(category => (
+                              <div key={category.category_id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                                {category.category_icon ? (
+                                  <img
+                                    src={category.category_icon}
+                                    alt={category.category_name}
+                                    className="w-6 h-6 rounded object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
+                                    <span className="text-xs">📁</span>
+                                  </div>
+                                )}
+                                <span className="text-sm text-gray-700 truncate">{category.category_name}</span>
+                              </div>
+                            ))}
+                            {planCategories.length > 3 && (
+                              <div className="text-center text-sm text-gray-500 py-1">
+                                +{planCategories.length - 3} עוד
+                              </div>
+                            )}
+                          </div>
                         ) : (
-                          <FolderOpen className="w-6 h-6 text-blue-600" />
+                          <div className="text-center py-8 text-gray-500">
+                            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                              <Plus className="w-6 h-6 text-gray-400" />
+                            </div>
+                            <p className="text-sm">אין קטגוריות מוקצות</p>
+                          </div>
                         )}
-                        <span className="text-sm font-medium text-gray-900 truncate max-w-32">
-                          {activeCategory?.category_name}
-                        </span>
-                      </>
-                    )
-                  })()}
+                      </div>
+
+                      {/* Manage Categories Button */}
+                      <button
+                        onClick={() => handleManageCategories(plan)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                      >
+                        <Settings className="w-4 h-4" />
+                        ניהול קטגוריות
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+              )
+            })}
+          </div>
         </div>
       </div>
 
@@ -674,9 +539,9 @@ const CategoryPlanManager = () => {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">אין תכניות סינון עדיין</h3>
               <p className="text-lg text-gray-600 mb-8 max-w-lg mx-auto">
-                צור תכניות סינון כדי להתחיל בהקצאת קטגוריות מהבנק
+                צור תכניות סינון כדי להתחיל בהקצאת קטגוריות
               </p>
-              <button 
+              <button
                 onClick={loadData}
                 className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
               >
@@ -689,22 +554,6 @@ const CategoryPlanManager = () => {
           </div>
         </div>
       )}
-
-
-      {/* Tooltip */}
-      <Tooltip
-        id="category-tooltip"
-        style={{
-          backgroundColor: '#1f2937',
-          color: '#f9fafb',
-          borderRadius: '12px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          fontWeight: '500',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25)',
-          zIndex: 10000
-        }}
-      />
     </div>
   )
 }
