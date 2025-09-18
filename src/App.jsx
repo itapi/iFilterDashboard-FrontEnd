@@ -5,6 +5,8 @@ import Dashboard from './components/Dashboard'
 import Apps from './components/Apps'
 import AppsManager from './components/AppsManager'
 import CategoryPlanManager from './components/CategoryPlanManager'
+import CommunitiesTable from './components/CommunitiesTable'
+import CommunityDetails from './components/CommunityDetails'
 import TicketsManager from './components/TicketsManager'
 import TicketsTable from './components/TicketsTable'
 import ClientsTable from './components/ClientsTable'
@@ -12,6 +14,7 @@ import ClientDetails from './components/ClientDetails'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
+import Loader from './components/Loader'
 import { ModalProvider } from './contexts/ModalContext'
 import { UserProvider, useUser } from './contexts/UserContext'
 import 'react-toastify/dist/ReactToastify.css'
@@ -24,10 +27,7 @@ function AppContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center space-x-reverse space-x-2">
-          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-gray-600">טוען...</span>
-        </div>
+        <Loader text="טוען..." />
       </div>
     )
   }
@@ -46,6 +46,8 @@ function AppContent() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/apps" element={<AppsManager />} />
                 <Route path="/category-plans" element={<CategoryPlanManager />} />
+                <Route path="/communities" element={<CommunitiesTable />} />
+                <Route path="/communities/:communityId" element={<CommunityDetails />} />
                 <Route path="/tickets" element={<TicketsTable />} />
                 <Route path="/tickets/chat" element={<TicketsManager />} />
                 <Route path="/clients" element={<ClientsTable />} />

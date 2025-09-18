@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
 import { Modal } from './Modal/Modal'
-import { Smartphone, Search, Filter, Check, Loader, Package, Star, Download, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
-import AppCard from './AppCard' // imported separate memoized AppCard
+import { Smartphone, Search, Filter, Check, Package, Star, Download, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
+import AppCard from './AppCard'
+import Loader from './Loader'
 
 const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
   const [availableApps, setAvailableApps] = useState([])
@@ -48,7 +49,7 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
 
       // load currently selected apps from database (only on initial load)
       if (currentPage === 1 && searchTerm === '' && selectedCategory === 'all' && selectedApps.size === 0) {
-        const selectedAppsResponse = await apiClient.getClientSelectedApps(clientUniqueId)
+        const selectedAppsResponse = await apiClient.getPlanSelectedApps(null, clientUniqueId) // Using unified API
         if (selectedAppsResponse.success) {
           const currentlySelectedIds = new Set(
             selectedAppsResponse.data.map(app => app.app_id)
@@ -59,11 +60,15 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
       }
 
       // load available apps
-      const filters = { page: currentPage, limit: 20 }
+      const filters = {
+        clientId: clientUniqueId, // Using unified API
+        page: currentPage,
+        limit: 20
+      }
       if (searchTerm) filters.search = searchTerm
       if (selectedCategory !== 'all') filters.categoryId = selectedCategory
 
-      const appsResponse = await apiClient.getAvailableAppsForCustomPlan(clientUniqueId, filters)
+      const appsResponse = await apiClient.getPlanAvailableApps(filters) // Using unified API
       if (appsResponse.success) {
         const newApps = appsResponse.data.data
         setAvailableApps(newApps)
@@ -104,7 +109,7 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
     try {
       setSaving(true)
       const selectedArray = Array.from(selectedApps)
-      const response = await apiClient.updateClientSelectedApps(clientUniqueId, selectedArray)
+      const response = await apiClient.updatePlanSelectedApps(null, clientUniqueId, selectedArray) // Using unified API
       if (response.success) {
         toast.success(`נשמרו ${selectedArray.length} אפליקציות עבור הלקוח`)
         setInitialSelectedAppIds(new Set(selectedApps))
@@ -149,10 +154,7 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
           className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
         >
           {saving ? (
-            <>
-              <Loader className="w-4 h-4 animate-spin" />
-              <span>שומר...</span>
-            </>
+            <Loader size="sm" variant="white" text="שומר..." />
           ) : (
             <span>שמור שינויים</span>
           )}
@@ -163,12 +165,7 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
 
   const appsGrid = useMemo(() => {
     if (loadingGrid) {
-      return (
-        <div className="flex items-center justify-center py-8">
-          <Loader className="w-6 h-6 animate-spin text-purple-600" />
-          <span className="mr-3 text-gray-700">טוען...</span>
-        </div>
-      )
+      return <Loader center variant="purple" text="טוען..." />
     }
 
     if (availableApps.length === 0) {
@@ -205,9 +202,8 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
         closeOnBackdropClick={false}
         closeOnEscape={false}
       >
-        <div className="p-8 flex items-center justify-center">
-          <Loader className="w-6 h-6 animate-spin text-purple-600" />
-          <span className="mr-3 text-gray-700">טוען אפליקציות...</span>
+        <div className="p-8">
+          <Loader center variant="purple" text="טוען אפליקציות..." />
         </div>
       </Modal>
     )

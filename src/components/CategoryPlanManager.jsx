@@ -4,6 +4,7 @@ import { Settings, Plus, Check } from 'lucide-react'
 import apiClient from '../utils/api'
 import { useModal } from '../contexts/ModalContext'
 import Statistics from './Statistics'
+import Loader from './Loader'
 
 const CategoryPlanManager = () => {
   const { openConfirmModal, openModal, closeModal } = useModal()
@@ -352,15 +353,7 @@ const CategoryPlanManager = () => {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-2xl animate-spin mx-auto mb-6"></div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">טוען תכניות סינון</h3>
-          <p className="text-gray-600">מארגן קטגוריות ותכניות...</p>
-        </div>
-      </div>
-    )
+    return <Loader fullScreen size="2xl" text="טוען תכניות סינון" />
   }
 
   return (
@@ -430,7 +423,6 @@ const CategoryPlanManager = () => {
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-900 text-xl leading-tight">{plan.plan_name}</h3>
-                            <p className="text-sm text-gray-500 mt-1">{planCategories.length} קטגוריות</p>
                           </div>
                         </div>
                         <button

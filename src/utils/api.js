@@ -239,6 +239,93 @@ class ApiClient {
     });
   }
 
+  // Community Plans API
+  async getCommunityPlans(filters = {}) {
+    let url = 'filtering-plans?action=community_plans';
+
+    // Add filter parameters if provided
+    const params = [];
+    if (filters.page) params.push(`page=${filters.page}`);
+    if (filters.limit) params.push(`limit=${filters.limit}`);
+    if (filters.search) params.push(`search=${encodeURIComponent(filters.search)}`);
+    if (filters.is_public !== undefined) params.push(`is_public=${filters.is_public}`);
+
+    if (params.length > 0) {
+      url += '&' + params.join('&');
+    }
+
+    return this.apiRequest(url);
+  }
+
+  async getCommunityPlanDetails(planId) {
+    return this.apiRequest(`filtering-plans/${planId}?action=community_details`);
+  }
+
+  async getCommunityPlanApps(planId) {
+    return this.apiRequest(`community-plan-selected-apps?plan_unique_id=${planId}`);
+  }
+
+  // Unified Plan Selected Apps API (works for both custom personal and community plans)
+  async getPlanSelectedApps(planId = null, clientId = null) {
+    const params = new URLSearchParams();
+    params.append('action', 'get_selected_apps');
+
+    if (planId) {
+      params.append('plan_unique_id', planId);
+    } else if (clientId) {
+      params.append('client_unique_id', clientId);
+    } else {
+      throw new Error('Either planId or clientId must be provided');
+    }
+
+    return this.apiRequest(`plan-selected-apps?${params.toString()}`);
+  }
+
+  async getPlanAvailableApps(filters = {}) {
+    const params = new URLSearchParams();
+    params.append('action', 'get_available_apps');
+
+    // Handle both plan types
+    if (filters.planId || filters.plan_unique_id) {
+      params.append('plan_unique_id', filters.planId || filters.plan_unique_id);
+    } else if (filters.clientId || filters.client_unique_id) {
+      params.append('client_unique_id', filters.clientId || filters.client_unique_id);
+    } else {
+      throw new Error('Either planId or clientId must be provided');
+    }
+
+    // Add other filters
+    if (filters.page) params.append('page', filters.page);
+    if (filters.limit) params.append('limit', filters.limit);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.categoryId) params.append('category_id', filters.categoryId);
+
+    return this.apiRequest(`plan-selected-apps?${params.toString()}`);
+  }
+
+  async updatePlanSelectedApps(planId = null, clientId = null, selectedAppIds = []) {
+    // Build URL with action parameter
+    const params = new URLSearchParams();
+    params.append('action', 'update_selected_apps');
+
+    const data = {
+      selected_app_ids: selectedAppIds
+    };
+
+    if (planId) {
+      data.plan_unique_id = planId;
+    } else if (clientId) {
+      data.client_unique_id = clientId;
+    } else {
+      throw new Error('Either planId or clientId must be provided');
+    }
+
+    return this.apiRequest(`plan-selected-apps?${params.toString()}`, {
+      method: 'POST',
+      body: data
+    });
+  }
+
   // Category Plan Availability API
   async getCategoryPlanAvailability() {
     return this.apiRequest('category-plan-availability');

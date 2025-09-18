@@ -54,6 +54,12 @@ switch ($endpoint) {
     case 'category-plan-availability':
         require_once 'endpoints/category_plan_availability.php';
         break;
+    case 'community-plan-selected-apps':
+        require_once 'endpoints/community_plan_selected_apps.php';
+        break;
+    case 'plan-selected-apps':
+        require_once 'endpoints/plan_selected_apps.php';
+        break;
     case 'devices':
         require_once 'endpoints/devices.php';
         break;
@@ -88,6 +94,8 @@ switch ($endpoint) {
                 'payments' => '/api/payments',
                 'app-configs' => '/api/app-configs',
                 'filtering-plans' => '/api/filtering-plans',
+                'community-plan-selected-apps' => '/api/community-plan-selected-apps',
+                'plan-selected-apps' => '/api/plan-selected-apps',
                 'devices' => '/api/devices',
                 'tickets' => '/api/tickets',
                 'remote-commands' => '/api/remote-commands',
@@ -106,7 +114,7 @@ switch ($endpoint) {
             'error' => "Endpoint '$endpoint' not found",
             'available_endpoints' => [
                 'apps', 'categories', 'users', 'clients', 'payments',
-                'app-configs', 'filtering-plans', 'devices', 
+                'app-configs', 'filtering-plans', 'community-plan-selected-apps', 'plan-selected-apps', 'devices',
                 'tickets', 'remote-commands', 'stats', 'custom-plan-apps',
                 'upload', 'uploads'
             ]
