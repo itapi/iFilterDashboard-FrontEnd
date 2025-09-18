@@ -13,11 +13,13 @@ import {
   Search,
   Filter,
   Grid,
-  List
+  List,
+  Settings
 } from 'lucide-react'
 import apiClient from '../utils/api'
 import Loader from './Loader'
 import { useModal } from '../contexts/ModalContext'
+import CustomPlanApps from './CustomPlanApps'
 
 const CommunityDetails = () => {
   const { communityId } = useParams()
@@ -30,6 +32,7 @@ const CommunityDetails = () => {
   const [appsLoading, setAppsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
+  const [showAppsModal, setShowAppsModal] = useState(false)
 
   useEffect(() => {
     loadCommunityData()
@@ -149,6 +152,32 @@ const CommunityDetails = () => {
       content: formContent,
       size: 'xl'
     })
+  }
+
+  const handleEditApps = () => {
+    setShowAppsModal(true)
+  }
+
+  const handleAppsModalClose = () => {
+    setShowAppsModal(false)
+  }
+
+  const handleAppsSave = async (selectedAppIds) => {
+    // Reload community apps after successful save
+    setAppsLoading(true)
+    try {
+      const appsResponse = await apiClient.getPlanSelectedApps(communityId)
+      if (appsResponse.success) {
+        setCommunityApps(appsResponse.data || [])
+        toast.success('רשימת האפליקציות עודכנה בהצלחה')
+      }
+    } catch (error) {
+      console.error('Error reloading apps:', error)
+      toast.error('שגיאה בטעינת רשימת האפליקציות המעודכנת')
+    } finally {
+      setAppsLoading(false)
+    }
+    setShowAppsModal(false)
   }
 
   const filteredApps = communityApps.filter(app =>
@@ -277,6 +306,15 @@ const CommunityDetails = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
+                  {/* Edit Apps Button */}
+                  <button
+                    onClick={handleEditApps}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>עריכת אפליקציות</span>
+                  </button>
+
                   {/* Search */}
                   <div className="relative">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -394,6 +432,17 @@ const CommunityDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Apps Selection Modal */}
+      {showAppsModal && (
+        <CustomPlanApps
+          planUniqueId={communityId}
+          clientUniqueId={null}
+          isOpen={showAppsModal}
+          onClose={handleAppsModalClose}
+          onSave={handleAppsSave}
+        />
+      )}
     </div>
   )
 }

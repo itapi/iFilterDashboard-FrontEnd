@@ -6,7 +6,7 @@ import { Smartphone, Search, Filter, Check, Package, Star, Download, ChevronLeft
 import AppCard from './AppCard'
 import Loader from './Loader'
 
-const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
+const CustomPlanApps = ({ clientUniqueId, planUniqueId, onClose, onSave, isOpen = true }) => {
   const [availableApps, setAvailableApps] = useState([])
   const [selectedApps, setSelectedApps] = useState(new Set())
   const [categories, setCategories] = useState([])
@@ -33,7 +33,7 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
     if (isOpen) {
       loadData()
     }
-  }, [clientUniqueId, currentPage, searchTerm, selectedCategory, isOpen])
+  }, [clientUniqueId, planUniqueId, currentPage, searchTerm, selectedCategory, isOpen])
 
   const loadData = async () => {
     try {
@@ -49,7 +49,7 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
 
       // load currently selected apps from database (only on initial load)
       if (currentPage === 1 && searchTerm === '' && selectedCategory === 'all' && selectedApps.size === 0) {
-        const selectedAppsResponse = await apiClient.getPlanSelectedApps(null, clientUniqueId) // Using unified API
+        const selectedAppsResponse = await apiClient.getPlanSelectedApps(planUniqueId, clientUniqueId) // Using unified API
         if (selectedAppsResponse.success) {
           const currentlySelectedIds = new Set(
             selectedAppsResponse.data.map(app => app.app_id)
@@ -61,7 +61,8 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
 
       // load available apps
       const filters = {
-        clientId: clientUniqueId, // Using unified API
+        planId: planUniqueId,
+        clientId: clientUniqueId,
         page: currentPage,
         limit: 20
       }
@@ -109,9 +110,10 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
     try {
       setSaving(true)
       const selectedArray = Array.from(selectedApps)
-      const response = await apiClient.updatePlanSelectedApps(null, clientUniqueId, selectedArray) // Using unified API
+      const response = await apiClient.updatePlanSelectedApps(planUniqueId, clientUniqueId, selectedArray) // Using unified API
       if (response.success) {
-        toast.success(`נשמרו ${selectedArray.length} אפליקציות עבור הלקוח`)
+        const entityType = planUniqueId ? 'הקהילה' : 'הלקוח'
+        toast.success(`נשמרו ${selectedArray.length} אפליקציות עבור ${entityType}`)
         setInitialSelectedAppIds(new Set(selectedApps))
         onSave && onSave(selectedArray)
       } else {
@@ -123,7 +125,7 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
     } finally {
       setSaving(false)
     }
-  }, [clientUniqueId, selectedApps, onSave])
+  }, [clientUniqueId, planUniqueId, selectedApps, onSave])
 
   const handleReset = useCallback(() => {
     setSelectedApps(new Set(initialSelectedAppIds))
@@ -214,7 +216,7 @@ const CustomPlanApps = ({ clientUniqueId, onClose, onSave, isOpen = true }) => {
       isOpen={isOpen}
       onClose={onClose}
       size="xl"
-      title="בחירת אפליקציות - מסלול אישי"
+      title={planUniqueId ? "בחירת אפליקציות - קהילה" : "בחירת אפליקציות - מסלול אישי"}
       footer={modalFooter}
       bodyClassName="p-6"
       footerClassName="px-6 py-4"
