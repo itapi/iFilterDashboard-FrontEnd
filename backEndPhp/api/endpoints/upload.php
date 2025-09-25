@@ -67,6 +67,7 @@ function uploadMagiskModule() {
     $fileSize = $input['file_size'] ?? 0;
     $fileType = $input['file_type'] ?? 'application/zip';
     $base64Data = $input['file_data'];
+    $customPath = $input['upload_path'] ?? null; // Optional custom upload path
     
     // Validate base64 data
     if (strpos($base64Data, 'data:') === 0) {
@@ -131,8 +132,17 @@ function uploadMagiskModule() {
             return;
         }
         
+        // Determine upload directory - use custom path if provided, otherwise default
+        $uploadDir = $customPath ? validateAndSanitizePath($customPath) : '../uploads/magisk-modules/';
+
+        if (!$uploadDir) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid upload path provided']);
+            closeDBConnection($conn);
+            return;
+        }
+
         // Create uploads directory if it doesn't exist
-        $uploadDir = '../uploads/magisk-modules/';
         if (!is_dir($uploadDir)) {
             if (!mkdir($uploadDir, 0755, true)) {
                 http_response_code(500);
@@ -172,7 +182,7 @@ function uploadMagiskModule() {
                 SET version = ?, download_url = ?, description = ?, updated_at = CURRENT_TIMESTAMP 
                 WHERE module_name = ?
             ");
-            $downloadUrl = '/iFilterDashboard/uploads/magisk-modules/' . $fileName;
+            $downloadUrl = generateDownloadUrl($uploadDir, $fileName);
             $stmt->bind_param("ssss", 
                 $moduleData['version'],
                 $downloadUrl,
@@ -194,7 +204,7 @@ function uploadMagiskModule() {
                     created_at
                 ) VALUES (?, ?, ?, 1, ?, CURRENT_TIMESTAMP)
             ");
-            $downloadUrl = '/iFilterDashboard/uploads/magisk-modules/' . $fileName;
+            $downloadUrl = generateDownloadUrl($uploadDir, $fileName);
             $stmt->bind_param("ssss", 
                 $moduleData['id'],
                 $moduleData['version'],
@@ -340,6 +350,69 @@ function formatFileSize($bytes) {
     $sizes = ['Bytes', 'KB', 'MB', 'GB'];
     $i = floor(log($bytes) / log($k));
     return round($bytes / pow($k, $i), 2) . ' ' . $sizes[$i];
+}
+
+function validateAndSanitizePath($path) {
+    // Remove any potential directory traversal attempts beyond allowed directories
+    $path = str_replace(['../', '..\\', './'], '', $path);
+
+    // Define allowed base directories
+    $allowedBases = ['../uploads/', '../iFilter/'];
+    $isValidBase = false;
+
+    // Check if path starts with any allowed base, or prepare it to
+    foreach ($allowedBases as $base) {
+        if (str_starts_with($path, $base)) {
+            $isValidBase = true;
+            break;
+        }
+    }
+
+    // If no valid base found, determine appropriate base based on path content
+    if (!$isValidBase) {
+        if (str_starts_with($path, 'iFilter/') || str_contains($path, 'iFilter')) {
+            $path = '../iFilter/' . ltrim(str_replace('iFilter/', '', $path), '/');
+        } else {
+            $path = '../uploads/' . ltrim($path, '/');
+        }
+    }
+
+    // Ensure path ends with slash
+    if (!str_ends_with($path, '/')) {
+        $path .= '/';
+    }
+
+    // Validate that path contains only safe characters
+    if (!preg_match('/^[a-zA-Z0-9\/\-_.]+$/', $path)) {
+        return false;
+    }
+
+    // Final security check - ensure we're only in allowed directories
+    if (!str_starts_with($path, '../uploads/') && !str_starts_with($path, '../iFilter/')) {
+        return false;
+    }
+
+    return $path;
+}
+
+function generateDownloadUrl($uploadDir, $fileName) {
+    // Convert physical path to URL path
+    $webPath = str_replace('../', '/', $uploadDir);
+
+    // Handle different base directories appropriately
+    if (str_contains($uploadDir, '../iFilter/')) {
+        // For iFilter directory, use /iFilter as web path
+        if (!str_starts_with($webPath, '/iFilter/')) {
+            $webPath = '/iFilter' . $webPath;
+        }
+    } else {
+        // For uploads directory, use /iFilterDashboard as web path
+        if (!str_starts_with($webPath, '/iFilterDashboard/')) {
+            $webPath = '/iFilterDashboard' . $webPath;
+        }
+    }
+
+    return $webPath . $fileName;
 }
 
 // Note: Using existing magisk_modules table structure

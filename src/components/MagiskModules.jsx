@@ -7,6 +7,7 @@ import FileUpload from './FileUpload'
 const MagiskModules = () => {
   const [uploadedModules, setUploadedModules] = useState([])
   const [loading, setLoading] = useState(true)
+  const [customUploadPath, setCustomUploadPath] = useState('')
 
   useEffect(() => {
     loadUploadedModules()
@@ -19,15 +20,23 @@ const MagiskModules = () => {
 
   const handleUpload = async (fileData) => {
     try {
+      // Prepare upload data
+      const uploadData = {
+        file_name: fileData.name,
+        file_size: fileData.size,
+        file_type: fileData.type,
+        file_data: fileData.base64
+      }
+
+      // Add custom upload path if specified
+      if (customUploadPath.trim()) {
+        uploadData.upload_path = customUploadPath.trim()
+      }
+
       // Send base64 data instead of FormData
       const response = await apiClient.apiRequest('upload/magisk-module', {
         method: 'POST',
-        body: {
-          file_name: fileData.name,
-          file_size: fileData.size,
-          file_type: fileData.type,
-          file_data: fileData.base64
-        }
+        body: uploadData
       })
 
       if (response.success) {
@@ -75,6 +84,33 @@ const MagiskModules = () => {
           <div className="text-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">העלאת מודול חדש</h2>
             <p className="text-gray-600">העלה קובץ ZIP של מודול Magisk</p>
+          </div>
+
+          {/* Custom Upload Path */}
+          <div className="mb-6">
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <label className="block text-sm font-medium text-blue-900 mb-2">
+                נתיב העלאה מותאם אישית (אופציונלי)
+              </label>
+              <input
+                type="text"
+                value={customUploadPath}
+                onChange={(e) => setCustomUploadPath(e.target.value)}
+                placeholder="magisk-modules-custom/"
+                className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+              <p className="text-xs text-blue-700 mt-2">
+                השאר ריק לשימוש בנתיב ברירת מחדל: <code className="bg-blue-100 px-1 rounded">uploads/magisk-modules/</code>
+                <br />
+                <strong>דוגמאות:</strong>
+                <br />
+                • <code className="bg-blue-100 px-1 rounded">iFilter/modules/</code> - לשמירה בספריית iFilter
+                <br />
+                • <code className="bg-blue-100 px-1 rounded">magisk-custom/</code> - בספריית uploads
+                <br />
+                • <code className="bg-blue-100 px-1 rounded">modules/special/</code> - תת-ספרייה מותאמת
+              </p>
+            </div>
           </div>
 
           <FileUpload

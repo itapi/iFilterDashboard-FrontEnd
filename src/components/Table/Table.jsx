@@ -85,13 +85,24 @@ export const Table = ({
   const handleRowClick = (row, event) => {
     // Don't trigger row click when clicking on checkboxes or editable cells
     if (
-      event.target.type === 'checkbox' || 
+      event.target.type === 'checkbox' ||
       event.target.closest('.editable-cell') ||
       !onRowClick
     ) {
       return;
     }
-    
+
+    // Don't trigger row click if user is selecting text
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      return;
+    }
+
+    // Don't trigger row click if this might be the start of a text selection
+    if (event.detail > 1) {
+      return;
+    }
+
     onRowClick(row);
   };
 
@@ -141,7 +152,7 @@ export const Table = ({
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className={`bg-gray-50 ${stickyHeader ? "sticky top-0 z-10" : ""}`}>
+          <thead className={`bg-gray-50 ${stickyHeader ? "sticky top-0 " : ""}`}>
             <tr>
               {/* Checkbox column for select all */}
               {selectable && (

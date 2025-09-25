@@ -246,7 +246,7 @@ const ClientsTable = () => {
   }
 
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, client) => {
     const statusConfig = {
       active: { color: 'bg-green-100 text-green-800', label: 'פעיל', icon: CheckCircle },
       trial: { color: 'bg-blue-100 text-blue-800', label: 'ניסיון', icon: Zap },
@@ -254,17 +254,32 @@ const ClientsTable = () => {
       // Legacy status mapping for backward compatibility
       expired: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X },
       suspended: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X },
-      pending: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X }
+      pending: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיل', icon: X }
     }
-    
+
     const config = statusConfig[status] || statusConfig.inactive
     const Icon = config.icon
-    
+    const daysRemainingText = getDaysRemainingText(client)
+    const tooltipId = `status-tooltip-${client?.client_unique_id || Math.random()}`
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}>
-        <Icon className="w-3 h-3 ml-1" />
-        {config.label}
-      </span>
+      <div className="relative">
+        <span
+          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}
+          data-tooltip-id={daysRemainingText ? tooltipId : undefined}
+        >
+          <Icon className="w-3 h-3 ml-1" />
+          {config.label}
+        </span>
+        {daysRemainingText && (
+          <Tooltip
+            id={tooltipId}
+            place="top"
+            content={daysRemainingText}
+            className="!bg-gray-900 !text-white !text-xs !px-2 !py-1 !rounded-lg !shadow-lg"
+          />
+        )}
+      </div>
     )
   }
 
@@ -293,6 +308,38 @@ const ClientsTable = () => {
   const formatDateTime = (dateString) => {
     if (!dateString) return 'לא זמין'
     return new Date(dateString).toLocaleString('he-IL')
+  }
+
+  const calculateDaysRemaining = (client) => {
+    const now = new Date()
+    let expiryDate = null
+
+    if (client.plan_status === 'trial' && client.trial_expiry_date) {
+      expiryDate = new Date(client.trial_expiry_date)
+    } else if (client.plan_status === 'active' && client.plan_expiry_date) {
+      expiryDate = new Date(client.plan_expiry_date)
+    }
+
+    if (!expiryDate) return null
+
+    const timeDiff = expiryDate.getTime() - now.getTime()
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24))
+
+    return daysDiff
+  }
+
+  const getDaysRemainingText = (client) => {
+    const daysRemaining = calculateDaysRemaining(client)
+
+    if (daysRemaining === null) return null
+
+    if (daysRemaining > 0) {
+      return `נותרו ${daysRemaining} ימים`
+    } else if (daysRemaining === 0) {
+      return 'פג היום'
+    } else {
+      return `פג לפני ${Math.abs(daysRemaining)} ימים`
+    }
   }
 
   // Define table columns
@@ -366,7 +413,7 @@ const ClientsTable = () => {
       key: 'plan_status',
       label: 'סטטוס מנוי',
       type: 'custom',
-      render: (row) => getStatusBadge(row.plan_status)
+      render: (row) => getStatusBadge(row.plan_status, row)
     },
     
   
