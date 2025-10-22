@@ -1,26 +1,29 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
 import { Modal } from './Modal/Modal'
 import apiClient from '../utils/api'
-import { 
+import {
   Send,
   CheckCircle,
   AlertCircle,
   Clock,
   User,
   Archive,
-  UserCheck
+  UserCheck,
+  ExternalLink
 } from 'lucide-react'
 
-export const TicketDialog = ({ 
-  isOpen, 
-  onClose, 
-  ticket, 
-  currentUser, 
+export const TicketDialog = ({
+  isOpen,
+  onClose,
+  ticket,
+  currentUser,
   users = [],
-  onTicketUpdate 
+  onTicketUpdate
 }) => {
+  const navigate = useNavigate()
   const [ticketUpdates, setTicketUpdates] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -251,8 +254,26 @@ export const TicketDialog = ({
         <div className="p-6 border-b border-gray-100 bg-white">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <div className="flex items-center space-x-reverse space-x-4 text-sm text-gray-600 mb-2">
-                <span>לקוח: {ticket.client_name}</span>
+              <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                <div className="flex items-center  space-x-1.5">
+                  <span>לקוח:</span>
+                  {ticket.client_unique_id ? (
+                    <button
+                      onClick={() => {
+                        navigate(`/clients/${ticket.client_unique_id}`)
+                        onClose()
+                      }}
+                      className="text-purple-600 hover:text-purple-700 font-medium hover:underline flex items-center space-x-reverse space-x-1 transition-colors"
+                      data-tooltip-id="client-link-tooltip"
+                      data-tooltip-content="עבור לעמוד הלקוח"
+                    >
+                      <span>{ticket.client_name}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <span className="font-medium">{ticket.client_name}</span>
+                  )}
+                </div>
                 <span>נפתח: {formatDate(ticket.created_at)}</span>
                 {ticket.assigned_user_name && (
                   <span>מוקצה ל: {ticket.assigned_user_name}</span>
@@ -329,6 +350,19 @@ export const TicketDialog = ({
       {/* Tooltips */}
       <Tooltip
         id="close-ticket-tooltip"
+        style={{
+          backgroundColor: '#1f2937',
+          color: '#f9fafb',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          fontSize: '14px',
+          fontWeight: '500',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          zIndex: 10000
+        }}
+      />
+      <Tooltip
+        id="client-link-tooltip"
         style={{
           backgroundColor: '#1f2937',
           color: '#f9fafb',

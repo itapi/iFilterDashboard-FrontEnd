@@ -22,7 +22,7 @@ const TicketsTable = () => {
   const [tickets, setTickets] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('open')
   const [filterCounts, setFilterCounts] = useState({
     all: 0,
     open: 0,
