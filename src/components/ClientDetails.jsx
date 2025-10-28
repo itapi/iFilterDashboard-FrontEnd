@@ -1021,7 +1021,7 @@ const ClientDetails = () => {
                     <div className="space-y-1">
                       <label className="flex items-center text-sm font-medium text-gray-500 mb-2">
                         <Smartphone className="w-4 h-4 ml-1" />
-                        יצרן ודגם
+                        יצרן  ודגם
                       </label>
                       <p className="text-lg font-semibold text-gray-900">
                         {deviceData.manufacturer || 'לא זמין'}
