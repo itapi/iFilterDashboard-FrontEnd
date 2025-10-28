@@ -48,6 +48,9 @@ class ClientsAPI extends BaseAPI {
             case 'extend_subscription':
                 $this->extendSubscription();
                 break;
+            case 'device_data':
+                $this->getClientDeviceData();
+                break;
             default:
                 parent::handleRequest();
         }
@@ -65,7 +68,6 @@ class ClientsAPI extends BaseAPI {
                 'c.email',
                 'c.phone',
                 'c.imei',
-                'c.deviceID',
                 'fp.plan_name',
                 'cl.level_name'
             ]);
@@ -522,8 +524,97 @@ $baseQuery = "
         $today = new DateTime();
         $expiry = new DateTime($expiryDate);
         $interval = $today->diff($expiry);
-        
+
         return $interval->invert ? -$interval->days : $interval->days;
+    }
+
+    private function getClientDeviceData() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            APIResponse::error('Method not allowed', 405);
+        }
+
+        $clientUniqueId = $_GET['client_unique_id'] ?? null;
+
+        if (!$clientUniqueId) {
+            APIResponse::error('Client unique ID is required', 400);
+        }
+
+        try {
+            $sql = "
+                SELECT
+                    cdd.client_unique_id,
+                    cdd.device_id,
+                    cdd.android_version,
+                    cdd.model,
+                    cdd.magisk_modules,
+                    cdd.xposed_modules,
+                    cdd.cpu_architecture,
+                    cdd.manufacturer,
+                    cdd.last_sync,
+                    c.imei,
+                    CASE
+                        WHEN cdd.last_sync > DATE_SUB(NOW(), INTERVAL 1 DAY) THEN 'recent'
+                        WHEN cdd.last_sync > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 'normal'
+                        WHEN cdd.last_sync IS NOT NULL THEN 'stale'
+                        ELSE 'never'
+                    END as sync_status
+                FROM client_device_data cdd
+                LEFT JOIN clients c ON cdd.client_unique_id = c.client_unique_id
+                WHERE cdd.client_unique_id = ?
+            ";
+
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param("i", $clientUniqueId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows === 0) {
+                // Return empty device data structure if no device data exists
+                APIResponse::success([
+                    'client_unique_id' => $clientUniqueId,
+                    'device_id' => null,
+                    'android_version' => null,
+                    'model' => null,
+                    'magisk_modules' => null,
+                    'xposed_modules' => null,
+                    'cpu_architecture' => null,
+                    'manufacturer' => null,
+                    'last_sync' => null,
+                    'imei' => null,
+                    'sync_status' => 'never',
+                    'has_magisk' => false,
+                    'has_xposed' => false,
+                    'is_rooted' => false
+                ], 'No device data available for this client');
+            }
+
+            $deviceData = $result->fetch_assoc();
+
+            // Parse JSON fields
+            $magiskModules = null;
+            $xposedModules = null;
+
+            if ($deviceData['magisk_modules']) {
+                $magiskModules = json_decode($deviceData['magisk_modules'], true);
+            }
+
+            if ($deviceData['xposed_modules']) {
+                $xposedModules = json_decode($deviceData['xposed_modules'], true);
+            }
+
+            // Add computed fields
+            $deviceData['magisk_modules'] = $magiskModules;
+            $deviceData['xposed_modules'] = $xposedModules;
+            $deviceData['has_magisk'] = !empty($magiskModules);
+            $deviceData['has_xposed'] = !empty($xposedModules);
+            $deviceData['is_rooted'] = !empty($magiskModules) || !empty($xposedModules);
+            $deviceData['magisk_module_count'] = is_array($magiskModules) ? count($magiskModules) : 0;
+            $deviceData['xposed_module_count'] = is_array($xposedModules) ? count($xposedModules) : 0;
+
+            APIResponse::success($deviceData, 'Device data fetched successfully');
+        } catch (Exception $e) {
+            APIResponse::error('Failed to fetch device data: ' . $e->getMessage(), 500);
+        }
     }
 }
 
