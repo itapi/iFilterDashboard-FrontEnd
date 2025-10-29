@@ -179,13 +179,16 @@ $baseQuery = "
             WHEN c.last_sync IS NOT NULL THEN 'stale' 
             ELSE 'never' 
         END as sync_status, 
-        CASE  
-            WHEN c.plan_expiry_date < NOW() THEN 'expired' 
-            WHEN c.plan_expiry_date < DATE_ADD(NOW(), INTERVAL 7 DAY) THEN 'expiring_soon' 
-            WHEN c.plan_expiry_date < DATE_ADD(NOW(), INTERVAL 30 DAY) THEN 'expiring_month' 
-            ELSE 'active' 
-        END as expiry_status, 
-        DATEDIFF(c.plan_expiry_date, NOW()) as days_until_expiry 
+        CASE
+            WHEN (CASE WHEN c.plan_status = 'trial' THEN c.trial_expiry_date ELSE c.plan_expiry_date END) < NOW() THEN 'expired'
+            WHEN (CASE WHEN c.plan_status = 'trial' THEN c.trial_expiry_date ELSE c.plan_expiry_date END) < DATE_ADD(NOW(), INTERVAL 7 DAY) THEN 'expiring_soon'
+            WHEN (CASE WHEN c.plan_status = 'trial' THEN c.trial_expiry_date ELSE c.plan_expiry_date END) < DATE_ADD(NOW(), INTERVAL 30 DAY) THEN 'expiring_month'
+            ELSE 'active'
+        END as expiry_status,
+        DATEDIFF(
+            CASE WHEN c.plan_status = 'trial' THEN c.trial_expiry_date ELSE c.plan_expiry_date END,
+            NOW()
+        ) as days_until_expiry 
     FROM clients c
     LEFT JOIN filtering_plans fp ON c.plan_unique_id = fp.plan_unique_id
     LEFT JOIN client_levels cl ON c.client_level_id = cl.id 
@@ -458,38 +461,48 @@ $baseQuery = "
         
         try {
             // First, get the current client data
-            $sql = "SELECT plan_expiry_date, plan_status FROM clients WHERE client_unique_id = ?";
+            $sql = "SELECT plan_expiry_date, trial_expiry_date, plan_status FROM clients WHERE client_unique_id = ?";
             $stmt = $this->conn->prepare($sql);
             $stmt->bind_param("i", $clientUniqueId);
             $stmt->execute();
             $result = $stmt->get_result();
-            
+
             if ($result->num_rows === 0) {
                 APIResponse::error('Client not found', 404);
             }
-            
+
             $client = $result->fetch_assoc();
-            $currentExpiry = $client['plan_expiry_date'];
-            
+            $planStatus = $client['plan_status'];
+
+            // Determine which expiry date to extend based on plan_status
+            if ($planStatus === 'trial') {
+                $currentExpiry = $client['trial_expiry_date'];
+                $dateField = 'trial_expiry_date';
+            } else {
+                $currentExpiry = $client['plan_expiry_date'];
+                $dateField = 'plan_expiry_date';
+            }
+
             // Calculate new expiry date based on current expiry or today (whichever is later)
             $baseDate = $currentExpiry ? max(date('Y-m-d'), $currentExpiry) : date('Y-m-d');
             $newExpiryDate = $this->calculateNewExpiryDate($baseDate, $extendBy);
-            
-            // Update the client's expiry date
-            $updateSql = "UPDATE clients SET plan_expiry_date = ? WHERE client_unique_id = ?";
+
+            // Update the appropriate expiry date field
+            $updateSql = "UPDATE clients SET $dateField = ? WHERE client_unique_id = ?";
             $updateStmt = $this->conn->prepare($updateSql);
             $updateStmt->bind_param("si", $newExpiryDate, $clientUniqueId);
-            
+
             if ($updateStmt->execute()) {
                 if ($updateStmt->affected_rows > 0) {
                     // Calculate days until expiry
                     $daysUntilExpiry = $this->calculateDaysUntilExpiry($newExpiryDate);
-                    
+
                     APIResponse::success([
                         'client_unique_id' => $clientUniqueId,
                         'new_expiry_date' => $newExpiryDate,
                         'days_until_expiry' => $daysUntilExpiry,
-                        'extended_by' => $extendBy
+                        'extended_by' => $extendBy,
+                        'date_field_updated' => $dateField
                     ], 'Subscription extended successfully');
                 } else {
                     APIResponse::error('No changes made', 400);
