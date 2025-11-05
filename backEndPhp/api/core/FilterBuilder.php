@@ -275,19 +275,19 @@ class FilterBuilder {
      */
     public function buildOrderClause($params) {
         $orderBy = [];
-        
+
         // Handle sort parameter
         if (isset($params['sort']) && isset($this->sortOptions[$params['sort']])) {
             $field = $this->sortOptions[$params['sort']];
             $direction = isset($params['order']) && strtoupper($params['order']) === 'ASC' ? 'ASC' : 'DESC';
             $orderBy[] = "$field $direction";
         }
-        
+
         // Add default sort if no sort specified or as secondary sort
         if (!empty($this->defaultSort)) {
             $defaultField = $this->defaultSort[0];
             $defaultDirection = $this->defaultSort[1];
-            
+
             // Only add default if not already sorting by this field
             $alreadySorting = false;
             foreach ($orderBy as $order) {
@@ -296,12 +296,12 @@ class FilterBuilder {
                     break;
                 }
             }
-            
+
             if (!$alreadySorting) {
                 $orderBy[] = "$defaultField $defaultDirection";
             }
         }
-        
+
         return !empty($orderBy) ? 'ORDER BY ' . implode(', ', $orderBy) : '';
     }
     

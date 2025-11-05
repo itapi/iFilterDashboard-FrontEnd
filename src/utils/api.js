@@ -451,32 +451,41 @@ class ApiClient {
   // Clients API
   async getClientsWithDetails(page = 1, limit = 25, filters = {}) {
     let url = `clients?action=with_details&page=${page}&limit=${limit}`;
-    
+
     // Add filter parameters if provided
     if (filters.plan_status && filters.plan_status !== 'all') {
       url += `&plan_status=${filters.plan_status}`;
     }
-    
+
     if (filters.trial_status && filters.trial_status !== 'all') {
       url += `&trial_status=${filters.trial_status}`;
     }
-    
+
     if (filters.sync_status && filters.sync_status !== 'all') {
       url += `&sync_status=${filters.sync_status}`;
     }
-    
+
     if (filters.search) {
       url += `&search=${encodeURIComponent(filters.search)}`;
     }
-    
+
     if (filters.plan_unique_id) {
       url += `&plan_unique_id=${filters.plan_unique_id}`;
     }
-    
+
     if (filters.expiring_soon) {
       url += `&expiring_soon=1`;
     }
-    
+
+    // Add sorting parameters
+    if (filters.sort) {
+      url += `&sort=${filters.sort}`;
+    }
+
+    if (filters.order) {
+      url += `&order=${filters.order}`;
+    }
+
     return this.apiRequest(url);
   }
 

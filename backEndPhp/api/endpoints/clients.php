@@ -73,18 +73,23 @@ class ClientsAPI extends BaseAPI {
             ]);
             
             // Set sort options
-            $filterBuilder->addSortOption('name', "CONCAT(c.first_name, ' ', c.last_name)")
-                         ->addSortOption('email', 'c.email')
-                         ->addSortOption('phone', 'c.phone')
-                         ->addSortOption('plan_status', 'c.plan_status')
-                         ->addSortOption('trial_status', 'c.trial_status')
-                         ->addSortOption('registration_date', 'c.registration_date')
-                         ->addSortOption('last_sync', 'c.last_sync')
-                         ->addSortOption('plan_expiry', 'c.plan_expiry_date')
-                         ->addSortOption('plan_name', 'fp.plan_name')
-                         ->addSortOption('level_name', 'cl.level_name')
+            // addSortOption($field, $alias) - where $field is SQL field, $alias is frontend key
+            $filterBuilder->addSortOption('c.client_unique_id', 'client_unique_id')
+                         ->addSortOption("CONCAT(c.first_name, ' ', c.last_name)", 'name')
+                         ->addSortOption("CONCAT(c.first_name, ' ', c.last_name)", 'full_name')
+                         ->addSortOption('c.email', 'email')
+                         ->addSortOption('c.phone', 'phone')
+                         ->addSortOption('c.plan_status', 'plan_status')
+                         ->addSortOption('c.trial_status', 'trial_status')
+                         ->addSortOption('c.registration_date', 'registration_date')
+                         ->addSortOption('c.last_sync', 'last_sync')
+                         ->addSortOption('c.last_sync', 'sync_status')
+                         ->addSortOption('c.plan_expiry_date', 'plan_expiry')
+                         ->addSortOption('fp.plan_name', 'plan_name')
+                         ->addSortOption('cl.level_name', 'level_name')
+                         ->addSortOption('c.model', 'model')
                          ->setDefaultSort('c.registration_date', 'DESC');
-            
+
             // Parse filters from request with proper field mapping
             $filters = $_GET;
             
@@ -197,7 +202,7 @@ $baseQuery = "
             
             // Build main query with filters and pagination
             $queryData = $filterBuilder->buildQuery($baseQuery, $_GET);
-            
+
             // Execute main query
             if (!empty($queryData['params'])) {
                 $stmt = $this->conn->prepare($queryData['query']);
