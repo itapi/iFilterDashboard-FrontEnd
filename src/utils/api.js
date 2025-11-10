@@ -177,6 +177,29 @@ class ApiClient {
     });
   }
 
+  async getAllApps(filters = {}) {
+    const params = new URLSearchParams();
+    params.append('action', 'get_all_paginated');
+
+    if (filters.page) params.append('page', filters.page);
+    if (filters.limit) params.append('limit', filters.limit);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.categoryId) params.append('category_id', filters.categoryId);
+
+    return this.apiRequest(`apps?${params.toString()}`);
+  }
+
+  async getCategorySelectedApps(categoryId) {
+    return this.apiRequest(`apps?action=by_category&category_id=${categoryId}`);
+  }
+
+  async bulkUpdateAppCategories(appIds, categoryId) {
+    return this.apiRequest('apps?action=bulk_update_category', {
+      method: 'PUT',
+      body: { app_ids: appIds, category_id: categoryId }
+    });
+  }
+
   async searchApps(query, categoryId = null) {
     let url = `apps?action=search&q=${encodeURIComponent(query)}`;
     if (categoryId) {
@@ -385,24 +408,35 @@ class ApiClient {
     console.log('API Client - addTicketUpdate called with:', {
       ticketId, message, updatedBy, userType
     });
-    
+
     try {
       const result = await this.apiRequest('tickets?action=add_update', {
         method: 'POST',
-        body: { 
-          ticket_id: ticketId, 
-          message, 
-          updated_by: updatedBy, 
-          user_type: userType 
+        body: {
+          ticket_id: ticketId,
+          message,
+          updated_by: updatedBy,
+          user_type: userType
         }
       });
-      
+
       console.log('API Client - addTicketUpdate result:', result);
       return result;
     } catch (error) {
       console.error('API Client - addTicketUpdate error:', error);
       throw error;
     }
+  }
+
+  async editTicketUpdate(updateId, message, userId) {
+    return this.apiRequest('tickets?action=edit_update', {
+      method: 'PUT',
+      body: {
+        update_id: updateId,
+        message,
+        user_id: userId
+      }
+    });
   }
 
   async closeTicket(ticketId) {

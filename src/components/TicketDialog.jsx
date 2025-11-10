@@ -12,8 +12,111 @@ import {
   User,
   Archive,
   UserCheck,
-  ExternalLink
+  ExternalLink,
+  Edit2,
+  X,
+  Save
 } from 'lucide-react'
+
+// Message Bubble Component (moved outside to prevent focus issues)
+const MessageBubble = ({
+  update,
+  currentUser,
+  editingMessageId,
+  editedMessageText,
+  savingEdit,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onEditedMessageChange,
+  formatDate
+}) => {
+  const isFromAdmin = update.user_type === 'user'
+  const isEditing = editingMessageId === update.id
+  const canEdit = isFromAdmin && currentUser && update.updated_by === currentUser.id
+
+  return (
+    <div className={`flex ${isFromAdmin ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+        isFromAdmin
+          ? 'bg-purple-600 text-white ml-4'
+          : 'bg-gray-100 text-gray-900 mr-4'
+      }`}>
+        <div className="flex items-start justify-between mb-1">
+          <div className="text-sm font-medium">
+            {update.sender_name}
+          </div>
+          {canEdit && !isEditing && (
+            <button
+              onClick={() => onStartEdit(update)}
+              className={`p-1 rounded hover:bg-opacity-20 hover:bg-white transition-colors ${
+                isFromAdmin ? 'text-purple-100 hover:text-white' : 'text-gray-500 hover:text-gray-700'
+              }`}
+              data-tooltip-id="edit-tooltip"
+              data-tooltip-content="ערוך הודעה"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {isEditing ? (
+          <div className="space-y-2">
+            <textarea
+              value={editedMessageText}
+              onChange={(e) => onEditedMessageChange(e.target.value)}
+              className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              rows={3}
+              disabled={savingEdit}
+              autoFocus
+            />
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => onSaveEdit(update.id)}
+                disabled={!editedMessageText.trim() || savingEdit}
+                className="px-3 py-1.5 bg-white text-purple-600 rounded-lg hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center space-x-reverse space-x-1"
+              >
+                {savingEdit ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                    <span>שומר...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>שמור</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={onCancelEdit}
+                disabled={savingEdit}
+                className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center space-x-reverse space-x-1"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>ביטול</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap">
+              {update.message}
+            </div>
+            <div className={`text-xs mt-2 flex items-center justify-between ${
+              isFromAdmin ? 'text-purple-100' : 'text-gray-500'
+            }`}>
+              <span>{formatDate(update.created_at)}</span>
+              {update.updated_at && update.updated_at !== update.created_at && (
+                <span className="text-xs opacity-75">(נערך)</span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export const TicketDialog = ({
   isOpen,
@@ -28,6 +131,9 @@ export const TicketDialog = ({
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState(null)
+  const [editedMessageText, setEditedMessageText] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -112,21 +218,57 @@ export const TicketDialog = ({
 
   const handleAssignTicket = async (userId) => {
     if (!ticket) return
-    
+
     try {
       const response = await apiClient.assignTicket(ticket.id, userId)
       if (response.success) {
         const assignedUser = users.find(user => user.id === userId)
         if (onTicketUpdate) {
-          onTicketUpdate(ticket.id, 'assigned', { 
-            assigned_to: userId, 
-            assigned_user_name: assignedUser?.username 
+          onTicketUpdate(ticket.id, 'assigned', {
+            assigned_to: userId,
+            assigned_user_name: assignedUser?.username
           })
         }
       }
     } catch (err) {
       toast.error('שגיאה בהקצאת הפנייה')
       console.error('Error assigning ticket:', err)
+    }
+  }
+
+  const handleStartEdit = (update) => {
+    setEditingMessageId(update.id)
+    setEditedMessageText(update.message)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null)
+    setEditedMessageText('')
+  }
+
+  const handleSaveEdit = async (updateId) => {
+    if (!editedMessageText.trim() || !currentUser) return
+
+    try {
+      setSavingEdit(true)
+      const response = await apiClient.editTicketUpdate(updateId, editedMessageText.trim(), currentUser.id)
+
+      if (response.success) {
+        // Update the message in the local state
+        setTicketUpdates(prev => prev.map(update =>
+          update.id === updateId ? response.data : update
+        ))
+        setEditingMessageId(null)
+        setEditedMessageText('')
+        toast.success('ההודעה נערכה בהצלחה')
+      } else {
+        throw new Error(response.message || 'Failed to edit message')
+      }
+    } catch (err) {
+      toast.error('שגיאה בעריכת ההודעה: ' + (err.message || 'אירעה שגיאה לא צפויה'))
+      console.error('Error editing message:', err)
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -138,32 +280,6 @@ export const TicketDialog = ({
       hour: '2-digit',
       minute: '2-digit'
     })
-  }
-
-  const MessageBubble = ({ update }) => {
-    const isFromAdmin = update.user_type === 'user'
-    
-    return (
-      <div className={`flex ${isFromAdmin ? 'justify-end' : 'justify-start'} mb-4`}>
-        <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-          isFromAdmin 
-            ? 'bg-purple-600 text-white ml-4' 
-            : 'bg-gray-100 text-gray-900 mr-4'
-        }`}>
-          <div className="text-sm font-medium mb-1">
-            {update.sender_name}
-          </div>
-          <div className="text-sm leading-relaxed whitespace-pre-wrap">
-            {update.message}
-          </div>
-          <div className={`text-xs mt-2 ${
-            isFromAdmin ? 'text-purple-100' : 'text-gray-500'
-          }`}>
-            {formatDate(update.created_at)}
-          </div>
-        </div>
-      </div>
-    )
   }
 
   if (!ticket) return null
@@ -338,7 +454,19 @@ export const TicketDialog = ({
           ) : (
             <>
               {ticketUpdates.map(update => (
-                <MessageBubble key={update.id} update={update} />
+                <MessageBubble
+                  key={update.id}
+                  update={update}
+                  currentUser={currentUser}
+                  editingMessageId={editingMessageId}
+                  editedMessageText={editedMessageText}
+                  savingEdit={savingEdit}
+                  onStartEdit={handleStartEdit}
+                  onCancelEdit={handleCancelEdit}
+                  onSaveEdit={handleSaveEdit}
+                  onEditedMessageChange={setEditedMessageText}
+                  formatDate={formatDate}
+                />
               ))}
               <div ref={messagesEndRef} />
             </>
@@ -363,6 +491,19 @@ export const TicketDialog = ({
       />
       <Tooltip
         id="client-link-tooltip"
+        style={{
+          backgroundColor: '#1f2937',
+          color: '#f9fafb',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          fontSize: '14px',
+          fontWeight: '500',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          zIndex: 10000
+        }}
+      />
+      <Tooltip
+        id="edit-tooltip"
         style={{
           backgroundColor: '#1f2937',
           color: '#f9fafb',
