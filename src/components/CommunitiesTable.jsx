@@ -6,7 +6,7 @@ import { Table } from './Table/Table'
 import DebouncedSearch from './DebouncedSearch'
 import apiClient from '../utils/api'
 import Loader from './Loader'
-import { useModal } from '../contexts/ModalContext'
+import { useModal } from '../contexts/GlobalStateContext'
 
 const CommunitiesTable = () => {
   const navigate = useNavigate()

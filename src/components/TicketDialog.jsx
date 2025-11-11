@@ -139,6 +139,7 @@ export const TicketDialog = ({
   useEffect(() => {
     if (isOpen && ticket) {
       loadTicketUpdates()
+      markTicketAsRead()
     }
   }, [isOpen, ticket])
 
@@ -152,7 +153,7 @@ export const TicketDialog = ({
 
   const loadTicketUpdates = async () => {
     if (!ticket) return
-    
+
     try {
       setLoading(true)
       const response = await apiClient.getTicketUpdates(ticket.id)
@@ -164,6 +165,16 @@ export const TicketDialog = ({
       toast.error('שגיאה בטעינת ההודעות')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const markTicketAsRead = async () => {
+    if (!ticket) return
+
+    try {
+      await apiClient.markTicketAsRead(ticket.id)
+    } catch (err) {
+      console.error('Error marking ticket as read:', err)
     }
   }
 

@@ -5,17 +5,18 @@ import apiClient from '../utils/api'
 import { Table } from './Table/Table'
 import { TicketDialog } from './TicketDialog'
 import { Toggle } from './Toggle'
-import { 
-  MessageCircle, 
-  Search, 
-  Filter, 
+import {
+  MessageCircle,
+  Search,
+  Filter,
   Plus,
   UserCheck,
   CheckCircle,
   AlertCircle,
   Clock,
   User,
-  X
+  X,
+  Bell
 } from 'lucide-react'
 
 const TicketsTable = () => {
@@ -32,7 +33,9 @@ const TicketsTable = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentUser, setCurrentUser] = useState(null)
   const [selectedTickets, setSelectedTickets] = useState([])
-  
+  const [sortBy, setSortBy] = useState('last_update')
+  const [sortOrder, setSortOrder] = useState('DESC')
+
   // Modal state
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false)
@@ -47,14 +50,14 @@ const TicketsTable = () => {
     loadInitialData()
   }, [])
 
-  // Reload data when filters change
+  // Reload data when filters or sorting change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       loadFilteredData()
     }, 300) // Debounce search
-    
+
     return () => clearTimeout(timeoutId)
-  }, [statusFilter, searchTerm])
+  }, [statusFilter, searchTerm, sortBy, sortOrder])
 
   const loadInitialData = async () => {
     try {
@@ -105,18 +108,20 @@ const TicketsTable = () => {
     try {
       setLoading(true)
       setCurrentPage(1)
-      
+
       const filters = {
         status: statusFilter,
-        search: searchTerm
+        search: searchTerm,
+        sort: sortBy,
+        order: sortOrder
       }
-      
+
       const response = await apiClient.getTicketsWithDetails(1, itemsPerPage, filters)
-      
+
       if (response.success) {
         const responseData = response.data?.data || response.data || []
         const pagination = response.data?.pagination
-        
+
         setTickets(responseData)
         setHasMore(pagination?.has_more || false)
       }
@@ -130,22 +135,24 @@ const TicketsTable = () => {
 
   const loadMoreTickets = async () => {
     if (loadingMore || !hasMore) return
-    
+
     try {
       setLoadingMore(true)
       const nextPage = currentPage + 1
-      
+
       const filters = {
         status: statusFilter,
-        search: searchTerm
+        search: searchTerm,
+        sort: sortBy,
+        order: sortOrder
       }
-      
+
       const response = await apiClient.getTicketsWithDetails(nextPage, itemsPerPage, filters)
-      
+
       if (response.success) {
         const responseData = response.data?.data || response.data || []
         const pagination = response.data?.pagination
-        
+
         // Append new tickets to existing ones
         setTickets(prev => [...prev, ...responseData])
         setHasMore(pagination?.has_more || false)
@@ -337,13 +344,26 @@ const TicketsTable = () => {
       key: 'update_count',
       label: 'הודעות',
       type: 'text',
-      render: (row) => (
-        <div className="flex items-center justify-center">
-          <span className="bg-purple-100 text-purple-800 text-xs px-2.5 py-1 rounded-full font-medium">
-            {row.update_count || 0}
-          </span>
-        </div>
-      )
+      render: (row) => {
+        const unreadCount = parseInt(row.unread_count) || 0;
+        const totalCount = parseInt(row.update_count) || 0;
+
+        return (
+          <div className="flex items-center justify-center gap-2">
+            <span className="bg-purple-100 text-purple-800 text-xs px-2.5 py-1 rounded-full font-medium">
+              {totalCount}
+            </span>
+            {unreadCount > 0 && (
+              <div className="relative">
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 animate-pulse">
+                  <Bell className="w-3 h-3" />
+                  {unreadCount}
+                </span>
+              </div>
+            )}
+          </div>
+        )
+      }
     },
     {
       id: 'created_at',

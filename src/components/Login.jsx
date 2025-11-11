@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
-import { useUser } from '../contexts/UserContext'
+import { useUser } from '../contexts/GlobalStateContext'
 import { Heart } from 'lucide-react'
 
 function Login() {

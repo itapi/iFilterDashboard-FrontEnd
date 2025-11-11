@@ -15,7 +15,8 @@ import {
   Search,
   Archive,
   Edit2,
-  Save
+  Save,
+  Bell
 } from 'lucide-react'
 
 // Message Bubble Component (moved outside to prevent focus issues)
@@ -145,6 +146,8 @@ const TicketsManager = () => {
   useEffect(() => {
     if (selectedTicket) {
       loadTicketUpdates(selectedTicket.id)
+      // Mark ticket as read when opened
+      markTicketAsRead(selectedTicket.id)
       // Poll for updates every 30 seconds
       const interval = setInterval(() => {
         loadTicketUpdates(selectedTicket.id)
@@ -213,6 +216,20 @@ const TicketsManager = () => {
       }
     } catch (err) {
       console.error('Error loading ticket updates:', err)
+    }
+  }
+
+  const markTicketAsRead = async (ticketId) => {
+    try {
+      await apiClient.markTicketAsRead(ticketId)
+      // Update local state to set unread_count to 0 for this ticket
+      setTickets(prev => prev.map(ticket =>
+        ticket.id === ticketId
+          ? { ...ticket, unread_count: '0' }
+          : ticket
+      ))
+    } catch (err) {
+      console.error('Error marking ticket as read:', err)
     }
   }
 
@@ -476,11 +493,17 @@ const TicketsManager = () => {
                       </h3>
                       <p className="text-sm text-gray-600">{ticket.client_name}</p>
                     </div>
-                    <div className="flex items-center  space-x-1 mr-2">
+                    <div className="flex items-center gap-1 mr-2">
                       <StatusIcon className={`w-4 h-4 ${getStatusColor(ticket.status)}`} />
                       {parseInt(ticket.update_count) > 0 && (
                         <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
                           {ticket.update_count}
+                        </span>
+                      )}
+                      {parseInt(ticket.unread_count) > 0 && (
+                        <span className="bg-red-500 text-white text-xs px-1.5 py-1 rounded-full font-medium flex items-center gap-1 animate-pulse">
+                          <Bell className="w-3 h-3" />
+                          {ticket.unread_count}
                         </span>
                       )}
                     </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 import EditableSection from './EditableSection'
-import { useModal } from '../contexts/ModalContext'
+import { useModal } from '../contexts/GlobalStateContext'
 import {
   Crown,
   Settings,

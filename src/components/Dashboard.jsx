@@ -1,13 +1,44 @@
-import { Ban, Shield, Users, CheckCircle } from 'lucide-react'
-import { useUser } from '../contexts/UserContext'
+import { useState, useEffect } from 'react'
+import { Ban, Shield, Users, CheckCircle, Bell } from 'lucide-react'
+import { useUser } from '../contexts/GlobalStateContext'
+import apiClient from '../utils/api'
 
 function Dashboard() {
   const { user } = useUser()
+  const [unreadCount, setUnreadCount] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadUnreadCounts()
+    // Refresh unread counts every 30 seconds
+    const interval = setInterval(loadUnreadCounts, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadUnreadCounts = async () => {
+    try {
+      const response = await apiClient.getUnreadCounts()
+      if (response.success) {
+        setUnreadCount(response.data.global)
+      }
+    } catch (err) {
+      console.error('Error loading unread counts:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const stats = [
     { title: 'אתרים חסומים', value: '1,234', change: '+12%', icon: 'Ban' },
     { title: 'בקשות שנחסמו היום', value: '567', change: '+5%', icon: 'Shield' },
     { title: 'משתמשים פעילים', value: '89', change: '+3%', icon: 'Users' },
-    { title: 'יעילות המסנן', value: '98.5%', change: '+0.2%', icon: 'CheckCircle' }
+    {
+      title: 'פניות חדשות',
+      value: loading ? '...' : (unreadCount?.tickets_with_unread || 0).toString(),
+      change: unreadCount?.total_unread_messages ? `${unreadCount.total_unread_messages} הודעות` : 'אין חדשות',
+      icon: 'Bell',
+      isNew: !loading && unreadCount?.tickets_with_unread > 0
+    }
   ]
 
   const recentActivities = [
@@ -41,11 +72,13 @@ function Dashboard() {
         {stats.map((stat, index) => (
           <div key={index} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                stat.isNew ? 'bg-red-50 animate-pulse' : 'bg-blue-50'
+              }`}>
                 {(() => {
-                  const iconMap = { Ban, Shield, Users, CheckCircle }
+                  const iconMap = { Ban, Shield, Users, CheckCircle, Bell }
                   const IconComponent = iconMap[stat.icon] || CheckCircle
-                  return <IconComponent className="w-6 h-6 text-blue-600" />
+                  return <IconComponent className={`w-6 h-6 ${stat.isNew ? 'text-red-600' : 'text-blue-600'}`} />
                 })()}
               </div>
               <span className={`text-sm font-medium px-3 py-1 rounded-full ${

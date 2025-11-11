@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import apiClient from '../utils/api'
 import Loader from './Loader'
-import { useModal } from '../contexts/ModalContext'
+import { useModal } from '../contexts/GlobalStateContext'
 import CustomPlanApps from './CustomPlanApps'
 
 const CommunityDetails = () => {

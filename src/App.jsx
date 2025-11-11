@@ -15,8 +15,7 @@ import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
 import Loader from './components/Loader'
-import { ModalProvider } from './contexts/ModalContext'
-import { UserProvider, useUser } from './contexts/UserContext'
+import { GlobalStateProvider, useUser } from './contexts/GlobalStateContext'
 import 'react-toastify/dist/ReactToastify.css'
 import './App.css'
 
@@ -33,7 +32,7 @@ function AppContent() {
   }
 
   return (
-    <ModalProvider>
+    <>
       {!isLoggedIn ? (
         <Login />
       ) : (
@@ -111,16 +110,16 @@ function AppContent() {
         pauseOnHover
         theme="light"
       />
-    </ModalProvider>
+    </>
   )
 }
 
-// Root App component that provides UserContext
+// Root App component with unified GlobalStateProvider
 function App() {
   return (
-    <UserProvider>
+    <GlobalStateProvider>
       <AppContent />
-    </UserProvider>
+    </GlobalStateProvider>
   )
 }
 

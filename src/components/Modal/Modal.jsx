@@ -204,3 +204,4 @@ Modal.propTypes = {
   footer: PropTypes.node,
   maxHeight: PropTypes.string,
 };
+

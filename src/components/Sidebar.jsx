@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { useUser } from '../contexts/UserContext'
+import { useUser } from '../contexts/GlobalStateContext'
 
 const Sidebar = () => {
   const { user, logout, userName, userInitials } = useUser()

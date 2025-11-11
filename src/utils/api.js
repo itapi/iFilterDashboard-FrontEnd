@@ -379,7 +379,7 @@ class ApiClient {
 
   async getTicketsWithDetails(page = 1, limit = 25, filters = {}) {
     let url = `tickets?action=with_details&page=${page}&limit=${limit}`;
-    
+
     // Add filter parameters if provided
     if (filters.status && filters.status !== 'all') {
       if (filters.status === 'unassigned') {
@@ -388,11 +388,20 @@ class ApiClient {
         url += `&status=${filters.status}`;
       }
     }
-    
+
     if (filters.search) {
       url += `&search=${encodeURIComponent(filters.search)}`;
     }
-    
+
+    // Add sorting parameters
+    if (filters.sort) {
+      url += `&sort=${filters.sort}`;
+    }
+
+    if (filters.order) {
+      url += `&order=${filters.order}`;
+    }
+
     return this.apiRequest(url);
   }
 
@@ -475,6 +484,17 @@ class ApiClient {
     return this.apiRequest(`tickets/${ticketId}`, {
       method: 'DELETE'
     });
+  }
+
+  async markTicketAsRead(ticketId) {
+    return this.apiRequest('tickets?action=mark_as_read', {
+      method: 'PUT',
+      body: { ticket_id: ticketId }
+    });
+  }
+
+  async getUnreadCounts() {
+    return this.apiRequest('tickets?action=unread_counts');
   }
 
   // Users API (for ticket assignment)

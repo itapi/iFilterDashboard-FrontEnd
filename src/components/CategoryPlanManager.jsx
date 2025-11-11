@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import { Settings, Plus, Check } from 'lucide-react'
 import apiClient from '../utils/api'
-import { useModal } from '../contexts/ModalContext'
+import { useModal } from '../contexts/GlobalStateContext'
 import Statistics from './Statistics'
 import Loader from './Loader'
 
