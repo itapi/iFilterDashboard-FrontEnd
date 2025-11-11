@@ -19,7 +19,7 @@ import { GlobalStateProvider, useUser } from './contexts/GlobalStateContext'
 import 'react-toastify/dist/ReactToastify.css'
 import './App.css'
 
-// Main App Component that uses UserContext
+// Main App Component that uses GlobalStateContext
 function AppContent() {
   const { user, isLoggedIn, loading, logout } = useUser()
 
