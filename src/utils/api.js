@@ -425,7 +425,7 @@ class ApiClient {
           ticket_id: ticketId,
           message,
           updated_by: updatedBy,
-          user_type: userType
+          sender_type: userType
         }
       });
 

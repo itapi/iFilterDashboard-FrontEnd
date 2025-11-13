@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Ban, Shield, Users, CheckCircle, Bell } from 'lucide-react'
 import { useUser } from '../contexts/GlobalStateContext'
 import apiClient from '../utils/api'
+import { RoleDebugger } from './RoleDebugger'
 
 function Dashboard() {
   const { user } = useUser()
@@ -169,6 +170,9 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Role Debugger - Remove this in production */}
+      <RoleDebugger />
     </div>
   )
 }

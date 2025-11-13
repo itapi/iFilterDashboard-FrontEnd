@@ -5,6 +5,8 @@ import apiClient from '../utils/api'
 import { Table } from './Table/Table'
 import { TicketDialog } from './TicketDialog'
 import { Toggle } from './Toggle'
+import { RoleGuard, SuperAdminOnly } from './RoleGuard'
+import { usePermissions } from '../hooks/usePermissions'
 import {
   MessageCircle,
   Search,
@@ -20,6 +22,9 @@ import {
 } from 'lucide-react'
 
 const TicketsTable = () => {
+  // Role-based permissions
+  const { hasPermission, isCommunityManager, PERMISSIONS } = usePermissions()
+
   const [tickets, setTickets] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -39,7 +44,7 @@ const TicketsTable = () => {
   // Modal state
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false)
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -272,6 +277,63 @@ const TicketsTable = () => {
     setCurrentPage(1) // Reset pagination when filter changes
   }
 
+  // Helper function to get response status with visual indicators
+  const getResponseStatus = (ticket) => {
+    // If ticket is closed, no response needed
+    if (ticket.status === 'closed') {
+      return null
+    }
+
+    // Check if awaiting admin response
+    const lastMessageFromClient = ticket.last_message_sender_type === 'client'
+    const hasUnread = parseInt(ticket.unread_count) > 0
+    const waitingHours = parseInt(ticket.waiting_time_hours) || 0
+
+    if (lastMessageFromClient || hasUnread) {
+      // Urgent: waiting more than 24 hours
+      if (waitingHours >= 24) {
+        return {
+          status: 'urgent',
+          label: 'דחוף',
+          color: 'bg-red-100 text-red-800 border-red-200',
+          icon: AlertCircle,
+          time: waitingHours
+        }
+      }
+      // Needs reply: waiting less than 24 hours
+      return {
+        status: 'needs_reply',
+        label: 'צריך מענה',
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        icon: Clock,
+        time: waitingHours
+      }
+    }
+
+    // Waiting for client
+    return {
+      status: 'waiting_client',
+      label: 'ממתין לתגובה',
+      color: 'bg-blue-100 text-blue-800 border-blue-200',
+      icon: User,
+      time: null
+    }
+  }
+
+  // Helper function to format waiting time
+  const formatWaitingTime = (hours) => {
+    if (!hours) return ''
+
+    if (hours < 1) {
+      return 'פחות משעה'
+    } else if (hours < 24) {
+      return `${hours} שעות`
+    } else {
+      const days = Math.floor(hours / 24)
+      return `${days} ${days === 1 ? 'יום' : 'ימים'}`
+    }
+  }
+
   // Define table columns
   const tableColumns = [
     {
@@ -328,6 +390,33 @@ const TicketsTable = () => {
       )
     },
     {
+      id: 'response_status',
+      key: 'response_status',
+      label: 'סטטוס מענה',
+      type: 'custom',
+      render: (row) => {
+        const responseStatus = getResponseStatus(row)
+
+        if (!responseStatus) return null
+
+        const StatusIcon = responseStatus.icon
+
+        return (
+          <div className="flex flex-col gap-1">
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${responseStatus.color}`}>
+              <StatusIcon className="w-3 h-3 ml-1" />
+              {responseStatus.label}
+            </span>
+            {responseStatus.time && responseStatus.time > 0 && (
+              <span className="text-xs text-gray-500">
+                {formatWaitingTime(responseStatus.time)}
+              </span>
+            )}
+          </div>
+        )
+      }
+    },
+    {
       id: 'status',
       key: 'status',
       label: 'סטטוס',
@@ -377,34 +466,40 @@ const TicketsTable = () => {
       label: 'פעולות',
       type: 'custom',
       render: (row) => (
-        <div className="flex items-center  space-x-2">
+        <div className="flex items-center space-x-2">
           {row.status === 'open' && (
             <>
-              <select
-                onChange={(e) => e.target.value && handleAssignTicket(row.id, parseInt(e.target.value))}
-                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                defaultValue=""
-                onClick={(e) => e.stopPropagation()}
-              >
-                <option value="">הקצה</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>
-                    {user.username}
-                  </option>
-                ))}
-              </select>
-              
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCloseTicket(row.id)
-                }}
-                className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
-                data-tooltip-id="close-tooltip"
-                data-tooltip-content="סגור פנייה"
-              >
-                <CheckCircle className="w-4 h-4" />
-              </button>
+              {/* Assign ticket - Available to all roles with ASSIGN_TICKET permission */}
+              <RoleGuard allowedPermissions={[PERMISSIONS.ASSIGN_TICKET]}>
+                <select
+                  onChange={(e) => e.target.value && handleAssignTicket(row.id, parseInt(e.target.value))}
+                  className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  defaultValue=""
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value="">הקצה</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.username}
+                    </option>
+                  ))}
+                </select>
+              </RoleGuard>
+
+              {/* Close ticket - Available to users with CLOSE_TICKET permission */}
+              <RoleGuard allowedPermissions={[PERMISSIONS.CLOSE_TICKET]}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleCloseTicket(row.id)
+                  }}
+                  className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
+                  data-tooltip-id="close-tooltip"
+                  data-tooltip-content="סגור פנייה"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </button>
+              </RoleGuard>
             </>
           )}
         </div>
@@ -447,10 +542,7 @@ const TicketsTable = () => {
             </div>
           </div>
           
-          <button className="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors flex items-center   space-x-2">
-            <Plus className="w-4 h-4" />
-            <span>פנייה חדשה</span>
-          </button>
+ 
         </div>
 
       {/* Statistics */}

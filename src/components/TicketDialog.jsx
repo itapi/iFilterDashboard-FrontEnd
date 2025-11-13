@@ -31,7 +31,7 @@ const MessageBubble = ({
   onEditedMessageChange,
   formatDate
 }) => {
-  const isFromAdmin = update.user_type === 'user'
+  const isFromAdmin = update.sender_type === 'user'
   const isEditing = editingMessageId === update.id
   const canEdit = isFromAdmin && currentUser && update.updated_by === currentUser.id
 
