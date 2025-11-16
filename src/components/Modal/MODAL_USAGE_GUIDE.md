@@ -115,6 +115,95 @@ const showSuccess = () => {
 }
 ```
 
+#### Example: Simple Text Layout
+
+```javascript
+const { openModal } = useGlobalState()
+
+const showMessage = () => {
+  openModal({
+    layout: 'simpleText',
+    title: 'הודעה',
+    data: {
+      text: 'הנתונים עודכנו בהצלחה במערכת',
+      icon: 'success' // 'info', 'success', 'warning', 'error', or null
+    },
+    showConfirmButton: false,
+    cancelText: 'סגור'
+  })
+}
+```
+
+#### Example: Delete Confirmation Layout
+
+```javascript
+const { openModal } = useGlobalState()
+
+const handleDelete = (admin) => {
+  openModal({
+    layout: 'deleteConfirm',
+    title: 'אישור מחיקה',
+    data: {
+      itemName: admin.name,
+      itemType: 'מנהל',
+      warningText: 'פעולה זו אינה ניתנת לביטול!',
+      additionalInfo: 'כל הנתונים הקשורים למנהל זה יימחקו גם כן.'
+    },
+    confirmText: 'מחק',
+    cancelText: 'ביטול',
+    onConfirm: async () => {
+      await apiClient.delete(`/admins/${admin.id}`)
+      toast.success('המנהל נמחק בהצלחה')
+      refreshAdmins()
+    }
+  })
+}
+```
+
+#### Example: Admin Form Layout
+
+```javascript
+const { openModal } = useGlobalState()
+
+// Create new admin
+const handleAddAdmin = () => {
+  openModal({
+    layout: 'adminForm',
+    title: 'הוספת מנהל חדש',
+    size: 'lg',
+    data: {
+      admin: null, // null for new admin
+      onSave: async (adminData) => {
+        await apiClient.post('/admins', adminData)
+        toast.success('המנהל נוסף בהצלחה')
+        refreshAdmins()
+      }
+    },
+    confirmText: 'שמור',
+    cancelText: 'ביטול'
+  })
+}
+
+// Edit existing admin
+const handleEditAdmin = (admin) => {
+  openModal({
+    layout: 'adminForm',
+    title: 'עריכת מנהל',
+    size: 'lg',
+    data: {
+      admin, // existing admin object
+      onSave: async (adminData) => {
+        await apiClient.put(`/admins/${admin.id}`, adminData)
+        toast.success('המנהל עודכן בהצלחה')
+        refreshAdmins()
+      }
+    },
+    confirmText: 'עדכן',
+    cancelText: 'ביטול'
+  })
+}
+```
+
 ---
 
 ### 4. Modal Stack (Multiple Modals)
@@ -150,7 +239,7 @@ openModal({
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `layout` | string | 'default' | Layout type: 'confirm', 'exampleForm', 'info', 'default' |
+| `layout` | string | 'default' | Layout type: 'confirm', 'deleteConfirm', 'simpleText', 'info', 'adminForm', 'exampleForm', 'custom', 'default' |
 | `title` | string | '' | Modal title |
 | `content` | ReactNode | null | Modal content (for default layout) |
 | `data` | object | {} | Data passed to layout component |
@@ -417,12 +506,28 @@ const { openConfirmModal } = useModal()
 
 ---
 
+## Available Layouts
+
+The following layouts are available out of the box:
+
+- **confirm** - Generic confirmation dialog with variants (info, warning, danger)
+- **deleteConfirm** - Specialized delete confirmation with warning styling
+- **simpleText** - Clean text display with optional icon
+- **info** - Information display with colored variants
+- **adminForm** - Form for creating/editing admin users
+- **exampleForm** - Template form layout for creating custom forms
+- **custom** - Pass any React component directly
+- **default** - Basic layout for simple content
+
 ## Examples in Codebase
 
 See these files for working examples:
 
 - `src/components/Modal/layouts/ExampleFormLayout.jsx` - Form with ref
 - `src/components/Modal/layouts/InfoLayout.jsx` - Simple info display
+- `src/components/Modal/layouts/AdminFormLayout.jsx` - Admin user form
+- `src/components/Modal/layouts/SimpleTextLayout.jsx` - Simple text with icon
+- `src/components/Modal/layouts/DeleteConfirmLayout.jsx` - Delete confirmation
 - `src/components/CommunitiesTable.jsx` - Uses openConfirmModal
 - `src/components/CategoryPlanManager.jsx` - Uses openModal
 

@@ -3,10 +3,10 @@ import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
 import { Table } from './Table/Table'
-import { TicketDialog } from './TicketDialog'
 import { Toggle } from './Toggle'
 import { RoleGuard, SuperAdminOnly } from './RoleGuard'
 import { usePermissions } from '../hooks/usePermissions'
+import { useGlobalState } from '../contexts/GlobalStateContext'
 import {
   MessageCircle,
   Search,
@@ -24,6 +24,9 @@ import {
 } from 'lucide-react'
 
 const TicketsTable = () => {
+  // Global modal state
+  const { openModal, closeModal } = useGlobalState()
+
   // Role-based permissions
   const { hasPermission, isCommunityManager, PERMISSIONS } = usePermissions()
 
@@ -42,10 +45,6 @@ const TicketsTable = () => {
   const [selectedTickets, setSelectedTickets] = useState([])
   const [sortBy, setSortBy] = useState('last_update')
   const [sortOrder, setSortOrder] = useState('DESC')
-
-  // Modal state
-  const [selectedTicket, setSelectedTicket] = useState(null)
-  const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false)
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -173,13 +172,33 @@ const TicketsTable = () => {
   }
 
   const handleTicketClick = (ticket) => {
-    setSelectedTicket(ticket)
-    setIsTicketDialogOpen(true)
-  }
+    const getHebrewSubject = (subject) => {
+      switch (subject) {
+        case 'app_upload':
+          return 'העלאת אפליקציה'
+        case 'report':
+          return 'דיווח'
+        case 'other':
+          return 'אחר'
+        default:
+          return subject
+      }
+    }
 
-  const handleTicketDialogClose = () => {
-    setIsTicketDialogOpen(false)
-    setSelectedTicket(null)
+    openModal({
+      layout: 'ticketDialog',
+      title: `פנייה #${ticket.id} - ${getHebrewSubject(ticket.subject)}`,
+      size: 'xl',
+      data: {
+        ticket,
+        currentUser,
+        users,
+        onTicketUpdate: handleTicketUpdate,
+        onClose: closeModal
+      },
+      closeOnBackdropClick: true,
+      closeOnEscape: true
+    })
   }
 
   const handleTicketUpdate = (ticketId, updateType, updateData) => {
@@ -721,16 +740,6 @@ const TicketsTable = () => {
           </div>
         </div>
       )}
-
-      {/* Ticket Dialog */}
-      <TicketDialog
-        isOpen={isTicketDialogOpen}
-        onClose={handleTicketDialogClose}
-        ticket={selectedTicket}
-        currentUser={currentUser}
-        users={users}
-        onTicketUpdate={handleTicketUpdate}
-      />
     </div>
   )
 }

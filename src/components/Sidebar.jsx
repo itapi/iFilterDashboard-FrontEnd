@@ -86,9 +86,9 @@ const Sidebar = () => {
       )
     },
     {
-      id: 'users',
-      path: '/users',
-      name: 'משתמשים',
+      id: 'admins',
+      path: '/admins',
+      name: 'משתמשי מערכת',
       allowedRoles: [ROLES.SUPER_ADMIN], // Super admin only
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

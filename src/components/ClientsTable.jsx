@@ -5,8 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import apiClient from '../utils/api'
 import { Table } from './Table/Table'
 import { Toggle } from './Toggle'
-import ConfirmModal from './Modal/ConfirmModal'
-import { Modal } from './Modal/Modal'
+import { useGlobalState } from '../contexts/GlobalStateContext'
 import DebouncedSearch from './DebouncedSearch'
 import { 
   Users, 
@@ -27,6 +26,7 @@ import {
 
 const ClientsTable = () => {
   const navigate = useNavigate()
+  const { openModal, closeModal } = useGlobalState()
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -42,13 +42,7 @@ const ClientsTable = () => {
   // Sorting state
   const [sortColumn, setSortColumn] = useState(null)
   const [sortDirection, setSortDirection] = useState('asc')
-  
-  // Delete modal state
-  const [deleteModal, setDeleteModal] = useState({
-    isOpen: false,
-    client: null
-  })
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -232,34 +226,51 @@ const ClientsTable = () => {
   }
 
   const handleDeleteClick = (client) => {
-    setDeleteModal({
-      isOpen: true,
-      client
-    })
-  }
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteModal.client) return
-    
-    try {
-      const response = await apiClient.deleteClient(deleteModal.client.client_unique_id)
-      if (response.success) {
-        setClients(prev => prev.filter(client => 
-          client.client_unique_id !== deleteModal.client.client_unique_id
-        ))
-        toast.success('הלקוח נמחק בהצלחה')
-        setDeleteModal({ isOpen: false, client: null })
-      } else {
-        toast.error('שגיאה במחיקת הלקוח')
+    openModal({
+      layout: 'deleteConfirm',
+      title: 'מחיקת לקוח',
+      size: 'md',
+      data: {
+        message: (
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              האם אתה בטוח שברצונך למחוק את הלקוח?
+            </h3>
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <p className="font-medium text-gray-900">{client.full_name}</p>
+              <p className="text-sm text-gray-600">{client.email}</p>
+              <p className="text-xs text-gray-500 font-mono">#{client.client_unique_id}</p>
+            </div>
+            <p className="text-sm text-red-600">
+              פעולה זו לא ניתנת לביטול ותמחק את כל הנתונים הקשורים ללקוח
+            </p>
+          </div>
+        ),
+      },
+      showConfirmButton: true,
+      showCancelButton: true,
+      confirmText: 'מחק לקוח',
+      cancelText: 'ביטול',
+      closeOnBackdropClick: true,
+      closeOnEscape: true,
+      onConfirm: async () => {
+        try {
+          const response = await apiClient.deleteClient(client.client_unique_id)
+          if (response.success) {
+            setClients(prev => prev.filter(c =>
+              c.client_unique_id !== client.client_unique_id
+            ))
+            toast.success('הלקוח נמחק בהצלחה')
+            closeModal()
+          } else {
+            toast.error('שגיאה במחיקת הלקוח')
+          }
+        } catch (err) {
+          toast.error('שגיאה במחיקת הלקוח')
+          console.error('Error deleting client:', err)
+        }
       }
-    } catch (err) {
-      toast.error('שגיאה במחיקת הלקוח')
-      console.error('Error deleting client:', err)
-    }
-  }
-
-  const handleDeleteCancel = () => {
-    setDeleteModal({ isOpen: false, client: null })
+    })
   }
 
   const handleSortChange = (column, direction) => {
@@ -703,37 +714,6 @@ const ClientsTable = () => {
           </div>
         </div>
       )}
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={deleteModal.isOpen}
-        onClose={handleDeleteCancel}
-        title="מחיקת לקוח"
-      >
-        <ConfirmModal
-          message={
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                האם אתה בטוח שברצונך למחוק את הלקוח?
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <p className="font-medium text-gray-900">{deleteModal.client?.full_name}</p>
-                <p className="text-sm text-gray-600">{deleteModal.client?.email}</p>
-                <p className="text-xs text-gray-500 font-mono">#{deleteModal.client?.client_unique_id}</p>
-              </div>
-              <p className="text-sm text-red-600">
-                פעולה זו לא ניתנת לביטול ותמחק את כל הנתונים הקשורים ללקוח
-              </p>
-            </div>
-          }
-          variant="danger"
-          confirmText="מחק לקוח"
-          cancelText="ביטול"
-          onConfirm={handleDeleteConfirm}
-          onCancel={handleDeleteCancel}
-        />
-      </Modal>
-
     </div>
   )
 }

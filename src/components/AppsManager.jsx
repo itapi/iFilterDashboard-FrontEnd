@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
+import { useGlobalState } from '../contexts/GlobalStateContext'
 import { Smartphone, Folder, Package, Star } from 'lucide-react'
-import CategoryAppsModal from './CategoryAppsModal'
 
 const AppsManager = () => {
+  const { openModal } = useGlobalState()
   const [categories, setCategories] = useState([])
   const [apps, setApps] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState(null)
-  const [showCategoryModal, setShowCategoryModal] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -39,18 +38,32 @@ const AppsManager = () => {
   }
 
   const handleCategoryClick = (category) => {
-    setSelectedCategory(category)
-    setShowCategoryModal(true)
-  }
-
-  const handleCloseModal = () => {
-    setShowCategoryModal(false)
-    setSelectedCategory(null)
-  }
-
-  const handleAppsUpdated = () => {
-    // Reload data after apps are updated
-    loadData()
+    openModal({
+      layout: 'categoryApps',
+      title: (
+        <div className="flex items-center space-x-reverse space-x-3">
+          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+            {category.category_icon ? (
+              <img
+                src={category.category_icon}
+                alt={category.category_name}
+                className="w-6 h-6 object-contain"
+              />
+            ) : (
+              <Package className="w-5 h-5 text-purple-600" />
+            )}
+          </div>
+          <span>בחירת אפליקציות - {category.category_name}</span>
+        </div>
+      ),
+      size: 'xl',
+      data: {
+        category,
+        onAppsUpdated: loadData
+      },
+      closeOnBackdropClick: true,
+      closeOnEscape: true
+    })
   }
 
   const getCategoryAppCount = (categoryId) => {
@@ -195,16 +208,6 @@ const AppsManager = () => {
           <h3 className="text-xl font-medium text-gray-900 mb-2">אין קטגוריות</h3>
           <p className="text-gray-600 mb-6">צור קטגוריה ראשונה כדי להתחיל</p>
         </div>
-      )}
-
-      {/* Category Apps Modal */}
-      {showCategoryModal && selectedCategory && (
-        <CategoryAppsModal
-          isOpen={showCategoryModal}
-          onClose={handleCloseModal}
-          category={selectedCategory}
-          onAppsUpdated={handleAppsUpdated}
-        />
       )}
     </div>
   )

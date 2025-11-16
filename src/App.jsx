@@ -11,6 +11,7 @@ import TicketsManager from './components/TicketsManager'
 import TicketsTable from './components/TicketsTable'
 import ClientsTable from './components/ClientsTable'
 import ClientDetails from './components/ClientDetails'
+import AdminsTable from './components/AdminsTable'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
@@ -82,14 +83,9 @@ function AppContent() {
                 <Route path="/clients/:clientUniqueId" element={<ClientDetails />} />
 
                 {/* User Management - Super Admin only */}
-                <Route path="/users" element={
+                <Route path="/admins" element={
                   <SuperAdminRoute showForbidden={true}>
-                    <div className="p-8">
-                      <div className="text-center py-12">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">ניהול משתמשים</h2>
-                        <p className="text-gray-600">עמוד זה בפיתוח...</p>
-                      </div>
-                    </div>
+                    <AdminsTable />
                   </SuperAdminRoute>
                 } />
 

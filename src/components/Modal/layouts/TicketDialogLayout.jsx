@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { forwardRef, useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
-import { Modal } from './Modal/Modal'
-import apiClient from '../utils/api'
+import apiClient from '../../../utils/api'
 import {
   Send,
   CheckCircle,
@@ -18,7 +17,9 @@ import {
   Save
 } from 'lucide-react'
 
-// Message Bubble Component (moved outside to prevent focus issues)
+/**
+ * Message Bubble Component
+ */
 const MessageBubble = ({
   update,
   currentUser,
@@ -118,15 +119,30 @@ const MessageBubble = ({
   )
 }
 
-export const TicketDialog = ({
-  isOpen,
-  onClose,
-  ticket,
-  currentUser,
-  users = [],
-  onTicketUpdate
-}) => {
+/**
+ * Ticket Dialog Layout
+ *
+ * Used for viewing and responding to customer tickets
+ *
+ * Usage:
+ * const { openModal } = useGlobalState()
+ *
+ * openModal({
+ *   layout: 'ticketDialog',
+ *   title: `פנייה #${ticket.id} - ${ticket.subject}`,
+ *   size: 'xl',
+ *   data: {
+ *     ticket: ticketObject,
+ *     currentUser: currentUserObject,
+ *     users: usersArray,
+ *     onTicketUpdate: (ticketId, updateType, updateData) => { ... }
+ *   }
+ * })
+ */
+export const TicketDialogLayout = forwardRef(({ data }, ref) => {
   const navigate = useNavigate()
+  const { ticket, currentUser, users = [], onTicketUpdate, onClose } = data || {}
+
   const [ticketUpdates, setTicketUpdates] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -137,11 +153,11 @@ export const TicketDialog = ({
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
-    if (isOpen && ticket) {
+    if (ticket) {
       loadTicketUpdates()
       markTicketAsRead()
     }
-  }, [isOpen, ticket])
+  }, [ticket])
 
   useEffect(() => {
     scrollToBottom()
@@ -183,7 +199,7 @@ export const TicketDialog = ({
 
     try {
       setSending(true)
-      
+
       const response = await apiClient.addTicketUpdate(
         ticket.id,
         newMessage.trim(),
@@ -194,7 +210,7 @@ export const TicketDialog = ({
       if (response.success) {
         setTicketUpdates(prev => [...prev, response.data])
         setNewMessage('')
-        
+
         // Notify parent component about the update
         if (onTicketUpdate) {
           onTicketUpdate(ticket.id, 'message_added', response.data)
@@ -212,14 +228,17 @@ export const TicketDialog = ({
 
   const handleCloseTicket = async () => {
     if (!ticket) return
-    
+
     try {
       const response = await apiClient.closeTicket(ticket.id)
       if (response.success) {
         if (onTicketUpdate) {
           onTicketUpdate(ticket.id, 'closed')
         }
-        onClose() // Close the dialog
+        if (onClose) {
+          onClose()
+        }
+        toast.success('הפנייה נסגרה בהצלחה')
       }
     } catch (err) {
       toast.error('שגיאה בסגירת הפנייה')
@@ -240,6 +259,7 @@ export const TicketDialog = ({
             assigned_user_name: assignedUser?.username
           })
         }
+        toast.success('הפנייה הוקצתה בהצלחה')
       }
     } catch (err) {
       toast.error('שגיאה בהקצאת הפנייה')
@@ -265,7 +285,6 @@ export const TicketDialog = ({
       const response = await apiClient.editTicketUpdate(updateId, editedMessageText.trim(), currentUser.id)
 
       if (response.success) {
-        // Update the message in the local state
         setTicketUpdates(prev => prev.map(update =>
           update.id === updateId ? response.data : update
         ))
@@ -295,196 +314,188 @@ export const TicketDialog = ({
 
   if (!ticket) return null
 
-  const modalFooter = ticket.status === 'open' ? (
-    <div className="flex items-end space-x-reverse space-x-3">
-      <div className="flex-1">
-        <div className="relative">
-          <textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage()
-              }
-            }}
-            placeholder="כתוב תגובה... (לחץ Enter לשליחה, Shift+Enter לשורה חדשה)"
-            className={`w-full px-4 py-3 border rounded-xl resize-none transition-all duration-200 ${
-              sending 
-                ? 'border-purple-300 bg-purple-50' 
-                : 'border-gray-200 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent'
-            }`}
-            rows={3}
-            disabled={sending}
-          />
-          {sending && (
-            <div className="absolute inset-0 bg-white bg-opacity-50 rounded-xl flex items-center justify-center">
-              <div className="text-sm text-purple-600 flex items-center">
-                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin ml-2" />
-                שולח הודעה...
+  return (
+    <div className="flex flex-col h-full" dir="rtl">
+      {/* Ticket Header */}
+      <div className="p-6 border-b border-gray-100 bg-white">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+              <div className="flex items-center space-x-1.5">
+                <span>לקוח:</span>
+                {ticket.client_unique_id ? (
+                  <button
+                    onClick={() => {
+                      navigate(`/clients/${ticket.client_unique_id}`)
+                      if (onClose) onClose()
+                    }}
+                    className="text-purple-600 hover:text-purple-700 font-medium hover:underline flex items-center space-x-reverse space-x-1 transition-colors"
+                    data-tooltip-id="client-link-tooltip"
+                    data-tooltip-content="עבור לעמוד הלקוח"
+                  >
+                    <span>{ticket.client_name}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <span className="font-medium">{ticket.client_name}</span>
+                )}
               </div>
+              <span>נפתח: {formatDate(ticket.created_at)}</span>
+              {ticket.assigned_user_name && (
+                <span>מוקצה ל: {ticket.assigned_user_name}</span>
+              )}
             </div>
-          )}
-        </div>
-        
-        {/* Character counter and help text */}
-        <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-          <div className="flex items-center space-x-reverse space-x-4">
-            <span>תווים: {newMessage.length}</span>
-            <span>Enter = שלח, Shift+Enter = שורה חדשה</span>
           </div>
-          {newMessage.trim() && (
-            <div className="text-green-600 flex items-center">
-              <CheckCircle className="w-3 h-3 ml-1" />
-              מוכן לשליחה
-            </div>
-          )}
+
+          <div className="flex items-center space-x-reverse space-x-2">
+            {ticket.status === 'open' && (
+              <>
+                {/* Assign Dropdown */}
+                <select
+                  onChange={(e) => e.target.value && handleAssignTicket(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  defaultValue=""
+                >
+                  <option value="">הקצה לעובד</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.username}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Close Button */}
+                <button
+                  onClick={handleCloseTicket}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center"
+                  data-tooltip-id="close-ticket-tooltip"
+                  data-tooltip-content="סגור פנייה"
+                >
+                  <CheckCircle className="w-4 h-4 ml-1" />
+                  סגור
+                </button>
+              </>
+            )}
+
+            {ticket.status === 'closed' && (
+              <div className="flex items-center px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">
+                <Archive className="w-4 h-4 ml-1" />
+                פנייה סגורה
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Ticket Description */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-gray-700 whitespace-pre-wrap">{ticket.description}</p>
         </div>
       </div>
-      
-      <button
-        onClick={handleSendMessage}
-        disabled={!newMessage.trim() || sending}
-        className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center min-w-[100px] justify-center ${
-          !newMessage.trim() || sending
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-            : 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5'
-        }`}
-      >
-        {sending ? (
-          <>
-            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin ml-1" />
-            שולח...
-          </>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-6 bg-gray-25" style={{ maxHeight: '400px' }}>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center space-x-reverse space-x-2">
+              <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-gray-600">טוען הודעות...</span>
+            </div>
+          </div>
         ) : (
           <>
-            <Send className="w-4 h-4 ml-1" />
-            שלח
+            {ticketUpdates.map(update => (
+              <MessageBubble
+                key={update.id}
+                update={update}
+                currentUser={currentUser}
+                editingMessageId={editingMessageId}
+                editedMessageText={editedMessageText}
+                savingEdit={savingEdit}
+                onStartEdit={handleStartEdit}
+                onCancelEdit={handleCancelEdit}
+                onSaveEdit={handleSaveEdit}
+                onEditedMessageChange={setEditedMessageText}
+                formatDate={formatDate}
+              />
+            ))}
+            <div ref={messagesEndRef} />
           </>
         )}
-      </button>
-    </div>
-  ) : null
+      </div>
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`פנייה #${ticket.id} - ${ticket.subject}`}
-      size="xl"
-      footer={modalFooter}
-      bodyClassName="p-0"
-      footerClassName="bg-gray-50"
-    >
-      <div className="flex flex-col h-full max-h-[60vh]" dir="rtl">
-        {/* Ticket Header */}
-        <div className="p-6 border-b border-gray-100 bg-white">
-          <div className="flex items-start justify-between mb-4">
+      {/* Message Input (only for open tickets) */}
+      {ticket.status === 'open' && (
+        <div className="p-6 border-t border-gray-100 bg-gray-50">
+          <div className="flex items-end space-x-reverse space-x-3">
             <div className="flex-1">
-              <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                <div className="flex items-center  space-x-1.5">
-                  <span>לקוח:</span>
-                  {ticket.client_unique_id ? (
-                    <button
-                      onClick={() => {
-                        navigate(`/clients/${ticket.client_unique_id}`)
-                        onClose()
-                      }}
-                      className="text-purple-600 hover:text-purple-700 font-medium hover:underline flex items-center space-x-reverse space-x-1 transition-colors"
-                      data-tooltip-id="client-link-tooltip"
-                      data-tooltip-content="עבור לעמוד הלקוח"
-                    >
-                      <span>{ticket.client_name}</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
-                  ) : (
-                    <span className="font-medium">{ticket.client_name}</span>
-                  )}
+              <div className="relative">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSendMessage()
+                    }
+                  }}
+                  placeholder="כתוב תגובה... (לחץ Enter לשליחה, Shift+Enter לשורה חדשה)"
+                  className={`w-full px-4 py-3 border rounded-xl resize-none transition-all duration-200 ${
+                    sending
+                      ? 'border-purple-300 bg-purple-50'
+                      : 'border-gray-200 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent'
+                  }`}
+                  rows={3}
+                  disabled={sending}
+                />
+                {sending && (
+                  <div className="absolute inset-0 bg-white bg-opacity-50 rounded-xl flex items-center justify-center">
+                    <div className="text-sm text-purple-600 flex items-center">
+                      <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin ml-2" />
+                      שולח הודעה...
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Character counter and help text */}
+              <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                <div className="flex items-center space-x-reverse space-x-4">
+                  <span>תווים: {newMessage.length}</span>
+                  <span>Enter = שלח, Shift+Enter = שורה חדשה</span>
                 </div>
-                <span>נפתח: {formatDate(ticket.created_at)}</span>
-                {ticket.assigned_user_name && (
-                  <span>מוקצה ל: {ticket.assigned_user_name}</span>
+                {newMessage.trim() && (
+                  <div className="text-green-600 flex items-center">
+                    <CheckCircle className="w-3 h-3 ml-1" />
+                    מוכן לשליחה
+                  </div>
                 )}
               </div>
             </div>
-            
-            <div className="flex items-center space-x-reverse space-x-2">
-              {ticket.status === 'open' && (
+
+            <button
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || sending}
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center min-w-[100px] justify-center ${
+                !newMessage.trim() || sending
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5'
+              }`}
+            >
+              {sending ? (
                 <>
-                  {/* Assign Dropdown */}
-                  <select
-                    onChange={(e) => e.target.value && handleAssignTicket(parseInt(e.target.value))}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    defaultValue=""
-                  >
-                    <option value="">הקצה לעובד</option>
-                    {users.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.username}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  {/* Close Button */}
-                  <button
-                    onClick={handleCloseTicket}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center"
-                    data-tooltip-id="close-ticket-tooltip"
-                    data-tooltip-content="סגור פנייה"
-                  >
-                    <CheckCircle className="w-4 h-4 ml-1" />
-                    סגור
-                  </button>
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin ml-1" />
+                  שולח...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 ml-1" />
+                  שלח
                 </>
               )}
-              
-              {ticket.status === 'closed' && (
-                <div className="flex items-center px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">
-                  <Archive className="w-4 h-4 ml-1" />
-                  פנייה סגורה
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Ticket Description */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-gray-700 whitespace-pre-wrap">{ticket.description}</p>
+            </button>
           </div>
         </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-25">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="flex items-center space-x-reverse space-x-2">
-                <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-gray-600">טוען הודעות...</span>
-              </div>
-            </div>
-          ) : (
-            <>
-              {ticketUpdates.map(update => (
-                <MessageBubble
-                  key={update.id}
-                  update={update}
-                  currentUser={currentUser}
-                  editingMessageId={editingMessageId}
-                  editedMessageText={editedMessageText}
-                  savingEdit={savingEdit}
-                  onStartEdit={handleStartEdit}
-                  onCancelEdit={handleCancelEdit}
-                  onSaveEdit={handleSaveEdit}
-                  onEditedMessageChange={setEditedMessageText}
-                  formatDate={formatDate}
-                />
-              ))}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
-
-      </div>
+      )}
 
       {/* Tooltips */}
       <Tooltip
@@ -526,6 +537,8 @@ export const TicketDialog = ({
           zIndex: 10000
         }}
       />
-    </Modal>
+    </div>
   )
-}
+})
+
+TicketDialogLayout.displayName = 'TicketDialogLayout'

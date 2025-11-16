@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
+import { useGlobalState } from '../contexts/GlobalStateContext'
 import PaymentsTab from './PaymentsTab'
-import CustomPlanApps from './CustomPlanApps'
 import ClientDetailsHeader from './ClientDetailsHeader'
 import ClientOverviewTab from './ClientOverviewTab'
 import ClientPlanTab from './ClientPlanTab'
@@ -20,6 +20,7 @@ const ClientDetails = () => {
   const { clientUniqueId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const { openModal } = useGlobalState()
 
   // State management
   const [client, setClient] = useState(location.state?.client || null)
@@ -28,7 +29,6 @@ const ClientDetails = () => {
   const [activeTab, setActiveTab] = useState('overview')
   const [availablePlans, setAvailablePlans] = useState([])
   const [loadingPlans, setLoadingPlans] = useState(false)
-  const [showCustomPlanApps, setShowCustomPlanApps] = useState(false)
   const [deviceData, setDeviceData] = useState(null)
   const [loadingDeviceData, setLoadingDeviceData] = useState(false)
 
@@ -192,7 +192,23 @@ const ClientDetails = () => {
 
         {activeTab === 'apps' && isCustomPlan() && (
           <ClientAppsTab
-            onManageApps={() => setShowCustomPlanApps(true)}
+            onManageApps={() => {
+              openModal({
+                layout: 'customPlanApps',
+                title: 'בחירת אפליקציות - מסלול אישי',
+                size: 'xl',
+                data: {
+                  clientUniqueId,
+                  planUniqueId: null,
+                  onSave: (selectedApps) => {
+                    console.log('Apps saved:', selectedApps)
+                    toast.success(`נשמרו ${selectedApps.length} אפליקציות עבור הלקוח`)
+                  }
+                },
+                closeOnBackdropClick: true,
+                closeOnEscape: true
+              })
+            }}
           />
         )}
 
@@ -200,18 +216,6 @@ const ClientDetails = () => {
           <PaymentsTab clientUniqueId={clientUniqueId} />
         )}
       </div>
-
-      {/* Custom Plan Apps Modal */}
-      <CustomPlanApps
-        isOpen={showCustomPlanApps}
-        clientUniqueId={clientUniqueId}
-        onClose={() => setShowCustomPlanApps(false)}
-        onSave={(selectedApps) => {
-          console.log('Apps saved:', selectedApps)
-          setShowCustomPlanApps(false)
-          toast.success(`נשמרו ${selectedApps.length} אפליקציות עבור הלקוח`)
-        }}
-      />
     </div>
   )
 }

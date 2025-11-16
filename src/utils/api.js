@@ -502,6 +502,50 @@ class ApiClient {
     return this.apiRequest('users');
   }
 
+  // Admins API (for admin management - super admin only)
+  async getAdmins() {
+    return this.apiRequest('admins');
+  }
+
+  async getAdminsWithDetails(page = 1, limit = 25, filters = {}) {
+    let url = `admins?action=with_details&page=${page}&limit=${limit}`;
+
+    // Add filter parameters if provided
+    if (filters.user_type) {
+      url += `&user_type=${filters.user_type}`;
+    }
+
+    if (filters.search) {
+      url += `&search=${encodeURIComponent(filters.search)}`;
+    }
+
+    return this.apiRequest(url);
+  }
+
+  async getCommunityPlansForAdmins() {
+    return this.apiRequest('admins?action=community_plans');
+  }
+
+  async createAdmin(adminData) {
+    return this.apiRequest('admins', {
+      method: 'POST',
+      body: adminData
+    });
+  }
+
+  async updateAdmin(adminId, adminData) {
+    return this.apiRequest(`admins/${adminId}`, {
+      method: 'PUT',
+      body: adminData
+    });
+  }
+
+  async deleteAdmin(adminId) {
+    return this.apiRequest(`admins/${adminId}`, {
+      method: 'DELETE'
+    });
+  }
+
   // Clients API
   async getClientsWithDetails(page = 1, limit = 25, filters = {}) {
     let url = `clients?action=with_details&page=${page}&limit=${limit}`;
