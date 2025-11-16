@@ -28,8 +28,10 @@ The system supports three role types defined in the `admins` database table:
 - Can delete and modify any resource
 
 ### 2. **Manager** (`manager`)
-- **General management access**
-- Can view and manage clients, tickets, and plans
+- **Limited to assigned clients only**
+- Can view and manage only clients assigned to them (via `managed_by_user_id`)
+- Can view and manage tickets for their assigned clients only
+- Can manage plans and apps
 - Cannot manage users or system settings
 - Cannot delete critical resources
 

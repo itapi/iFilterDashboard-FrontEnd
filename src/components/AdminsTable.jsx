@@ -20,8 +20,6 @@ import { Tooltip } from 'react-tooltip'
 
 // Add Admin Form Component (defined BEFORE AdminsTable to avoid hoisting issues)
 const AddAdminForm = ({ communityPlans, onSuccess, onClose }) => {
-  console.log('AddAdminForm - RENDERING!', { communityPlans, onSuccess, onClose })
-
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -79,11 +77,10 @@ const AddAdminForm = ({ communityPlans, onSuccess, onClose }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6" dir="rtl" style={{backgroundColor: 'red', color: 'white', border: '10px solid yellow', padding: '40px', minHeight: '500px'}}>
-      <h1 style={{fontSize: '48px', fontWeight: 'bold', color: 'yellow'}}>ADD ADMIN FORM IS HERE!!!</h1>
+    <form onSubmit={handleSubmit} className="space-y-6" dir="rtl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-white mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             שם משתמש <span className="text-red-500">*</span>
           </label>
           <input
@@ -495,7 +492,6 @@ const AdminsTable = () => {
   }
 
   const handleAddAdmin = () => {
-    console.log('Opening add admin modal, communityPlans:', communityPlans)
     openModal({
       layout: 'custom',
       title: 'הוספת משתמש מערכת',

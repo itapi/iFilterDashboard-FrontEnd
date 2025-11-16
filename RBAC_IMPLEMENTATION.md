@@ -44,10 +44,11 @@ The iFilter system now has **defense in depth** with RBAC implemented at both la
 - ✅ All exports and reports
 
 #### Manager
-- ✅ View/manage all clients
-- ✅ View/manage all tickets
+- ✅ View/manage assigned clients only (via `managed_by_user_id`)
+- ✅ View/manage tickets for assigned clients only
 - ✅ View/manage all plans
 - ✅ Manage apps and categories
+- ❌ Cannot see clients/tickets not assigned to them
 - ❌ Cannot manage users
 - ❌ Cannot access system settings
 
@@ -218,10 +219,11 @@ Body: { "client_unique_id": "123", "status": "active" }
 - HTTP 403 Forbidden
 - Error: "Access denied"
 
-### Test Case 3: Manager Accessing All Clients ✅
+### Test Case 3: Manager Accessing Assigned Clients ✅
 
 **Setup:**
-- User: Manager
+- User: Manager (ID: 2)
+- Database: Has clients with `managed_by_user_id = 2` and others with different managers
 
 **API Call:**
 ```bash
@@ -230,8 +232,25 @@ Authorization: Bearer {manager_token}
 ```
 
 **Expected Result:**
-- Returns ALL clients regardless of plan
+- Returns only clients where `managed_by_user_id = 2`
 - HTTP 200 OK
+
+### Test Case 3b: Manager Accessing Other Manager's Client ❌
+
+**Setup:**
+- User: Manager (ID: 2)
+- Target: Client with `managed_by_user_id = 3`
+
+**API Call:**
+```bash
+PUT /api/clients?action=update_status
+Authorization: Bearer {manager_token}
+Body: { "client_unique_id": "123", "status": "active" }
+```
+
+**Expected Result:**
+- HTTP 403 Forbidden
+- Error: "Access denied"
 
 ### Test Case 4: Unauthenticated Access ❌
 
@@ -265,7 +284,10 @@ CREATE TABLE admins (
 );
 ```
 
-**Important:** Community managers MUST have `community_plan_unique_id` set to their assigned plan ID.
+**Important:**
+- Community managers MUST have `community_plan_unique_id` set to their assigned plan ID.
+- Managers will only see clients where the client's `managed_by_user_id` matches their user ID.
+- Clients MUST have `managed_by_user_id` set to assign them to a specific manager.
 
 ### Example User Records
 
@@ -438,13 +460,16 @@ private function updateMyRecord() {
 
 **What's Protected:**
 - All API endpoints require authentication
-- Clients endpoint filters by plan for community managers
-- Tickets endpoint filters by plan for community managers
+- Clients endpoint filters by `managed_by_user_id` for managers, by `plan_unique_id` for community managers
+- Tickets endpoint filters by client's `managed_by_user_id` for managers, by `plan_unique_id` for community managers
 - Individual operations check ownership before allowing updates
+- Managers can only access clients assigned to them
 - Community managers cannot change plan assignments
 
 **What This Prevents:**
 - ❌ Bypassing frontend restrictions via direct API calls
+- ❌ Managers viewing clients not assigned to them
+- ❌ Managers viewing tickets for clients not assigned to them
 - ❌ Community managers viewing other plans' data
 - ❌ Unauthorized modifications to clients/tickets
 - ❌ Unauthenticated API access

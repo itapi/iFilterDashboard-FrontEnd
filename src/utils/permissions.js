@@ -117,12 +117,12 @@ export const ROLE_PERMISSIONS = {
   ],
 
   [ROLES.MANAGER]: [
-    // General management access (no user management or system settings)
+    // Manager access - limited to assigned clients and their tickets only
     PERMISSIONS.VIEW_DASHBOARD,
     PERMISSIONS.VIEW_ANALYTICS,
-    PERMISSIONS.VIEW_ALL_CLIENTS,
+    PERMISSIONS.VIEW_ASSIGNED_CLIENTS,
     PERMISSIONS.EDIT_CLIENT,
-    PERMISSIONS.VIEW_ALL_TICKETS,
+    PERMISSIONS.VIEW_ASSIGNED_TICKETS,
     PERMISSIONS.EDIT_TICKET,
     PERMISSIONS.ASSIGN_TICKET,
     PERMISSIONS.CLOSE_TICKET,
