@@ -18,7 +18,9 @@ import {
   Clock,
   User,
   X,
-  Bell
+  Bell,
+  MoreVertical,
+  Trash
 } from 'lucide-react'
 
 const TicketsTable = () => {
@@ -231,15 +233,29 @@ const TicketsTable = () => {
     try {
       const response = await apiClient.closeTicket(ticketId)
       if (response.success) {
-        setTickets(prev => prev.map(ticket => 
-          ticket.id === ticketId 
+        setTickets(prev => prev.map(ticket =>
+          ticket.id === ticketId
             ? { ...ticket, status: 'closed', closed_at: new Date().toISOString() }
             : ticket
         ))
+        toast.success('הפנייה נסגרה בהצלחה')
       }
     } catch (err) {
       toast.error('שגיאה בסגירת הפנייה')
       console.error('Error closing ticket:', err)
+    }
+  }
+
+  const handleDeleteTicket = async (ticketId) => {
+    try {
+      const response = await apiClient.deleteTicket(ticketId)
+      if (response.success) {
+        setTickets(prev => prev.filter(ticket => ticket.id !== ticketId))
+        toast.success('הפנייה נמחקה בהצלחה')
+      }
+    } catch (err) {
+      toast.error('שגיאה במחיקת הפנייה')
+      console.error('Error deleting ticket:', err)
     }
   }
 
@@ -423,12 +439,6 @@ const TicketsTable = () => {
       type: 'status'
     },
     {
-      id: 'assigned_user_name',
-      key: 'assigned_user_name',
-      label: 'מוקצה ל',
-      type: 'user'
-    },
-    {
       id: 'update_count',
       key: 'update_count',
       label: 'הודעות',
@@ -466,42 +476,62 @@ const TicketsTable = () => {
       label: 'פעולות',
       type: 'custom',
       render: (row) => (
-        <div className="flex items-center space-x-2">
-          {row.status === 'open' && (
-            <>
-              {/* Assign ticket - Available to all roles with ASSIGN_TICKET permission */}
-              <RoleGuard allowedPermissions={[PERMISSIONS.ASSIGN_TICKET]}>
-                <select
-                  onChange={(e) => e.target.value && handleAssignTicket(row.id, parseInt(e.target.value))}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  defaultValue=""
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <option value="">הקצה</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.username}
-                    </option>
-                  ))}
-                </select>
-              </RoleGuard>
+        <div className="flex items-center justify-center">
+          <button
+            onClick={(e) => e.stopPropagation()}
+            data-tooltip-id={`ticket-menu-${row.id}`}
+            data-tooltip-place="bottom"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="תפריט פעולות"
+          >
+            <MoreVertical className="w-4 h-4 text-gray-600" />
+          </button>
 
-              {/* Close ticket - Available to users with CLOSE_TICKET permission */}
-              <RoleGuard allowedPermissions={[PERMISSIONS.CLOSE_TICKET]}>
+          <Tooltip
+            id={`ticket-menu-${row.id}`}
+            clickable
+            openOnClick
+            closeOnScroll
+            style={{
+              backgroundColor: 'white',
+              color: '#1f2937',
+              borderRadius: '12px',
+              padding: '8px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              border: '1px solid #e5e7eb',
+              zIndex: 10000
+            }}
+          >
+            <div className="flex flex-col gap-1 min-w-[140px]" dir="rtl">
+              {row.status === 'open' && (
+                <RoleGuard allowedPermissions={[PERMISSIONS.CLOSE_TICKET]}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCloseTicket(row.id)
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg transition-colors text-right w-full"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>סגור פנייה</span>
+                  </button>
+                </RoleGuard>
+              )}
+
+              <RoleGuard allowedPermissions={[PERMISSIONS.DELETE_TICKET]}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    handleCloseTicket(row.id)
+                    handleDeleteTicket(row.id)
                   }}
-                  className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
-                  data-tooltip-id="close-tooltip"
-                  data-tooltip-content="סגור פנייה"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors text-right w-full"
                 >
-                  <CheckCircle className="w-4 h-4" />
+                  <Trash className="w-4 h-4" />
+                  <span>מחק פנייה</span>
                 </button>
               </RoleGuard>
-            </>
-          )}
+            </div>
+          </Tooltip>
         </div>
       )
     }
@@ -700,21 +730,6 @@ const TicketsTable = () => {
         currentUser={currentUser}
         users={users}
         onTicketUpdate={handleTicketUpdate}
-      />
-
-      {/* Tooltips */}
-      <Tooltip
-        id="close-tooltip"
-        style={{
-          backgroundColor: '#1f2937',
-          color: '#f9fafb',
-          borderRadius: '8px',
-          padding: '8px 12px',
-          fontSize: '14px',
-          fontWeight: '500',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          zIndex: 10000
-        }}
       />
     </div>
   )
