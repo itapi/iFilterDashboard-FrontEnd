@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react'
 import { useGlobalState } from '../contexts/GlobalStateContext'
 import { X } from 'lucide-react'
-import ConfirmModal from './Modal/ConfirmModal'
 
 // Import modal layouts here
 import { ExampleFormLayout } from './Modal/layouts/ExampleFormLayout'
@@ -9,6 +8,7 @@ import { InfoLayout } from './Modal/layouts/InfoLayout'
 import { AdminFormLayout } from './Modal/layouts/AdminFormLayout'
 import { SimpleTextLayout } from './Modal/layouts/SimpleTextLayout'
 import { DeleteConfirmLayout } from './Modal/layouts/DeleteConfirmLayout'
+import { ConfirmActionLayout } from './Modal/layouts/ConfirmActionLayout'
 import { TicketDialogLayout } from './Modal/layouts/TicketDialogLayout'
 import { CategoryAppsLayout } from './Modal/layouts/CategoryAppsLayout'
 import { CustomPlanAppsLayout } from './Modal/layouts/CustomPlanAppsLayout'
@@ -76,22 +76,13 @@ const GlobalModal = () => {
 
     const layouts = {
       // Confirmation modals
-      confirm: {
-        component: (
-          <ConfirmModal
-            message={modal.content}
-            onConfirm={modal.onConfirm}
-            onCancel={modal.onCancel}
-            confirmText={modal.confirmText}
-            cancelText={modal.cancelText}
-            variant={modal.variant}
-          />
-        ),
-        showFooter: false, // ConfirmModal has its own footer
-      },
-
       deleteConfirm: {
         component: <DeleteConfirmLayout data={modal.data} />,
+        showFooter: true,
+      },
+
+      confirmAction: {
+        component: <ConfirmActionLayout data={modal.data} />,
         showFooter: true,
       },
 

@@ -172,7 +172,7 @@ function Dashboard() {
       </div>
 
       {/* Role Debugger - Remove this in production */}
-      <RoleDebugger />
+      {/* <RoleDebugger /> */}
     </div>
   )
 }

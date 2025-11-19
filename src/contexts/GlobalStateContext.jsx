@@ -188,18 +188,21 @@ export const GlobalStateProvider = ({ children }) => {
     variant = 'danger'
   }) => {
     openModal({
-      layout: 'confirm',
+      layout: 'confirmAction',
       title,
-      content: message,
-      variant,
+      size: 'sm',
+      data: {
+        message,
+        variant
+      },
       confirmText,
       cancelText,
+      showConfirmButton: true,
+      showCancelButton: true,
+      closeOnBackdropClick: true,
+      closeOnEscape: true,
       onConfirm: () => {
         onConfirm?.()
-        closeModal()
-      },
-      onCancel: () => {
-        onCancel?.()
         closeModal()
       }
     })

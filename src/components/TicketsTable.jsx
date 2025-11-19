@@ -249,33 +249,81 @@ const TicketsTable = () => {
   }
 
   const handleCloseTicket = async (ticketId) => {
-    try {
-      const response = await apiClient.closeTicket(ticketId)
-      if (response.success) {
-        setTickets(prev => prev.map(ticket =>
-          ticket.id === ticketId
-            ? { ...ticket, status: 'closed', closed_at: new Date().toISOString() }
-            : ticket
-        ))
-        toast.success('הפנייה נסגרה בהצלחה')
+    const ticket = tickets.find(t => t.id === ticketId)
+
+    openModal({
+      layout: 'confirmAction',
+      title: 'סגירת פנייה',
+      size: 'sm',
+      data: {
+        message: 'האם אתה בטוח שברצונך לסגור את הפנייה?',
+        description: ticket ? `פנייה #${ticketId} - ${ticket.subject}` : `פנייה #${ticketId}`,
+        warningText: 'ניתן לפתוח את הפנייה מחדש במידת הצורך',
+        variant: 'success'
+      },
+      confirmText: 'סגור פנייה',
+      cancelText: 'ביטול',
+      showConfirmButton: true,
+      showCancelButton: true,
+      closeOnBackdropClick: true,
+      closeOnEscape: true,
+      onConfirm: async () => {
+        try {
+          const response = await apiClient.closeTicket(ticketId)
+          if (response.success) {
+            setTickets(prev => prev.map(ticket =>
+              ticket.id === ticketId
+                ? { ...ticket, status: 'closed', closed_at: new Date().toISOString() }
+                : ticket
+            ))
+            toast.success('הפנייה נסגרה בהצלחה')
+            updateFilterCounts()
+          }
+          closeModal()
+        } catch (err) {
+          toast.error('שגיאה בסגירת הפנייה')
+          console.error('Error closing ticket:', err)
+          closeModal()
+        }
       }
-    } catch (err) {
-      toast.error('שגיאה בסגירת הפנייה')
-      console.error('Error closing ticket:', err)
-    }
+    })
   }
 
   const handleDeleteTicket = async (ticketId) => {
-    try {
-      const response = await apiClient.deleteTicket(ticketId)
-      if (response.success) {
-        setTickets(prev => prev.filter(ticket => ticket.id !== ticketId))
-        toast.success('הפנייה נמחקה בהצלחה')
+    const ticket = tickets.find(t => t.id === ticketId)
+
+    openModal({
+      layout: 'confirmAction',
+      title: 'מחיקת פנייה',
+      size: 'sm',
+      data: {
+        message: 'האם אתה בטוח שברצונך למחוק את הפנייה?',
+        description: ticket ? `פנייה #${ticketId} - ${ticket.subject}` : `פנייה #${ticketId}`,
+        warningText: 'פעולה זו אינה ניתנת לביטול!',
+        variant: 'danger'
+      },
+      confirmText: 'מחק פנייה',
+      cancelText: 'ביטול',
+      showConfirmButton: true,
+      showCancelButton: true,
+      closeOnBackdropClick: true,
+      closeOnEscape: true,
+      onConfirm: async () => {
+        try {
+          const response = await apiClient.deleteTicket(ticketId)
+          if (response.success) {
+            setTickets(prev => prev.filter(ticket => ticket.id !== ticketId))
+            toast.success('הפנייה נמחקה בהצלחה')
+            updateFilterCounts()
+          }
+          closeModal()
+        } catch (err) {
+          toast.error('שגיאה במחיקת הפנייה')
+          console.error('Error deleting ticket:', err)
+          closeModal()
+        }
       }
-    } catch (err) {
-      toast.error('שגיאה במחיקת הפנייה')
-      console.error('Error deleting ticket:', err)
-    }
+    })
   }
 
   const updateFilterCounts = async (ticketsData = null) => {
