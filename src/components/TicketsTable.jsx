@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
@@ -32,7 +32,8 @@ const TicketsTable = () => {
 
   const [tickets, setTickets] = useState([])
   const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true) // Full page loader
+  const [tableLoading, setTableLoading] = useState(false) // Table-only loader
   const [statusFilter, setStatusFilter] = useState('open')
   const [filterCounts, setFilterCounts] = useState({
     all: 0,
@@ -52,67 +53,28 @@ const TicketsTable = () => {
   const [loadingMore, setLoadingMore] = useState(false)
   const itemsPerPage = 25
 
-  useEffect(() => {
-    loadInitialData()
-  }, [])
+  // Track if this is the initial mount
+  const isInitialMount = useRef(true)
 
-  // Reload data when filters or sorting change
+  // Consolidated data loading with debounce for search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      loadFilteredData()
-    }, 300) // Debounce search
+      loadData()
+    }, searchTerm ? 300 : 0) // Only debounce when searching
 
     return () => clearTimeout(timeoutId)
   }, [statusFilter, searchTerm, sortBy, sortOrder])
 
-  const loadInitialData = async () => {
+  const loadData = async () => {
     try {
-      setLoading(true)
-      
-      // Get user data from localStorage as fallback
-      const storedUserData = localStorage.getItem('userData')
-      if (storedUserData) {
-        try {
-          const userData = JSON.parse(storedUserData)
-          setCurrentUser(userData)
-        } catch (e) {
-          console.error('Error parsing stored user data:', e)
-        }
-      }
-      
-      const [ticketsResponse, usersResponse, currentUserResponse] = await Promise.all([
-        apiClient.getTicketsWithDetails(1, itemsPerPage),
-        apiClient.getUsers(),
-        apiClient.getCurrentUser()
-      ])
-
-      if (ticketsResponse.success) {
-        const responseData = ticketsResponse.data?.data || ticketsResponse.data || []
-        const pagination = ticketsResponse.data?.pagination
-        
-        setTickets(responseData)
-        setHasMore(pagination?.has_more || false)
-        updateFilterCounts()
+      // On initial mount, show full-page loader
+      if (isInitialMount.current) {
+        setInitialLoading(true)
+      } else {
+        // On filter/search/sort changes, show table-only loader
+        setTableLoading(true)
       }
 
-      if (usersResponse.success) {
-        setUsers(usersResponse.data)
-      }
-
-      if (currentUserResponse.success && currentUserResponse.user) {
-        setCurrentUser(currentUserResponse.user)
-      }
-    } catch (err) {
-      toast.error('שגיאה בטעינת הנתונים')
-      console.error('Error loading data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadFilteredData = async () => {
-    try {
-      setLoading(true)
       setCurrentPage(1)
 
       const filters = {
@@ -122,22 +84,66 @@ const TicketsTable = () => {
         order: sortOrder
       }
 
-      const response = await apiClient.getTicketsWithDetails(1, itemsPerPage, filters)
+      // On initial mount, fetch all required data
+      if (isInitialMount.current) {
+        // Get user data from localStorage as fallback
+        const storedUserData = localStorage.getItem('userData')
+        if (storedUserData) {
+          try {
+            const userData = JSON.parse(storedUserData)
+            setCurrentUser(userData)
+          } catch (e) {
+            console.error('Error parsing stored user data:', e)
+          }
+        }
 
-      if (response.success) {
-        const responseData = response.data?.data || response.data || []
-        const pagination = response.data?.pagination
+        const [ticketsResponse, usersResponse, currentUserResponse] = await Promise.all([
+          apiClient.getTicketsWithDetails(1, itemsPerPage, filters),
+          apiClient.getUsers(),
+          apiClient.getCurrentUser()
+        ])
 
-        setTickets(responseData)
-        setHasMore(pagination?.has_more || false)
+        if (ticketsResponse.success) {
+          const responseData = ticketsResponse.data?.data || ticketsResponse.data || []
+          const pagination = ticketsResponse.data?.pagination
+
+          setTickets(responseData)
+          setHasMore(pagination?.has_more || false)
+        }
+
+        if (usersResponse.success) {
+          setUsers(usersResponse.data)
+        }
+
+        if (currentUserResponse.success && currentUserResponse.user) {
+          setCurrentUser(currentUserResponse.user)
+        }
+
+        // Update filter counts on initial load
+        await updateFilterCounts()
+
+        isInitialMount.current = false
+      } else {
+        // Subsequent loads - just fetch tickets with filters
+        const response = await apiClient.getTicketsWithDetails(1, itemsPerPage, filters)
+
+        if (response.success) {
+          const responseData = response.data?.data || response.data || []
+          const pagination = response.data?.pagination
+
+          setTickets(responseData)
+          setHasMore(pagination?.has_more || false)
+        }
       }
     } catch (err) {
       toast.error('שגיאה בטעינת הנתונים')
-      console.error('Error loading filtered data:', err)
+      console.error('Error loading data:', err)
     } finally {
-      setLoading(false)
+      setInitialLoading(false)
+      setTableLoading(false)
     }
   }
+
 
   const loadMoreTickets = async () => {
     if (loadingMore || !hasMore) return
@@ -329,7 +335,7 @@ const TicketsTable = () => {
   const updateFilterCounts = async (ticketsData = null) => {
     try {
       // For accurate counts, fetch all tickets without pagination
-      const response = await apiClient.getTicketsWithDetails(1, 1000)
+      const response = await apiClient.getTicketsWithDetails(1, 555)
       if (response.success) {
         const allTickets = response.data?.data || response.data || []
         const counts = {
@@ -611,7 +617,8 @@ const TicketsTable = () => {
     tableType: 'tickets'
   }
 
-  if (loading) {
+  // Only show full-page loader on initial mount
+  if (initialLoading) {
     return (
       <div className="p-8">
         <div className="flex items-center justify-center min-h-96">
@@ -761,14 +768,25 @@ const TicketsTable = () => {
 
 
       {/* Table */}
-      <Table
-        tableConfig={tableConfig}
-        onLoadMore={loadMoreTickets}
-        hasMore={hasMore}
-        loading={loadingMore}
-        stickyHeader={true}
-        onSelectionChange={setSelectedTickets}
-      />
+      {tableLoading ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12">
+          <div className="flex items-center justify-center min-h-64">
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-gray-600">מעדכן נתונים...</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <Table
+          tableConfig={tableConfig}
+          onLoadMore={loadMoreTickets}
+          hasMore={hasMore}
+          loading={loadingMore}
+          stickyHeader={true}
+          onSelectionChange={setSelectedTickets}
+        />
+      )}
 
       {/* Selection Actions */}
       {selectedTickets.length > 0 && (
