@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'react-toastify'
 import { Tooltip } from 'react-tooltip'
 import { useNavigate } from 'react-router-dom'
@@ -28,7 +28,8 @@ const ClientsTable = () => {
   const navigate = useNavigate()
   const { openModal, closeModal } = useGlobalState()
   const [clients, setClients] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true) // Full page loader
+  const [tableLoading, setTableLoading] = useState(false) // Table-only loader
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCounts, setFilterCounts] = useState({
@@ -47,117 +48,96 @@ const ClientsTable = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [searchLoading, setSearchLoading] = useState(false)
-  const [filterLoading, setFilterLoading] = useState(false)
   const itemsPerPage = 25
 
-  useEffect(() => {
-    loadInitialData()
-  }, [])
+  // Track if this is the initial mount
+  const isInitialMount = useRef(true)
 
-  // Reload data when status filter changes
+  // Consolidated data loading
   useEffect(() => {
-    loadFilteredData()
-  }, [statusFilter])
+    const loadData = async () => {
+      try {
+        // On initial mount, show full-page loader
+        if (isInitialMount.current) {
+          setInitialLoading(true)
+        } else {
+          // On filter/search/sort changes, show table-only loader
+          setTableLoading(true)
+        }
 
-  // Reload data when sorting changes
-  useEffect(() => {
-    if (sortColumn !== null) {
-      loadFilteredData()
+        setCurrentPage(1)
+
+        // On initial mount, also fetch statistics
+        if (isInitialMount.current) {
+          const [clientsResponse, statsResponse] = await Promise.all([
+            apiClient.getClientsWithDetails(1, itemsPerPage, {
+              plan_status: statusFilter,
+              search: searchTerm,
+              sort: sortColumn,
+              order: sortDirection
+            }),
+            apiClient.getClientStatistics()
+          ])
+
+          if (clientsResponse.success) {
+            const responseData = clientsResponse.data?.data || clientsResponse.data || []
+            const pagination = clientsResponse.data?.pagination
+
+            setClients(responseData)
+            setHasMore(pagination?.has_more || false)
+          }
+
+          if (statsResponse.success) {
+            updateFilterCountsFromStats(statsResponse.data)
+          }
+
+          isInitialMount.current = false
+        } else {
+          // Subsequent loads - just fetch clients with filters
+          const response = await apiClient.getClientsWithDetails(1, itemsPerPage, {
+            plan_status: statusFilter,
+            search: searchTerm,
+            sort: sortColumn,
+            order: sortDirection
+          })
+
+          if (response.success) {
+            const responseData = response.data?.data || response.data || []
+            const pagination = response.data?.pagination
+
+            setClients(responseData)
+            setHasMore(pagination?.has_more || false)
+          }
+        }
+      } catch (err) {
+        toast.error('שגיאה בטעינת הנתונים')
+        console.error('Error loading data:', err)
+      } finally {
+        setInitialLoading(false)
+        setTableLoading(false)
+      }
     }
-  }, [sortColumn, sortDirection])
+
+    loadData()
+  }, [statusFilter, searchTerm, sortColumn, sortDirection])
 
   // Handle search term changes (debounced by component)
   const handleSearchChange = (newSearchTerm) => {
     setSearchTerm(newSearchTerm)
-    loadFilteredDataWithTerm(newSearchTerm)
+    // useEffect will automatically handle the refetch
   }
 
-  const loadFilteredDataWithTerm = async (term = searchTerm) => {
+  // Refresh statistics after data changes
+  const refreshStatistics = useCallback(async () => {
     try {
-      setSearchLoading(true)
-      setCurrentPage(1)
-
-      const filters = {
-        plan_status: statusFilter,
-        search: term,
-        sort: sortColumn,
-        order: sortDirection
-      }
-
-      const response = await apiClient.getClientsWithDetails(1, itemsPerPage, filters)
-      
-      if (response.success) {
-        const responseData = response.data?.data || response.data || []
-        const pagination = response.data?.pagination
-        
-        setClients(responseData)
-        setHasMore(pagination?.has_more || false)
-      }
-    } catch (err) {
-      toast.error('שגיאה בטעינת הנתונים')
-      console.error('Error loading filtered data:', err)
-    } finally {
-      setSearchLoading(false)
-    }
-  }
-
-  const loadInitialData = async () => {
-    try {
-      setLoading(true)
-      
-      const [clientsResponse, statsResponse] = await Promise.all([
-        apiClient.getClientsWithDetails(1, itemsPerPage),
-        apiClient.getClientStatistics()
-      ])
-
-      if (clientsResponse.success) {
-        const responseData = clientsResponse.data?.data || clientsResponse.data || []
-        const pagination = clientsResponse.data?.pagination
-        
-        setClients(responseData)
-        setHasMore(pagination?.has_more || false)
-      }
-
+      const statsResponse = await apiClient.getClientStatistics()
       if (statsResponse.success) {
         updateFilterCountsFromStats(statsResponse.data)
       }
     } catch (err) {
-      toast.error('שגיאה בטעינת הנתונים')
-      console.error('Error loading data:', err)
-    } finally {
-      setLoading(false)
+      console.error('Error refreshing statistics:', err)
     }
-  }
-
-  const loadFilteredData = async () => {
-    try {
-      setFilterLoading(true)
-      setCurrentPage(1)
-
-      const filters = {
-        plan_status: statusFilter,
-        search: searchTerm,
-        sort: sortColumn,
-        order: sortDirection
-      }
-
-      const response = await apiClient.getClientsWithDetails(1, itemsPerPage, filters)
-      
-      if (response.success) {
-        const responseData = response.data?.data || response.data || []
-        const pagination = response.data?.pagination
-        
-        setClients(responseData)
-        setHasMore(pagination?.has_more || false)
-      }
-    } catch (err) {
-      toast.error('שגיאה בטעינת הנתונים')
-      console.error('Error loading filtered data:', err)
-    } finally {
-      setFilterLoading(false)
-    }
-  }
+  }, [])
 
   const loadMoreClients = async () => {
     if (loadingMore || !hasMore) return
@@ -261,6 +241,7 @@ const ClientsTable = () => {
               c.client_unique_id !== client.client_unique_id
             ))
             toast.success('הלקוח נמחק בהצלחה')
+            refreshStatistics() // Update filter counts
             closeModal()
           } else {
             toast.error('שגיאה במחיקת הלקוח')
@@ -539,7 +520,8 @@ const ClientsTable = () => {
     tableType: 'clients'
   }
 
-  if (loading) {
+  // Only show full-page loader on initial mount
+  if (initialLoading) {
     return (
       <div className="p-8">
         <div className="flex items-center justify-center min-h-96">
@@ -684,17 +666,28 @@ const ClientsTable = () => {
 
 
       {/* Table */}
-      <Table
-        tableConfig={tableConfig}
-        onLoadMore={loadMoreClients}
-        hasMore={hasMore}
-        loading={loadingMore || searchLoading || filterLoading}
-        stickyHeader={true}
-        onSelectionChange={setSelectedClients}
-        onSortChange={handleSortChange}
-        sortColumn={sortColumn}
-        sortDirection={sortDirection}
-      />
+      {tableLoading ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12">
+          <div className="flex items-center justify-center min-h-64">
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-gray-600">מעדכן נתונים...</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <Table
+          tableConfig={tableConfig}
+          onLoadMore={loadMoreClients}
+          hasMore={hasMore}
+          loading={loadingMore}
+          stickyHeader={true}
+          onSelectionChange={setSelectedClients}
+          onSortChange={handleSortChange}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+        />
+      )}
 
       {/* Selection Actions */}
       {selectedClients.length > 0 && (
