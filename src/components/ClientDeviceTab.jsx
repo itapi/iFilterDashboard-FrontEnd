@@ -46,289 +46,301 @@ const ClientDeviceTab = ({ deviceData, loadingDeviceData }) => {
     )
   }
 
+  const storagePercentage = calculateStoragePercentage(deviceData.storage_total_mb, deviceData.storage_available_mb)
+
   return (
     <div className="space-y-6">
-      {/* Device Overview Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <Smartphone className="w-5 h-5 ml-2" />
-            סקירת מכשיר
-          </h3>
+      {/* Device Hero Section */}
+      <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <Smartphone className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                {deviceData.manufacturer || 'לא זמין'} {deviceData.model || ''}
+              </h2>
+              <p className="text-gray-600 flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Android {deviceData.android_version || 'לא זמין'}
+              </p>
+            </div>
+          </div>
+
+          {/* Sync Status Badge */}
+          <div className="text-left">
+            <span className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium border shadow-sm ${
+              deviceData.sync_status === 'recent' ? 'bg-green-50 text-green-800 border-green-200' :
+              deviceData.sync_status === 'normal' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+              deviceData.sync_status === 'stale' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
+              'bg-gray-50 text-gray-800 border-gray-200'
+            }`}>
+              <RefreshCw className="w-4 h-4 ml-2" />
+              {{
+                'recent': 'סונכרן לאחרונה',
+                'normal': 'סינכרון רגיל',
+                'stale': 'סינכרון מיושן',
+                'never': 'לא סונכרן'
+              }[deviceData.sync_status] || deviceData.sync_status}
+            </span>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              {formatDateTime(deviceData.last_sync)}
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Manufacturer & Model */}
-          <div className="space-y-1">
-            <label className="flex items-center text-sm font-medium text-gray-500 mb-2">
-              <Smartphone className="w-4 h-4 ml-1" />
-              יצרן ודגם
-            </label>
-            <p className="text-lg font-semibold text-gray-900">
-              {deviceData.manufacturer || 'לא זמין'}
-            </p>
-            <p className="text-sm text-gray-600">{deviceData.model || 'לא זמין'}</p>
-          </div>
-
-          {/* Android Version */}
-          <div className="space-y-1">
-            <label className="flex items-center text-sm font-medium text-gray-500 mb-2">
-              <Package className="w-4 h-4 ml-1" />
-              גרסת Android
-            </label>
-            <p className="text-lg font-semibold text-gray-900">
-              Android {deviceData.android_version || 'לא זמין'}
-            </p>
-          </div>
-
-          {/* CPU Architecture */}
-          <div className="space-y-1">
-            <label className="flex items-center text-sm font-medium text-gray-500 mb-2">
-              <Cpu className="w-4 h-4 ml-1" />
-              ארכיטקטורת מעבד
-            </label>
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/40">
+            <div className="flex items-center gap-2 text-gray-600 mb-2">
+              <Cpu className="w-4 h-4" />
+              <span className="text-sm font-medium">מעבד</span>
+            </div>
             <p className="text-lg font-semibold text-gray-900">
               {deviceData.cpu_architecture || 'לא זמין'}
             </p>
           </div>
 
-          {/* Device ID */}
-          <div className="space-y-1">
-            <label className="flex items-center text-sm font-medium text-gray-500 mb-2">
-              <HardDrive className="w-4 h-4 ml-1" />
-              מזהה מכשיר
-            </label>
-            <p className="text-sm font-mono text-gray-900 break-all">
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/40">
+            <div className="flex items-center gap-2 text-gray-600 mb-2">
+              <HardDrive className="w-4 h-4" />
+              <span className="text-sm font-medium">מזהה מכשיר</span>
+            </div>
+            <p className="text-sm font-mono text-gray-900 truncate">
               {deviceData.device_id || 'לא זמין'}
             </p>
           </div>
 
-          {/* IMEI */}
-          <div className="space-y-1">
-            <label className="flex items-center text-sm font-medium text-gray-500 mb-2">
-              <Info className="w-4 h-4 ml-1" />
-              IMEI
-            </label>
-            <p className="text-sm font-mono text-gray-900">
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/40">
+            <div className="flex items-center gap-2 text-gray-600 mb-2">
+              <Info className="w-4 h-4" />
+              <span className="text-sm font-medium">IMEI</span>
+            </div>
+            <p className="text-sm font-mono text-gray-900 truncate">
               {deviceData.imei || 'לא זמין'}
             </p>
           </div>
-
-          {/* Sync Status */}
-          <div className="space-y-1">
-            <label className="flex items-center text-sm font-medium text-gray-500 mb-2">
-              <RefreshCw className="w-4 h-4 ml-1" />
-              סטטוס סינכרון
-            </label>
-            <div>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
-                deviceData.sync_status === 'recent' ? 'bg-green-100 text-green-800 border-green-200' :
-                deviceData.sync_status === 'normal' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                deviceData.sync_status === 'stale' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                'bg-gray-100 text-gray-800 border-gray-200'
-              }`}>
-                {{
-                  'recent': '✓ עדכני',
-                  'normal': '○ רגיל',
-                  'stale': '⚠ מיושן',
-                  'never': '✗ לא סונכרן'
-                }[deviceData.sync_status] || deviceData.sync_status}
-              </span>
-              <p className="text-xs text-gray-500 mt-1">
-                {formatDateTime(deviceData.last_sync)}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Storage & Reboot Status Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <Database className="w-5 h-5 ml-2" />
-            אחסון ומצב מכשיר
-          </h3>
-        </div>
+      {/* Two Column Layout for Status Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Storage Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Database className="w-5 h-5 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">אחסון</h3>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Storage Information */}
           {deviceData.storage_total_mb !== null && deviceData.storage_available_mb !== null ? (
-            <div className="space-y-3">
-              <label className="flex items-center text-sm font-medium text-gray-500">
-                <HardDrive className="w-4 h-4 ml-1" />
-                נפח אחסון
-              </label>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">בשימוש:</span>
-                  <span className="font-semibold text-gray-900">
+            <div className="space-y-4">
+              {/* Storage Visual */}
+              <div className="relative">
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      parseFloat(storagePercentage) > 90 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                      parseFloat(storagePercentage) > 70 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                      'bg-gradient-to-r from-green-500 to-green-600'
+                    }`}
+                    style={{ width: `${storagePercentage}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-gray-500">פנוי</span>
+                  <span className={`text-sm font-bold ${
+                    parseFloat(storagePercentage) > 90 ? 'text-red-600' :
+                    parseFloat(storagePercentage) > 70 ? 'text-yellow-600' :
+                    'text-green-600'
+                  }`}>
+                    {storagePercentage}% בשימוש
+                  </span>
+                  <span className="text-xs text-gray-500">מלא</span>
+                </div>
+              </div>
+
+              {/* Storage Details */}
+              <div className="grid grid-cols-3 gap-3 pt-2">
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 mb-1">בשימוש</p>
+                  <p className="text-lg font-bold text-gray-900">
                     {formatStorage(deviceData.storage_total_mb - deviceData.storage_available_mb)}
-                  </span>
+                  </p>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">פנוי:</span>
-                  <span className="font-semibold text-gray-900">
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 mb-1">פנוי</p>
+                  <p className="text-lg font-bold text-blue-600">
                     {formatStorage(deviceData.storage_available_mb)}
-                  </span>
+                  </p>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">סה"כ:</span>
-                  <span className="font-semibold text-gray-900">
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 mb-1">סה"כ</p>
+                  <p className="text-lg font-bold text-gray-900">
                     {formatStorage(deviceData.storage_total_mb)}
-                  </span>
+                  </p>
                 </div>
-                {/* Storage Progress Bar */}
-                {calculateStoragePercentage(deviceData.storage_total_mb, deviceData.storage_available_mb) && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>אחוז תפוסה</span>
-                      <span>{calculateStoragePercentage(deviceData.storage_total_mb, deviceData.storage_available_mb)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${
-                          parseFloat(calculateStoragePercentage(deviceData.storage_total_mb, deviceData.storage_available_mb)) > 90
-                            ? 'bg-red-500'
-                            : parseFloat(calculateStoragePercentage(deviceData.storage_total_mb, deviceData.storage_available_mb)) > 70
-                            ? 'bg-yellow-500'
-                            : 'bg-green-500'
-                        }`}
-                        style={{
-                          width: `${calculateStoragePercentage(deviceData.storage_total_mb, deviceData.storage_available_mb)}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              <label className="flex items-center text-sm font-medium text-gray-500">
-                <HardDrive className="w-4 h-4 ml-1" />
-                נפח אחסון
-              </label>
-              <p className="text-sm text-gray-600">לא זמין</p>
+            <div className="text-center py-8">
+              <Database className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">נתוני אחסון לא זמינים</p>
             </div>
           )}
+        </div>
 
-          {/* Reboot Status */}
-          <div className="space-y-3">
-            <label className="flex items-center text-sm font-medium text-gray-500">
-              <AlertTriangle className="w-4 h-4 ml-1" />
-              סטטוס הפעלה מחדש
-            </label>
-            {deviceData.needs_reboot !== null && deviceData.needs_reboot ? (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-600" />
-                  <div>
-                    <p className="text-sm font-medium text-orange-900">נדרשת הפעלה מחדש</p>
-                    <p className="text-xs text-orange-700 mt-1">
-                      המכשיר דורש הפעלה מחדש להשלמת עדכונים
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">✓</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-green-900">תקין</p>
-                    <p className="text-xs text-green-700 mt-1">
-                      המכשיר פועל כשורה
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
+        {/* Reboot Status Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              deviceData.needs_reboot ? 'bg-orange-100' : 'bg-green-100'
+            }`}>
+              {deviceData.needs_reboot ? (
+                <AlertTriangle className="w-5 h-5 text-orange-600" />
+              ) : (
+                <RefreshCw className="w-5 h-5 text-green-600" />
+              )}
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">מצב המכשיר</h3>
           </div>
+
+          {deviceData.needs_reboot !== null && deviceData.needs_reboot ? (
+            <div className="space-y-4">
+              <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-6 text-center">
+                <AlertTriangle className="w-12 h-12 text-orange-600 mx-auto mb-3" />
+                <p className="text-lg font-bold text-orange-900 mb-2">נדרשת הפעלה מחדש</p>
+                <p className="text-sm text-orange-700">
+                  המכשיר דורש הפעלה מחדש להשלמת עדכונים או שינויים במערכת
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-white text-2xl">✓</span>
+                </div>
+                <p className="text-lg font-bold text-green-900 mb-2">המכשיר פועל תקין</p>
+                <p className="text-sm text-green-700">
+                  כל המערכות פועלות כשורה ואין צורך בהפעלה מחדש
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Magisk Modules Card */}
-      {deviceData.magisk_modules && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Box className="w-5 h-5 ml-2 text-blue-600" />
-              מודולי Magisk
-            </h3>
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {deviceData.magisk_module_count} מותקנים
-            </span>
-          </div>
-          <div className="space-y-2">
-            {deviceData.magisk_modules.map((module, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{module.name || 'Unnamed Module'}</h4>
-                    {module.version && (
-                      <p className="text-xs text-gray-600 mt-1">גרסה: {module.version}</p>
-                    )}
-                    {module.description && (
-                      <p className="text-sm text-gray-700 mt-1">{module.description}</p>
-                    )}
-                  </div>
-                  {module.enabled !== undefined && (
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      module.enabled
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {module.enabled ? 'פעיל' : 'כבוי'}
-                    </span>
-                  )}
+      {/* Modules Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Magisk Modules */}
+        {deviceData.magisk_modules && deviceData.magisk_modules.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Box className="w-5 h-5 text-blue-600" />
                 </div>
+                <h3 className="text-lg font-semibold text-gray-900"> רכיבי מערכת</h3>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                {deviceData.magisk_module_count}
+              </span>
+            </div>
 
-      {/* Xposed Modules Card */}
-      { deviceData.xposed_modules && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Zap className="w-5 h-5 ml-2 text-purple-600" />
-              מודולי Xposed
-            </h3>
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-              {deviceData.xposed_module_count} מותקנים
-            </span>
-          </div>
-          <div className="space-y-2">
-            {deviceData.xposed_modules.map((module, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:border-purple-300 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{module.name || 'Unnamed Module'}</h4>
-                    {module.version && (
-                      <p className="text-xs text-gray-600 mt-1">גרסה: {module.version}</p>
-                    )}
-                    {module.description && (
-                      <p className="text-sm text-gray-700 mt-1">{module.description}</p>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {deviceData.magisk_modules.map((module, index) => (
+                <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 hover:shadow-md transition-all">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-gray-900 truncate">{module.name || 'Unnamed Module'}</h4>
+                        {module.version && (
+                          <span className="text-xs px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full font-medium">
+                            v{module.version}
+                          </span>
+                        )}
+                      </div>
+                      {module.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2">{module.description}</p>
+                      )}
+                    </div>
+                    {module.enabled !== undefined && (
+                      <span className={`flex-shrink-0 text-xs px-3 py-1 rounded-full font-medium ${
+                        module.enabled
+                          ? 'bg-green-100 text-green-800 border border-green-300'
+                          : 'bg-gray-100 text-gray-600 border border-gray-300'
+                      }`}>
+                        {module.enabled ? '✓ פעיל' : '○ כבוי'}
+                      </span>
                     )}
                   </div>
-                  {module.enabled !== undefined && (
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      module.enabled
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {module.enabled ? 'פעיל' : 'כבוי'}
-                    </span>
-                  )}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Xposed Modules */}
+        {deviceData.xposed_modules && deviceData.xposed_modules.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">תוספי מערכת </h3>
+              </div>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
+                {deviceData.xposed_module_count}
+              </span>
+            </div>
+
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {deviceData.xposed_modules.map((module, index) => (
+                <div key={index} className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 hover:shadow-md transition-all">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-gray-900 truncate">{module.name || 'Unnamed Module'}</h4>
+                        {module.version && (
+                          <span className="text-xs px-2 py-0.5 bg-purple-200 text-purple-800 rounded-full font-medium">
+                            v{module.version}
+                          </span>
+                        )}
+                      </div>
+                      {module.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2">{module.description}</p>
+                      )}
+                    </div>
+                    {module.enabled !== undefined && (
+                      <span className={`flex-shrink-0 text-xs px-3 py-1 rounded-full font-medium ${
+                        module.enabled
+                          ? 'bg-green-100 text-green-800 border border-green-300'
+                          : 'bg-gray-100 text-gray-600 border border-gray-300'
+                      }`}>
+                        {module.enabled ? '✓ פעיל' : '○ כבוי'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Empty State for Modules */}
+      {(!deviceData.magisk_modules || deviceData.magisk_modules.length === 0) &&
+       (!deviceData.xposed_modules || deviceData.xposed_modules.length === 0) && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Box className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">אין מודולים מותקנים</h3>
+          <p className="text-gray-600">לא נמצאו מודולי Magisk או Xposed במכשיר זה</p>
         </div>
       )}
     </div>
