@@ -9,6 +9,7 @@ import ClientOverviewTab from './ClientOverviewTab'
 import ClientPlanTab from './ClientPlanTab'
 import ClientDeviceTab from './ClientDeviceTab'
 import ClientAppsTab from './ClientAppsTab'
+import AdditionalSettingsTab from './AdditionalSettingsTab'
 
 /**
  * ClientDetails - Main component orchestrating client detail views
@@ -209,6 +210,13 @@ const ClientDetails = () => {
                 closeOnEscape: true
               })
             }}
+          />
+        )}
+
+        {activeTab === 'settings' && (
+          <AdditionalSettingsTab
+            clientUniqueId={clientUniqueId}
+            apiClient={apiClient}
           />
         )}
 

@@ -1,4 +1,4 @@
-import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap } from 'lucide-react'
+import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, Settings } from 'lucide-react'
 
 /**
  * ClientDetailsHeader - Header section with avatar, client info, status badges, and tabs
@@ -38,6 +38,7 @@ const ClientDetailsHeader = ({ client, onBack, activeTab, onTabChange, isCustomP
     { id: 'plan', label: 'תוכנית ומנוי', icon: Crown },
     { id: 'device', label: 'מידע מכשיר', icon: Smartphone },
     ...(isCustomPlan ? [{ id: 'apps', label: 'אפליקציות מותרות', icon: Smartphone }] : []),
+    { id: 'settings', label: 'הגדרות נוספות', icon: Settings },
     { id: 'payments', label: 'תשלומים', icon: CreditCard },
   ]
 

@@ -673,6 +673,46 @@ class ApiClient {
     return this.apiRequest(`clients?action=device_data&client_unique_id=${clientUniqueId}`);
   }
 
+  // Client Settings Management
+  async getClientSettingsMeta() {
+    return this.apiRequest('client_settings?action=get_meta');
+  }
+
+  async getClientSettings(clientUniqueId) {
+    return this.apiRequest(`client_settings?action=get_by_client&client_unique_id=${clientUniqueId}`);
+  }
+
+  async updateClientSetting(clientUniqueId, settingKey, settingValue) {
+    return this.apiRequest('client_settings?action=update_setting', {
+      method: 'POST',
+      body: {
+        client_unique_id: clientUniqueId,
+        setting_key: settingKey,
+        setting_value: settingValue
+      }
+    });
+  }
+
+  async updateClientSettings(clientUniqueId, settings) {
+    return this.apiRequest('client_settings?action=update_multiple', {
+      method: 'POST',
+      body: {
+        client_unique_id: clientUniqueId,
+        settings: settings
+      }
+    });
+  }
+
+  async deleteClientSetting(clientUniqueId, settingKey) {
+    return this.apiRequest('client_settings?action=delete_setting', {
+      method: 'DELETE',
+      body: {
+        client_unique_id: clientUniqueId,
+        setting_key: settingKey
+      }
+    });
+  }
+
   // Custom Plan Apps Management
   async getClientSelectedApps(clientUniqueId) {
     return this.apiRequest(`custom-plan-apps?action=get_client_apps&client_unique_id=${clientUniqueId}`);
