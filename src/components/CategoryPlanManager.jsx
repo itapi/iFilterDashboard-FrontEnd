@@ -7,13 +7,15 @@ import Statistics from './Statistics'
 import Loader from './Loader'
 
 const CategoryPlanManager = () => {
-  const { openConfirmModal, openModal, closeModal } = useModal()
+  const { openModal, closeModal } = useModal()
   const [plans, setPlans] = useState([])
   const [categories, setCategories] = useState([])
   const [categoryPlanAvailability, setCategoryPlanAvailability] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+    
+  
+    useEffect(() => {
     loadData()
   }, [])
 
@@ -65,6 +67,25 @@ const CategoryPlanManager = () => {
 
   // Handle opening category management modal for a plan
   const handleManageCategories = (plan) => {
+    // Check if this is a custom personal plan
+    if (plan.plan_type === 'custom_personal') {
+      openModal({
+        layout: 'confirmAction',
+        title: 'תכנית אישית',
+        data: {
+          message: 'לתכנית אישית אין קטגוריות מוקצות מראש,והאפליקציות בתוכנית זו נקבעים לפי בחירת המשתמש',
+          variant: 'info'
+        },
+        showConfirmButton: true,
+        confirmText: 'הבנתי',
+        showCancelButton: false,
+        onConfirm: () => {
+          closeModal()
+        }
+      })
+      return
+    }
+
     const assignedCategoryIds = categoryPlanAvailability
       .filter(item => item.plan_unique_id == plan.plan_unique_id)
       .map(item => item.category_id)

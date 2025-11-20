@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import Login from './components/Login'
-import Dashboard from './components/Dashboard'
 import Apps from './components/Apps'
 import AppsManager from './components/AppsManager'
 import CategoryPlanManager from './components/CategoryPlanManager'
@@ -43,10 +42,7 @@ function AppContent() {
             <Sidebar />
             <main className="flex-1 overflow-hidden">
               <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-                {/* Dashboard - Accessible to all authenticated users */}
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/" element={<Navigate to="/clients" replace />} />
 
                 {/* Apps Management - Managers and Super Admins only */}
                 <Route path="/apps" element={
