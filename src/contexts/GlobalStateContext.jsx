@@ -143,7 +143,7 @@ export const GlobalStateProvider = ({ children }) => {
   useEffect(() => {
     const checkSession = async () => {
       const token = apiClient.getToken()
-      const userData = localStorage.getItem('userData')
+      const userData = localStorage.getItem('iFilter_userData')
 
       if (token && userData) {
         try {
@@ -154,7 +154,7 @@ export const GlobalStateProvider = ({ children }) => {
           })
         } catch (error) {
           console.error('Error parsing stored user data:', error)
-          localStorage.removeItem('userData')
+          localStorage.removeItem('iFilter_userData')
           dispatch({ type: ACTIONS.SET_USER_LOADING, payload: false })
         }
       } else {
@@ -226,7 +226,7 @@ export const GlobalStateProvider = ({ children }) => {
       type: ACTIONS.SET_USER,
       payload: { user: userData }
     })
-    localStorage.setItem('userData', JSON.stringify(userData))
+    localStorage.setItem('iFilter_userData', JSON.stringify(userData))
   }, [])
 
   const logout = useCallback(async () => {
@@ -238,7 +238,7 @@ export const GlobalStateProvider = ({ children }) => {
       toast.error('שגיאה בהתנתקות')
     } finally {
       dispatch({ type: ACTIONS.LOGOUT_USER })
-      localStorage.removeItem('userData')
+      localStorage.removeItem('iFilter_userData')
     }
   }, [])
 
@@ -248,7 +248,7 @@ export const GlobalStateProvider = ({ children }) => {
       payload: updates
     })
     const updatedUser = { ...state.user, ...updates }
-    localStorage.setItem('userData', JSON.stringify(updatedUser))
+    localStorage.setItem('iFilter_userData', JSON.stringify(updatedUser))
   }, [state.user])
 
   const value = {

@@ -163,9 +163,9 @@ const TicketsManager = () => {
   const loadInitialData = async () => {
     try {
       setLoading(true)
-      
+
       // First try to get user data from localStorage as fallback
-      const storedUserData = localStorage.getItem('userData')
+      const storedUserData = localStorage.getItem('iFilter_userData')
       if (storedUserData) {
         try {
           const userData = JSON.parse(storedUserData)

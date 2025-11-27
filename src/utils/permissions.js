@@ -159,7 +159,7 @@ export const ROLE_PERMISSIONS = {
  */
 export const getCurrentUser = () => {
   try {
-    const userData = localStorage.getItem('userData')
+    const userData = localStorage.getItem('iFilter_userData')
     if (userData) {
       return JSON.parse(userData)
     }

@@ -87,7 +87,7 @@ const TicketsTable = () => {
       // On initial mount, fetch all required data
       if (isInitialMount.current) {
         // Get user data from localStorage as fallback
-        const storedUserData = localStorage.getItem('userData')
+        const storedUserData = localStorage.getItem('iFilter_userData')
         if (storedUserData) {
           try {
             const userData = JSON.parse(storedUserData)
