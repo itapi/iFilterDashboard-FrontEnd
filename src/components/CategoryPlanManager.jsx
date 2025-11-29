@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
-import { Settings, Plus, Check } from 'lucide-react'
+import { Plus ,Settings} from 'lucide-react'
 import apiClient from '../utils/api'
 import { useModal } from '../contexts/GlobalStateContext'
 import Statistics from './Statistics'
@@ -90,108 +90,25 @@ const CategoryPlanManager = () => {
       .filter(item => item.plan_unique_id == plan.plan_unique_id)
       .map(item => item.category_id)
 
-    const formContent = (
-      <div className="p-6" dir="rtl">
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-              <Settings className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">{plan.plan_name}</h3>
-              <p className="text-sm text-gray-600">בחר קטגוריות להקצאה לתכנית</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 max-h-96 overflow-y-auto">
-          {categories.map(category => {
-            const isAssigned = assignedCategoryIds.includes(category.category_id)
-            return (
-              <label
-                key={category.category_id}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
-              >
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    defaultChecked={isAssigned}
-                    onChange={(e) => {
-                      const checkbox = e.target
-                      if (checkbox.checked) {
-                        checkbox.closest('label').classList.add('selected')
-                      } else {
-                        checkbox.closest('label').classList.remove('selected')
-                      }
-                    }}
-                    className="w-5 h-5 text-blue-600 bg-gray-50 border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                  />
-                  <Check className="w-3 h-3 text-white absolute top-0.5 left-0.5 opacity-0 pointer-events-none" />
-                </div>
-
-                <div className="flex items-center gap-3 flex-1">
-                  {category.category_icon ? (
-                    <img
-                      src={category.category_icon}
-                      alt={category.category_name}
-                      className="w-8 h-8 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <span className="text-xs text-gray-500">📁</span>
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{category.category_name}</p>
-                    <p className="text-sm text-gray-500">{category.app_count || 0} אפליקציות</p>
-                  </div>
-                </div>
-              </label>
-            )
-          })}
-        </div>
-      </div>
-    )
-
-    const footer = (
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => closeModal()}
-          className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
-        >
-          ביטול
-        </button>
-        <button
-          type="button"
-          onClick={() => handleSaveCategoryAssignments(plan)}
-          className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-        >
-          💾 שמור שינויים
-        </button>
-      </div>
-    )
-
     openModal({
-      type: 'custom',
+      layout: 'manageCategories',
       title: 'ניהול קטגוריות',
-      content: formContent,
       size: 'lg',
-      footer
+      data: {
+        plan,
+        categories,
+        assignedCategoryIds,
+        onSave: async (selectedCategoryIds) => {
+          await handleSaveCategoryAssignments(plan, selectedCategoryIds)
+        }
+      },
+      confirmText: 'שמור שינויים',
+      cancelText: 'ביטול'
     })
   }
 
   // Save category assignments for a plan
-  const handleSaveCategoryAssignments = async (plan) => {
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]')
-    const selectedCategoryIds = []
-
-    checkboxes.forEach((checkbox, index) => {
-      if (checkbox.checked) {
-        selectedCategoryIds.push(categories[index].category_id)
-      }
-    })
-
+  const handleSaveCategoryAssignments = async (plan, selectedCategoryIds) => {
     const currentAssignments = categoryPlanAvailability
       .filter(item => item.plan_unique_id == plan.plan_unique_id)
       .map(item => item.category_id)
@@ -220,156 +137,43 @@ const CategoryPlanManager = () => {
           )
         )
       }
-
-      toast.success(`קטגוריות עודכנו בהצלחה! 🎉`)
-      closeModal()
     } catch (err) {
       console.error('Error updating categories:', err)
-      toast.error('שגיאה בעדכון הקטגוריות')
+      throw err
     }
   }
 
 
   const handleEditPlan = (plan) => {
-    console.log('Plan object structure:', plan)
-    const formContent = (
-      <div className="p-6" dir="rtl">
-        <form id="plan-edit-form" className="space-y-6">
-          {/* Plan Name */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              שם התכנית *
-            </label>
-            <input
-              name="plan_name"
-              type="text"
-              defaultValue={plan.plan_name || ''}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="לדוגמה: תכנית בסיסית"
-              required
-            />
-          </div>
-
-          {/* Plan Price */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              מחיר (₪)
-            </label>
-            <div className="relative">
-              <input
-                name="plan_price"
-                type="number"
-                defaultValue={plan.plan_price || ''}
-                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="0"
-                min="0"
-                step="0.01"
-              />
-              <div className="absolute right-3 top-3 text-gray-400 font-medium">₪</div>
-            </div>
-          </div>
-
-          {/* Plan Description */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              תיאור קצר
-            </label>
-            <textarea
-              name="plan_description"
-              defaultValue={plan.plan_description || plan.description || ''}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-              placeholder="תיאור קצר על התכנית..."
-              rows="3"
-            />
-          </div>
-
-          {/* Features */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              תכונות התכנית
-            </h3>
-            
-            {[1, 2, 3].map((num) => (
-              <div key={num}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  תכונה {num}
-                </label>
-                <input
-                  name={`plan_feature${num}`}
-                  type="text"
-                  defaultValue={plan[`plan_feature${num}`] || plan[`feature${num}`] || ''}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder={`תכונה מספר ${num}...`}
-                />
-              </div>
-            ))}
-          </div>
-        </form>
-      </div>
-    )
-
-    const footer = (
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => closeModal()}
-          className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
-        >
-          ביטול
-        </button>
-        <button
-          type="submit"
-          form="plan-edit-form"
-          onClick={(e) => {
-            e.preventDefault()
-            const form = document.getElementById('plan-edit-form')
-            const formData = new FormData(form)
-            const planData = {
-              plan_name: formData.get('plan_name'),
-              plan_price: formData.get('plan_price'),
-              plan_description: formData.get('plan_description'),
-              plan_feature1: formData.get('plan_feature1'),
-              plan_feature2: formData.get('plan_feature2'),
-              plan_feature3: formData.get('plan_feature3')
-            }
-            handleSavePlan(plan, planData)
-          }}
-          className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-        >
-          💾 שמור שינויים
-        </button>
-      </div>
-    )
-
     openModal({
-      type: 'custom',
+      layout: 'editPlan',
       title: 'עריכת תכנית סינון',
-      content: formContent,
       size: 'xl',
-      footer
+      data: {
+        plan,
+        onSave: async (planData) => {
+          await handleSavePlan(plan, planData)
+        }
+      },
+      confirmText: 'שמור שינויים',
+      cancelText: 'ביטול'
     })
   }
 
   const handleSavePlan = async (plan, planData) => {
     try {
       await apiClient.updatePlan(plan.plan_unique_id, planData)
-      
-      setPlans(prevPlans => 
-        prevPlans.map(p => 
-          p.plan_unique_id === plan.plan_unique_id 
+
+      setPlans(prevPlans =>
+        prevPlans.map(p =>
+          p.plan_unique_id === plan.plan_unique_id
             ? { ...p, ...planData }
             : p
         )
       )
-      
-      toast.success('תכנית עודכנה בהצלחה! ✨')
-      closeModal()
     } catch (err) {
       console.error('Error updating plan:', err)
-      toast.error('שגיאה בעדכון התכנית')
+      throw err
     }
   }
 

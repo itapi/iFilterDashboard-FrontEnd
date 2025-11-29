@@ -21,6 +21,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState(null)
   const [initialSelectedAppIds, setInitialSelectedAppIds] = useState(new Set())
+  const [hasLoadedInitialApps, setHasLoadedInitialApps] = useState(false)
   const searchTimeoutRef = useRef(null)
 
   // Handle search input with timeout
@@ -40,6 +41,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
       setSelectedCategory('all')
       setSelectedApps(new Set())
       setInitialSelectedAppIds(new Set())
+      setHasLoadedInitialApps(false)
       setAvailableApps([])
       setCategories([])
     }
@@ -64,12 +66,17 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
       }
 
       // Load currently selected apps for this category (only on initial load)
-      if (currentPage === 1 && searchTerm === '' && selectedCategory === 'all' && selectedApps.size === 0) {
+      if (!hasLoadedInitialApps) {
         const selectedAppsResponse = await apiClient.getCategorySelectedApps(category.category_id)
         if (selectedAppsResponse.success && selectedAppsResponse.data) {
-          const currentlySelectedIds = new Set(selectedAppsResponse.data.map(app => app.app_id))
+          // Normalize app IDs to numbers to ensure consistent comparison
+          const currentlySelectedIds = new Set(
+            selectedAppsResponse.data.map(app => Number(app.app_id))
+          )
+          console.log('Loaded selected apps for category:', category.category_id, currentlySelectedIds)
           setInitialSelectedAppIds(currentlySelectedIds)
           setSelectedApps(currentlySelectedIds)
+          setHasLoadedInitialApps(true)
         }
       }
 
@@ -101,15 +108,16 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
   const handleAppToggle = useCallback((appId) => {
     setSelectedApps(prev => {
       const newSet = new Set(prev)
-      if (newSet.has(appId)) newSet.delete(appId)
-      else newSet.add(appId)
+      const normalizedId = Number(appId)
+      if (newSet.has(normalizedId)) newSet.delete(normalizedId)
+      else newSet.add(normalizedId)
       return newSet
     })
   }, [])
 
   const handleSelectAll = useCallback(() => {
     if (!availableApps || availableApps.length === 0) return
-    const currentPageAppIds = availableApps.map(app => app.app_id)
+    const currentPageAppIds = availableApps.map(app => Number(app.app_id))
     const allSelected = currentPageAppIds.every(id => selectedApps.has(id))
     setSelectedApps(prev => {
       const newSet = new Set(prev)
@@ -199,7 +207,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
               onClick={handleSelectAll}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             >
-              {availableApps && availableApps.length > 0 && availableApps.every(app => selectedApps.has(app.app_id)) ? 'בטל בחירת הכל' : 'בחר הכל'}
+              {availableApps && availableApps.length > 0 && availableApps.every(app => selectedApps.has(Number(app.app_id))) ? 'בטל בחירת הכל' : 'בחר הכל'}
             </button>
           </div>
           <div className="text-sm text-gray-600">נבחרו {selectedApps.size} אפליקציות</div>
@@ -221,7 +229,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
             <AppCard
               key={app.app_id}
               app={app}
-              isSelected={selectedApps.has(app.app_id)}
+              isSelected={selectedApps.has(Number(app.app_id))}
               onToggle={handleAppToggle}
             />
           ))}

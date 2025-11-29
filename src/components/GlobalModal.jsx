@@ -12,6 +12,8 @@ import { ConfirmActionLayout } from './Modal/layouts/ConfirmActionLayout'
 import { TicketDialogLayout } from './Modal/layouts/TicketDialogLayout'
 import { CategoryAppsLayout } from './Modal/layouts/CategoryAppsLayout'
 import { CustomPlanAppsLayout } from './Modal/layouts/CustomPlanAppsLayout'
+import { ManageCategoriesLayout } from './Modal/layouts/ManageCategoriesLayout'
+import { EditPlanLayout } from './Modal/layouts/EditPlanLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -108,6 +110,18 @@ const GlobalModal = () => {
       customPlanApps: {
         component: <CustomPlanAppsLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
         showFooter: false, // CustomPlanAppsLayout has its own footer
+        hasRef: true,
+      },
+
+      manageCategories: {
+        component: <ManageCategoriesLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      editPlan: {
+        component: <EditPlanLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
         hasRef: true,
       },
 
