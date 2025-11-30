@@ -247,8 +247,12 @@ class ApiClient {
   }
 
   // Filtering Plans API
-  async getFilteringPlans() {
-    return this.apiRequest('filtering-plans');
+  async getFilteringPlans(excludeCustomCommunity = false) {
+    let url = 'filtering-plans';
+    if (excludeCustomCommunity) {
+      url += '?exclude_custom_community=true';
+    }
+    return this.apiRequest(url);
   }
 
   async getPlansWithCategories() {

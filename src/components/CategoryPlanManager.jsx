@@ -23,7 +23,7 @@ const CategoryPlanManager = () => {
     try {
       setLoading(true)
       const [plansResponse, categoriesResponse, availabilityResponse] = await Promise.all([
-        apiClient.apiRequest('filtering-plans'),
+        apiClient.getFilteringPlans(true), // Exclude custom_community plans
         apiClient.getCategoriesWithCounts(),
         apiClient.getCategoryPlanAvailabilityWithDetails()
       ])
