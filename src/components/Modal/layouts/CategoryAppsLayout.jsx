@@ -173,9 +173,9 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 px-8 py-6">
       {/* Search & Filter */}
-      <div className="bg-gray-50 rounded-xl p-4">
+      <div className="bg-gray-50 rounded-xl p-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -201,16 +201,16 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-6">
           <div className="flex items-center space-x-reverse space-x-4">
             <button
               onClick={handleSelectAll}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
             >
               {availableApps && availableApps.length > 0 && availableApps.every(app => selectedApps.has(Number(app.app_id))) ? 'בטל בחירת הכל' : 'בחר הכל'}
             </button>
           </div>
-          <div className="text-sm text-gray-600">נבחרו {selectedApps.size} אפליקציות</div>
+          <div className="text-sm text-gray-600 font-medium">נבחרו {selectedApps.size} אפליקציות</div>
         </div>
       </div>
 
@@ -224,7 +224,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
           <p className="text-gray-500">נסה לשנות את החיפוש או הסינון</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {availableApps.map(app => (
             <AppCard
               key={app.app_id}
@@ -238,7 +238,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
 
       {/* Pagination */}
       {pagination && pagination.total_pages > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
+        <div className="flex items-center justify-between border-t pt-6">
           <div className="flex items-center space-x-reverse space-x-2">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -266,7 +266,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
       )}
 
       {/* Footer buttons - shown in modal footer */}
-      <div className="flex items-center justify-between pt-4 border-t">
+      <div className="flex items-center justify-between pt-6 border-t">
         <div className="text-sm text-gray-600">
           נבחרו {selectedApps.size} אפליקציות
           {availableApps && availableApps.length > 0 && ` (${availableApps.length} בעמוד זה)`}

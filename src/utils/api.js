@@ -45,10 +45,16 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         if (response.status === 401) {
+          // Clear authentication data
           this.clearToken();
+          localStorage.removeItem('iFilter_userData');
+
+          // Redirect to login page
+          window.location.href = '/login';
+
           throw new Error('Session expired. Please login again.');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -58,7 +64,7 @@ class ApiClient {
       if (contentType && contentType.includes('application/json')) {
         return await response.json();
       }
-      
+
       return await response.text();
     } catch (error) {
       console.error('API request failed:', error);
@@ -144,8 +150,18 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
+        if (response.status === 401) {
+          // Clear authentication data
+          this.clearToken();
+          localStorage.removeItem('iFilter_userData');
+
+          // Redirect to login page
+          window.location.href = '/login';
+
+          throw new Error('Session expired. Please login again.');
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -153,7 +169,7 @@ class ApiClient {
       if (contentType && contentType.includes('application/json')) {
         return await response.json();
       }
-      
+
       return await response.text();
     } catch (error) {
       console.error('API request failed:', error);
