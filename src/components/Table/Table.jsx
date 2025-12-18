@@ -167,8 +167,8 @@ export const Table = ({
       const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
       onSortChange(columnKey, newDirection);
     } else {
-      // Set new column and default to ascending
-      onSortChange(columnKey, 'asc');
+      // Set new column and default to descending
+      onSortChange(columnKey, 'desc');
     }
   };
 
