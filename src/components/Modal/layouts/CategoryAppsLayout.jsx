@@ -8,7 +8,7 @@ import Loader from '../../Loader'
 
 export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
   const { category, onAppsUpdated } = data
-  const { closeModal } = useGlobalState()
+  const { closeModal, openModal } = useGlobalState()
 
   const [availableApps, setAvailableApps] = useState([])
   const [selectedApps, setSelectedApps] = useState(new Set())
@@ -153,6 +153,60 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
     toast.info('האפליקציות הנבחרות אופסו למצב ההתחלתי')
   }, [initialSelectedAppIds])
 
+  const handleDeleteApp = useCallback((app) => {
+    openModal({
+      layout: 'deleteConfirm',
+      title: 'מחיקת אפליקציה',
+      size: 'md',
+      data: {
+        message: (
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              האם אתה בטוח שברצונך למחוק את האפליקציה?
+            </h3>
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <p className="font-medium text-gray-900">{app.app_name}</p>
+              <p className="text-sm text-gray-600">{app.package_name}</p>
+            </div>
+            <p className="text-sm text-red-600">
+              פעולה זו לא ניתנת לביטול ותמחק את האפליקציה מהמערכת
+            </p>
+          </div>
+        ),
+      },
+      showConfirmButton: true,
+      showCancelButton: true,
+      confirmText: 'מחק אפליקציה',
+      cancelText: 'ביטול',
+      closeOnBackdropClick: true,
+      closeOnEscape: true,
+      onConfirm: async () => {
+        try {
+          const response = await apiClient.deleteApp(app.app_id)
+          if (response.success) {
+            toast.success('האפליקציה נמחקה בהצלחה')
+            // Remove from available apps list
+            setAvailableApps(prev => prev.filter(a => a.app_id !== app.app_id))
+            // Remove from selected apps if it was selected
+            setSelectedApps(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(Number(app.app_id))
+              return newSet
+            })
+            // Refresh parent if callback provided
+            onAppsUpdated && onAppsUpdated()
+            closeModal() // Close the confirmation modal
+          } else {
+            toast.error('שגיאה במחיקת האפליקציה')
+          }
+        } catch (err) {
+          toast.error('שגיאה במחיקת האפליקציה')
+          console.error('Error deleting app:', err)
+        }
+      }
+    })
+  }, [openModal, closeModal, onAppsUpdated])
+
   const hasChanges = useCallback(() => {
     if (selectedApps.size !== initialSelectedAppIds.size) return true
     for (let id of selectedApps) if (!initialSelectedAppIds.has(id)) return true
@@ -167,7 +221,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
   if (loading && currentPage === 1) {
     return (
       <div className="p-8">
-        <Loader center variant="purple" text="טוען אפליקציות..." />
+        <Loader center variant="primary" text="טוען אפליקציות..." />
       </div>
     )
   }
@@ -182,7 +236,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
             <input
               type="text"
               placeholder="חיפוש אפליקציות..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
@@ -191,7 +245,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
             <select
               value={selectedCategory}
               onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1) }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">כל הקטגוריות</option>
               {categories.map(cat => (
@@ -216,7 +270,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
 
       {/* Apps Grid */}
       {loadingGrid ? (
-        <Loader center variant="purple" text="טוען..." />
+        <Loader center variant="primary" text="טוען..." />
       ) : !availableApps || availableApps.length === 0 ? (
         <div className="text-center py-12">
           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -231,6 +285,8 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
               app={app}
               isSelected={selectedApps.has(Number(app.app_id))}
               onToggle={handleAppToggle}
+              onDelete={handleDeleteApp}
+              showDelete={true}
             />
           ))}
         </div>
@@ -283,7 +339,7 @@ export const CategoryAppsLayout = forwardRef(({ data }, ref) => {
           <button
             onClick={handleSave}
             disabled={saving || !hasChanges()}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-reverse space-x-2"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-reverse space-x-2"
           >
             {saving ? (
               <Loader size="sm" variant="white" text="שומר..." />

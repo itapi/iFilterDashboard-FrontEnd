@@ -33,112 +33,110 @@ function AppContent() {
   }
 
   return (
-    <>
+    <Router basename="/iFilterDashboard-FrontEnd">
       {!isLoggedIn ? (
         <Login />
       ) : (
-        <Router basename="/iFilterDashboard-FrontEnd">
-          <div className="min-h-screen bg-gray-50 flex" dir="rtl">
-            <Sidebar />
-            <main className="flex-1 overflow-hidden">
-              <Routes>
-                <Route path="/" element={<Navigate to="/clients" replace />} />
+        <div className="min-h-screen bg-gray-50 flex" dir="rtl">
+          <Sidebar />
+          <main className="flex-1 overflow-hidden">
+            <Routes>
+              <Route path="/" element={<Navigate to="/clients" replace />} />
 
-                {/* Apps Management - Managers and Super Admins only */}
-                <Route path="/apps" element={
-                  <ManagerRoute showForbidden={true}>
-                    <AppsManager />
-                  </ManagerRoute>
-                } />
+              {/* Apps Management - Managers and Super Admins only */}
+              <Route path="/apps" element={
+                <ManagerRoute showForbidden={true}>
+                  <AppsManager />
+                </ManagerRoute>
+              } />
 
-                {/* Category Plans - Managers and Super Admins only */}
-                <Route path="/category-plans" element={
-                  <ManagerRoute showForbidden={true}>
-                    <CategoryPlanManager />
-                  </ManagerRoute>
-                } />
+              {/* Category Plans - Managers and Super Admins only */}
+              <Route path="/category-plans" element={
+                <ManagerRoute showForbidden={true}>
+                  <CategoryPlanManager />
+                </ManagerRoute>
+              } />
 
-                {/* Communities - Managers and Super Admins only */}
-                <Route path="/communities" element={
-                  <ManagerRoute showForbidden={true}>
-                    <CommunitiesTable />
-                  </ManagerRoute>
-                } />
-                <Route path="/communities/:communityId" element={
-                  <ManagerRoute showForbidden={true}>
-                    <CommunityDetails />
-                  </ManagerRoute>
-                } />
+              {/* Communities - Managers and Super Admins only */}
+              <Route path="/communities" element={
+                <ManagerRoute showForbidden={true}>
+                  <CommunitiesTable />
+                </ManagerRoute>
+              } />
+              <Route path="/communities/:communityId" element={
+                <ManagerRoute showForbidden={true}>
+                  <CommunityDetails />
+                </ManagerRoute>
+              } />
 
-                {/* Tickets - Accessible to all roles (filtered by permissions in component) */}
-                <Route path="/tickets" element={<TicketsTable />} />
-                <Route path="/tickets/chat" element={<TicketsManager />} />
+              {/* Tickets - Accessible to all roles (filtered by permissions in component) */}
+              <Route path="/tickets" element={<TicketsTable />} />
+              <Route path="/tickets/chat" element={<TicketsManager />} />
 
-                {/* Clients - Accessible to all roles (filtered by permissions in component) */}
-                <Route path="/clients" element={<ClientsTable />} />
-                <Route path="/clients/:clientUniqueId" element={<ClientDetails />} />
+              {/* Clients - Accessible to all roles (filtered by permissions in component) */}
+              <Route path="/clients" element={<ClientsTable />} />
+              <Route path="/clients/:clientUniqueId" element={<ClientDetails />} />
 
-                {/* User Management - Super Admin only */}
-                <Route path="/admins" element={
-                  <SuperAdminRoute showForbidden={true}>
-                    <AdminsTable />
-                  </SuperAdminRoute>
-                } />
+              {/* User Management - Super Admin only */}
+              <Route path="/admins" element={
+                <SuperAdminRoute showForbidden={true}>
+                  <AdminsTable />
+                </SuperAdminRoute>
+              } />
 
-                {/* Upload Pages - Managers and Super Admins only */}
-                <Route path="/uploads/magisk-modules" element={
-                  <ManagerRoute showForbidden={true}>
-                    <MagiskModules />
-                  </ManagerRoute>
-                } />
-                <Route path="/uploads/xposed-modules" element={
-                  <ManagerRoute showForbidden={true}>
-                    <div className="p-8">
-                      <div className="text-center py-12">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">מודולי Xposed</h2>
-                        <p className="text-gray-600">העלאת מודולי Xposed (קבצי APK)</p>
-                      </div>
+              {/* Upload Pages - Managers and Super Admins only */}
+              <Route path="/uploads/magisk-modules" element={
+                <ManagerRoute showForbidden={true}>
+                  <MagiskModules />
+                </ManagerRoute>
+              } />
+              <Route path="/uploads/xposed-modules" element={
+                <ManagerRoute showForbidden={true}>
+                  <div className="p-8">
+                    <div className="text-center py-12">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-4">מודולי Xposed</h2>
+                      <p className="text-gray-600">העלאת מודולי Xposed (קבצי APK)</p>
                     </div>
-                  </ManagerRoute>
-                } />
-                <Route path="/uploads/required-apps" element={
-                  <ManagerRoute showForbidden={true}>
-                    <div className="p-8">
-                      <div className="text-center py-12">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">אפליקציות נדרשות</h2>
-                        <p className="text-gray-600">העלאת אפליקציות נדרשות (קבצי APK)</p>
-                      </div>
+                  </div>
+                </ManagerRoute>
+              } />
+              <Route path="/uploads/required-apps" element={
+                <ManagerRoute showForbidden={true}>
+                  <div className="p-8">
+                    <div className="text-center py-12">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-4">אפליקציות נדרשות</h2>
+                      <p className="text-gray-600">העלאת אפליקציות נדרשות (קבצי APK)</p>
                     </div>
-                  </ManagerRoute>
-                } />
-                <Route path="/uploads/other" element={
-                  <ManagerRoute showForbidden={true}>
-                    <div className="p-8">
-                      <div className="text-center py-12">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">קבצים אחרים</h2>
-                        <p className="text-gray-600">העלאת קבצים נוספים</p>
-                      </div>
+                  </div>
+                </ManagerRoute>
+              } />
+              <Route path="/uploads/other" element={
+                <ManagerRoute showForbidden={true}>
+                  <div className="p-8">
+                    <div className="text-center py-12">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-4">קבצים אחרים</h2>
+                      <p className="text-gray-600">העלאת קבצים נוספים</p>
                     </div>
-                  </ManagerRoute>
-                } />
+                  </div>
+                </ManagerRoute>
+              } />
 
-                {/* Settings - Super Admin only */}
-                <Route path="/settings" element={
-                  <SuperAdminRoute showForbidden={true}>
-                    <div className="p-8">
-                      <div className="text-center py-12">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">הגדרות מערכת</h2>
-                        <p className="text-gray-600">עמוד זה בפיתוח...</p>
-                      </div>
+              {/* Settings - Super Admin only */}
+              <Route path="/settings" element={
+                <SuperAdminRoute showForbidden={true}>
+                  <div className="p-8">
+                    <div className="text-center py-12">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-4">הגדרות מערכת</h2>
+                      <p className="text-gray-600">עמוד זה בפיתוח...</p>
                     </div>
-                  </SuperAdminRoute>
-                } />
-              </Routes>
-            </main>
-          </div>
-          <GlobalModal />
-        </Router>
+                  </div>
+                </SuperAdminRoute>
+              } />
+            </Routes>
+          </main>
+        </div>
       )}
+      <GlobalModal />
       <ToastContainer
         position="top-left"
         autoClose={5000}
@@ -151,7 +149,7 @@ function AppContent() {
         pauseOnHover
         theme="light"
       />
-    </>
+    </Router>
   )
 }
 

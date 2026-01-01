@@ -1,17 +1,24 @@
 import { memo, useCallback, useState } from "react"
-import { Smartphone, Check, Star, Download } from "lucide-react"
+import { Smartphone, Check, Star, Download, Trash2 } from "lucide-react"
 
-const AppCard = ({ app, isSelected, onToggle }) => {
+const AppCard = ({ app, isSelected, onToggle, onDelete, showDelete }) => {
   const [imageError, setImageError] = useState(false)
 
   const handleClick = useCallback(() => {
     onToggle(app.app_id)
   }, [onToggle, app.app_id])
 
+  const handleDelete = useCallback((e) => {
+    e.stopPropagation()
+    if (onDelete) {
+      onDelete(app)
+    }
+  }, [onDelete, app])
+
   return (
     <div
-      className={`bg-white rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-md ${
-        isSelected ? "border-purple-300 bg-purple-50 shadow-md" : "border-gray-200 hover:border-purple-200"
+      className={`bg-white rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-md group ${
+        isSelected ? "border-blue-300 bg-blue-50 shadow-md" : "border-gray-200 hover:border-blue-200"
       }`}
       onClick={handleClick}
     >
@@ -42,16 +49,27 @@ const AppCard = ({ app, isSelected, onToggle }) => {
             </div>
           </div>
 
-          <div
-            className={`w-6 h-6 ml-2 flex-shrink-0 rounded-full flex items-center justify-center ${
-              isSelected ? "bg-purple-600" : "bg-gray-200"
-            }`}
-          >
-            {isSelected ? <Check className="w-4 h-4 text-white" /> : null}
+          <div className="flex items-center space-x-2 ml-2">
+            {showDelete && onDelete && (
+              <button
+                onClick={handleDelete}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                title="מחק אפליקציה"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+            <div
+              className={`w-6 h-6 flex-shrink-0 rounded-full flex items-center justify-center ${
+                isSelected ? "bg-blue-600" : "bg-gray-200"
+              }`}
+            >
+              {isSelected ? <Check className="w-4 h-4 text-white" /> : null}
+            </div>
           </div>
         </div>
 
-   
+
       </div>
     </div>
   )

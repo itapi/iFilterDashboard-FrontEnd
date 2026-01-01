@@ -224,6 +224,12 @@ class ApiClient {
     return this.apiRequest(url);
   }
 
+  async deleteApp(appId) {
+    return this.apiRequest(`apps/${appId}`, {
+      method: 'DELETE'
+    });
+  }
+
   // Categories API
   async getCategories() {
     return this.apiRequest('categories');

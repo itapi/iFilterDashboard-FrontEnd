@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
 import { useGlobalState } from '../contexts/GlobalStateContext'
-import { Smartphone, Folder, Package, Star } from 'lucide-react'
+import { Smartphone, Folder, Package, Star, Grid3x3, List } from 'lucide-react'
+import { Toggle } from './Toggle'
+import AllAppsTable from './AllAppsTable'
 
 const AppsManager = () => {
   const { openModal } = useGlobalState()
   const [categories, setCategories] = useState([])
   const [apps, setApps] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeView, setActiveView] = useState('categories')
 
   useEffect(() => {
     loadData()
@@ -42,7 +45,7 @@ const AppsManager = () => {
       layout: 'categoryApps',
       title: (
         <div className="flex items-center space-x-reverse space-x-3">
-          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
             {category.category_icon ? (
               <img
                 src={category.category_icon}
@@ -50,7 +53,7 @@ const AppsManager = () => {
                 className="w-6 h-6 object-contain"
               />
             ) : (
-              <Package className="w-5 h-5 text-purple-600" />
+              <Package className="w-5 h-5 text-blue-600" />
             )}
           </div>
           <span>בחירת אפליקציות - {category.category_name}</span>
@@ -76,11 +79,11 @@ const AppsManager = () => {
     return (
       <div
         onClick={() => handleCategoryClick(category)}
-        className="bg-white rounded-2xl border-2 border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all duration-200 cursor-pointer group"
+        className="bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 cursor-pointer group"
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               {category.category_icon ? (
                 <img
                   src={category.category_icon}
@@ -92,17 +95,17 @@ const AppsManager = () => {
                   }}
                 />
               ) : (
-                <Folder className="w-8 h-8 text-purple-600" />
+                <Folder className="w-8 h-8 text-blue-600" />
               )}
-              <Folder className="w-8 h-8 text-purple-600 hidden" />
+              <Folder className="w-8 h-8 text-blue-600 hidden" />
             </div>
 
-            <div className="flex items-center justify-center w-12 h-12 bg-purple-50 rounded-xl">
-              <span className="text-xl font-bold text-purple-600">{appCount}</span>
+            <div className="flex items-center justify-center w-12 h-12 bg-blue-50 rounded-xl">
+              <span className="text-xl font-bold text-blue-600">{appCount}</span>
             </div>
           </div>
 
-          <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-purple-600 transition-colors">
+          <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
             {category.category_name}
           </h3>
           <p className="text-sm text-gray-500">
@@ -110,8 +113,8 @@ const AppsManager = () => {
           </p>
         </div>
 
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 rounded-b-2xl group-hover:bg-purple-50 transition-colors">
-          <span className="text-sm text-gray-600 group-hover:text-purple-600 font-medium">
+        <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 rounded-b-2xl group-hover:bg-blue-50 transition-colors">
+          <span className="text-sm text-gray-600 group-hover:text-blue-600 font-medium">
             לחץ לצפייה באפליקציות ←
           </span>
         </div>
@@ -124,7 +127,7 @@ const AppsManager = () => {
       <div className="p-8">
         <div className="flex items-center justify-center min-h-96">
           <div className="flex items-center space-x-reverse space-x-2">
-            <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             <span className="text-gray-600">טוען נתונים...</span>
           </div>
         </div>
@@ -138,18 +141,43 @@ const AppsManager = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-reverse space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center">
               <Package className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">ניהול אפליקציות</h1>
-              <p className="text-gray-600">לחץ על קטגוריה לצפייה באפליקציות</p>
+              <p className="text-gray-600">
+                {activeView === 'categories' ? 'לחץ על קטגוריה לצפייה באפליקציות' : 'ניהול כל האפליקציות במערכת'}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* View Toggle */}
+        <div className="mb-6">
+          <Toggle
+            options={[
+              {
+                id: 'categories',
+                label: 'תצוגת קטגוריות',
+                icon: <Grid3x3 className="w-4 h-4" />
+              },
+              {
+                id: 'all-apps',
+                label: 'כל האפליקציות',
+                icon: <List className="w-4 h-4" />
+              }
+            ]}
+            value={activeView}
+            onChange={setActiveView}
+            toggleStyle="tabs"
+            className="w-full max-w-md"
+          />
+        </div>
+
+        {/* Statistics - Only show in category view */}
+        {activeView === 'categories' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-sm border border-blue-200 p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -162,52 +190,59 @@ const AppsManager = () => {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl shadow-sm border border-purple-200 p-6">
+          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl shadow-sm border border-indigo-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-600 mb-1">קטגוריות</p>
-                <p className="text-3xl font-bold text-purple-900">{categories.length}</p>
+                <p className="text-sm font-medium text-indigo-600 mb-1">קטגוריות</p>
+                <p className="text-3xl font-bold text-indigo-900">{categories.length}</p>
               </div>
-              <div className="w-14 h-14 bg-purple-200 rounded-xl flex items-center justify-center">
-                <Folder className="w-7 h-7 text-purple-700" />
+              <div className="w-14 h-14 bg-indigo-200 rounded-xl flex items-center justify-center">
+                <Folder className="w-7 h-7 text-indigo-700" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl shadow-sm border border-pink-200 p-6">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl shadow-sm border border-green-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-pink-600 mb-1">ציון ממוצע</p>
-                <p className="text-3xl font-bold text-pink-900">
+                <p className="text-sm font-medium text-green-600 mb-1">ציון ממוצע</p>
+                <p className="text-3xl font-bold text-green-900">
                   {apps.length > 0 && apps.filter(app => app.score).length > 0
                     ? (apps.filter(app => app.score).reduce((sum, app) => sum + parseFloat(app.score || 0), 0) / apps.filter(app => app.score).length).toFixed(1)
                     : '0'
                   }
                 </p>
               </div>
-              <div className="w-14 h-14 bg-pink-200 rounded-xl flex items-center justify-center">
-                <Star className="w-7 h-7 text-pink-700" />
+              <div className="w-14 h-14 bg-green-200 rounded-xl flex items-center justify-center">
+                <Star className="w-7 h-7 text-green-700" />
               </div>
             </div>
           </div>
         </div>
+        )}
       </div>
 
-      {/* Categories Grid */}
-      {categories.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {categories.map(category => (
-            <CategoryCard key={category.category_id} category={category} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-16">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Folder className="w-12 h-12 text-gray-400" />
+      {/* Content based on active view */}
+      {activeView === 'categories' ? (
+        // Categories Grid
+        categories.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {categories.map(category => (
+              <CategoryCard key={category.category_id} category={category} />
+            ))}
           </div>
-          <h3 className="text-xl font-medium text-gray-900 mb-2">אין קטגוריות</h3>
-          <p className="text-gray-600 mb-6">צור קטגוריה ראשונה כדי להתחיל</p>
-        </div>
+        ) : (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Folder className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-medium text-gray-900 mb-2">אין קטגוריות</h3>
+            <p className="text-gray-600 mb-6">צור קטגוריה ראשונה כדי להתחיל</p>
+          </div>
+        )
+      ) : (
+        // All Apps Table View
+        <AllAppsTable onAppsUpdated={loadData} />
       )}
     </div>
   )
