@@ -26,7 +26,7 @@ const AddAdminForm = ({ communityPlans, onSuccess, onClose }) => {
     first_name: '',
     last_name: '',
     user_type: 'manager',
-    community_plan_unique_id: ''
+    community_unique_id: ''
   })
   const [loading, setLoading] = useState(false)
 
@@ -47,18 +47,18 @@ const AddAdminForm = ({ communityPlans, onSuccess, onClose }) => {
       return
     }
 
-    if (formData.user_type === 'community_manager' && !formData.community_plan_unique_id) {
-      toast.error('נא לבחור תכנית קהילה למנהל קהילה')
+    if (formData.user_type === 'community_manager' && !formData.community_unique_id) {
+      toast.error('נא לבחור קהילה למנהל קהילה')
       return
     }
 
     try {
       setLoading(true)
 
-      // Remove community_plan_unique_id if not community manager
+      // Remove community_unique_id if not community manager
       const dataToSend = { ...formData }
       if (dataToSend.user_type !== 'community_manager') {
-        delete dataToSend.community_plan_unique_id
+        delete dataToSend.community_unique_id
       }
 
       const response = await apiClient.createAdmin(dataToSend)
@@ -155,19 +155,19 @@ const AddAdminForm = ({ communityPlans, onSuccess, onClose }) => {
         {formData.user_type === 'community_manager' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              תכנית קהילה <span className="text-red-500">*</span>
+              קהילה <span className="text-red-500">*</span>
             </label>
             <select
-              name="community_plan_unique_id"
-              value={formData.community_plan_unique_id}
+              name="community_unique_id"
+              value={formData.community_unique_id}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               required
             >
-              <option value="">בחר תכנית קהילה</option>
+              <option value="">בחר קהילה</option>
               {communityPlans.map(plan => (
-                <option key={plan.plan_unique_id} value={plan.plan_unique_id}>
-                  {plan.plan_name}
+                <option key={plan.community_unique_id} value={plan.community_unique_id}>
+                  {plan.community_name}
                 </option>
               ))}
             </select>
@@ -203,7 +203,7 @@ const EditAdminForm = ({ admin, communityPlans, onSuccess, onClose }) => {
     first_name: admin.first_name || '',
     last_name: admin.last_name || '',
     user_type: admin.user_type || 'manager',
-    community_plan_unique_id: admin.community_plan_unique_id || ''
+    community_unique_id: admin.community_unique_id || ''
   })
   const [loading, setLoading] = useState(false)
 
@@ -224,8 +224,8 @@ const EditAdminForm = ({ admin, communityPlans, onSuccess, onClose }) => {
       return
     }
 
-    if (formData.user_type === 'community_manager' && !formData.community_plan_unique_id) {
-      toast.error('נא לבחור תכנית קהילה למנהל קהילה')
+    if (formData.user_type === 'community_manager' && !formData.community_unique_id) {
+      toast.error('נא לבחור קהילה למנהל קהילה')
       return
     }
 
@@ -238,9 +238,9 @@ const EditAdminForm = ({ admin, communityPlans, onSuccess, onClose }) => {
         delete dataToSend.password
       }
 
-      // Remove community_plan_unique_id if not community manager
+      // Remove community_unique_id if not community manager
       if (dataToSend.user_type !== 'community_manager') {
-        dataToSend.community_plan_unique_id = null
+        dataToSend.community_unique_id = null
       }
 
       const response = await apiClient.updateAdmin(admin.id, dataToSend)
@@ -337,19 +337,19 @@ const EditAdminForm = ({ admin, communityPlans, onSuccess, onClose }) => {
         {formData.user_type === 'community_manager' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              תכנית קהילה <span className="text-red-500">*</span>
+              קהילה <span className="text-red-500">*</span>
             </label>
             <select
-              name="community_plan_unique_id"
-              value={formData.community_plan_unique_id}
+              name="community_unique_id"
+              value={formData.community_unique_id}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               required
             >
-              <option value="">בחר תכנית קהילה</option>
+              <option value="">בחר קהילה</option>
               {communityPlans.map(plan => (
-                <option key={plan.plan_unique_id} value={plan.plan_unique_id}>
-                  {plan.plan_name}
+                <option key={plan.community_unique_id} value={plan.community_unique_id}>
+                  {plan.community_name}
                 </option>
               ))}
             </select>
@@ -621,13 +621,13 @@ const AdminsTable = () => {
       )
     },
     {
-      id: 'community_plan',
-      key: 'community_plan_name',
-      label: 'תכנית קהילה',
+      id: 'community',
+      key: 'community_name',
+      label: 'קהילה',
       type: 'text',
       render: (row) => (
         row.user_type === 'community_manager'
-          ? <span className="text-sm text-gray-700">{row.community_plan_name || row.community_plan_unique_id || '-'}</span>
+          ? <span className="text-sm text-gray-700">{row.community_name || row.community_unique_id || '-'}</span>
           : <span className="text-sm text-gray-400">-</span>
       )
     },
