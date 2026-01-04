@@ -201,6 +201,8 @@ class ApiClient {
     if (filters.limit) params.append('limit', filters.limit);
     if (filters.search) params.append('search', filters.search);
     if (filters.categoryId) params.append('category_id', filters.categoryId);
+    if (filters.sort) params.append('sort', filters.sort);
+    if (filters.order) params.append('order', filters.order);
 
     return this.apiRequest(`apps?${params.toString()}`);
   }

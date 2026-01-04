@@ -26,7 +26,7 @@ const AllAppsTable = ({ onAppsUpdated }) => {
   const [searchTerm, setSearchTerm] = useState('')
 
   // Sorting state
-  const [sortColumn, setSortColumn] = useState('app_name')
+  const [sortColumn, setSortColumn] = useState(null)
   const [sortDirection, setSortDirection] = useState('asc')
 
   // Pagination state
@@ -244,10 +244,10 @@ const AllAppsTable = ({ onAppsUpdated }) => {
       id: 'app_info',
       key: 'app_name',
       label: 'אפליקציה',
-      type: 'text',
+      type: 'custom',
       sortable: true,
       sortKey: 'app_name',
-      type: 'custom',
+
       render: (row) => (
         <div className="flex items-center space-x-3">
           <AppIcon iconUrl={row.icon_url} appName={row.app_name} />
@@ -444,6 +444,7 @@ const AllAppsTable = ({ onAppsUpdated }) => {
           hasMore={hasMore}
           loading={loadingMore}
           stickyHeader={true}
+          sortable={true}
           onSortChange={handleSortChange}
           sortColumn={sortColumn}
           sortDirection={sortDirection}

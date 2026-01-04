@@ -438,23 +438,7 @@ const ClientsTable = () => {
     },
     
   
-    {
-      id: 'device_info',
-      key: 'model',
-      label: 'מכשיר',
-      type: 'text',
-      sortable: true,
-      sortKey: 'model',
-      render: (row) => (
-        <div className="flex items-center   space-x-2">
-          <Smartphone className="w-4 h-4 text-gray-400" />
-          <div>
-            <div className="text-sm font-medium">{row.model || 'לא זמין'}</div>
-            <div className="text-xs text-gray-500">{row.android_version}</div>
-          </div>
-        </div>
-      )
-    },
+
     {
       id: 'sync_status',
       key: 'sync_status',
