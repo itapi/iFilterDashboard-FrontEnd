@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import { Users, Search, Filter, Eye, Settings, Star, Package, Plus } from 'lucide-react'
 import { Table } from './Table/Table'
 import DebouncedSearch from './DebouncedSearch'
-import apiClient from '../utils/api'
+import apiClient, { getImageUrl } from '../utils/api'
 import Loader from './Loader'
 import { useModal } from '../contexts/GlobalStateContext'
 
@@ -91,7 +91,7 @@ const CommunitiesTable = () => {
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center">
               {community.watermark_logo || community.image_url ? (
                 <img
-                  src={community.watermark_logo || community.image_url}
+                  src={getImageUrl(community.watermark_logo || community.image_url)}
                   alt={community.community_name}
                   className="w-12 h-12 rounded-xl object-cover"
                 />
@@ -189,7 +189,7 @@ const CommunitiesTable = () => {
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center">
               {row.watermark_logo || row.image_url ? (
                 <img
-                  src={row.watermark_logo || row.image_url}
+                  src={getImageUrl(row.watermark_logo || row.image_url)}
                   alt={value}
                   className="w-8 h-8 rounded-lg object-cover"
                 />

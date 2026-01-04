@@ -14,6 +14,7 @@ import { CategoryAppsLayout } from './Modal/layouts/CategoryAppsLayout'
 import { CustomPlanAppsLayout } from './Modal/layouts/CustomPlanAppsLayout'
 import { ManageCategoriesLayout } from './Modal/layouts/ManageCategoriesLayout'
 import { EditPlanLayout } from './Modal/layouts/EditPlanLayout'
+import { WatermarkEditorLayout } from './Modal/layouts/WatermarkEditorLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -121,6 +122,12 @@ const GlobalModal = () => {
 
       editPlan: {
         component: <EditPlanLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      watermarkEditor: {
+        component: <WatermarkEditorLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
         showFooter: true,
         hasRef: true,
       },

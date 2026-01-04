@@ -1,5 +1,20 @@
+// Export base URL for use in components
+export const BASE_URL = 'https://ikosher.me/iFilterDashboard';
+
+// Helper function to build full image URL from relative path
+export const getImageUrl = (relativePath) => {
+  if (!relativePath) return null;
+  // If already absolute URL, return as-is
+  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+    return relativePath;
+  }
+  // If starts with /, remove it to avoid double slashes
+  const cleanPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+  return `https://ikosher.me/${cleanPath}`;
+};
+
 class ApiClient {
-  constructor(baseURL = 'https://ikosher.me/iFilterDashboard') {
+  constructor(baseURL = BASE_URL) {
     this.baseURL = baseURL;
     this.apiURL = `${baseURL}/api`;
     this.token = localStorage.getItem('iFilter_authToken');
@@ -314,6 +329,17 @@ class ApiClient {
 
   async getCommunityStatistics() {
     return this.apiRequest('communities?action=statistics');
+  }
+
+  async updateCommunity(communityId, data) {
+    return this.put(`api/communities/${communityId}`, data);
+  }
+
+  async uploadWatermark(communityId, base64Image) {
+    return this.post('api/upload/watermark', {
+      community_id: communityId,
+      file_data: base64Image
+    });
   }
 
   // Community Plans API (legacy - for backward compatibility)
