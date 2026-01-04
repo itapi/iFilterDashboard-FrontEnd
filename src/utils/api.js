@@ -290,7 +290,33 @@ class ApiClient {
     });
   }
 
-  // Community Plans API
+  // Communities API
+  async getCommunities(filters = {}) {
+    let url = 'communities?action=with_details';
+
+    // Add filter parameters if provided
+    const params = [];
+    if (filters.page) params.push(`page=${filters.page}`);
+    if (filters.limit) params.push(`limit=${filters.limit}`);
+    if (filters.search) params.push(`search=${encodeURIComponent(filters.search)}`);
+    if (filters.is_public !== undefined) params.push(`is_public=${filters.is_public}`);
+
+    if (params.length > 0) {
+      url += '&' + params.join('&');
+    }
+
+    return this.apiRequest(url);
+  }
+
+  async getCommunityDetails(communityId) {
+    return this.apiRequest(`communities/${communityId}`);
+  }
+
+  async getCommunityStatistics() {
+    return this.apiRequest('communities?action=statistics');
+  }
+
+  // Community Plans API (legacy - for backward compatibility)
   async getCommunityPlans(filters = {}) {
     let url = 'filtering-plans?action=community_plans';
 

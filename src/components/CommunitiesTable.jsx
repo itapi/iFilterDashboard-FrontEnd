@@ -32,7 +32,7 @@ const CommunitiesTable = () => {
         setSearchLoading(true)
       }
 
-      const response = await apiClient.getCommunityPlans({
+      const response = await apiClient.getCommunities({
         page,
         limit: 20,
         search
@@ -41,7 +41,7 @@ const CommunitiesTable = () => {
       if (response.success) {
         const newCommunities = (response.data.data || response.data || []).map(community => ({
           ...community,
-          id: community.plan_unique_id // Ensure each row has an id field for the Table component
+          id: community.community_unique_id // Ensure each row has an id field for the Table component
         }))
         setCommunities(prev => append ? [...prev, ...newCommunities] : newCommunities)
 
@@ -89,10 +89,10 @@ const CommunitiesTable = () => {
           {/* Community Header */}
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center">
-              {community.image_url ? (
+              {community.watermark_logo || community.image_url ? (
                 <img
-                  src={community.image_url}
-                  alt={community.plan_name}
+                  src={community.watermark_logo || community.image_url}
+                  alt={community.community_name}
                   className="w-12 h-12 rounded-xl object-cover"
                 />
               ) : (
@@ -100,10 +100,18 @@ const CommunitiesTable = () => {
               )}
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">{community.plan_name}</h3>
+              <h3 className="text-2xl font-bold text-gray-900">{community.community_name}</h3>
               <p className="text-sm text-purple-600 font-medium">קהילת סינון</p>
             </div>
           </div>
+
+          {/* Description */}
+          {community.description && (
+            <div className="mb-4 p-4 bg-purple-50 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-1">תיאור הקהילה</h4>
+              <p className="text-gray-700">{community.description}</p>
+            </div>
+          )}
 
           {/* Community Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -153,8 +161,8 @@ const CommunitiesTable = () => {
                 <div className="text-sm text-gray-600">סוג תכנית</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-green-600">{community.plan_unique_id.slice(0, 8)}</div>
-                <div className="text-sm text-gray-600">מזהה</div>
+                <div className="text-2xl font-bold text-green-600">{community.community_unique_id.slice(0, 8)}</div>
+                <div className="text-sm text-gray-600">מזהה קהילה</div>
               </div>
             </div>
           </div>
@@ -173,15 +181,15 @@ const CommunitiesTable = () => {
   const tableConfig = {
     columns: [
       {
-        key: 'plan_name',
+        key: 'community_name',
         label: 'שם הקהילה',
         width: '25%',
         render: (value, row) => (
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              {row.image_url ? (
+              {row.watermark_logo || row.image_url ? (
                 <img
-                  src={row.image_url}
+                  src={row.watermark_logo || row.image_url}
                   alt={value}
                   className="w-8 h-8 rounded-lg object-cover"
                 />
@@ -192,6 +200,9 @@ const CommunitiesTable = () => {
             <div>
               <div className="font-medium text-gray-900">{value}</div>
               <div className="text-sm text-purple-600">קהילת סינון</div>
+              {row.description && (
+                <div className="text-xs text-gray-500 truncate max-w-xs">{row.description}</div>
+              )}
             </div>
           </div>
         )
@@ -235,8 +246,8 @@ const CommunitiesTable = () => {
       },
 
       {
-        key: 'plan_unique_id',
-        label: 'מזהה',
+        key: 'community_unique_id',
+        label: 'מזהה קהילה',
         width: '15%',
         render: (value) => (
           <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
@@ -266,7 +277,7 @@ const CommunitiesTable = () => {
     ],
     data: communities,
     onRowClick: (community) => {
-      navigate(`/communities/${community.plan_unique_id}`)
+      navigate(`/communities/${community.community_unique_id}`)
     }
   }
 

@@ -41,22 +41,29 @@ const CommunityDetails = () => {
       setLoading(true)
       setAppsLoading(true)
 
-      // Load community details and apps in parallel
-      const [communityResponse, appsResponse] = await Promise.all([
-        apiClient.getCommunityPlanDetails(communityId),
-        apiClient.getPlanSelectedApps(communityId) // Using unified API
-      ])
+      // Load community details
+      const communityResponse = await apiClient.getCommunityDetails(communityId)
 
       if (communityResponse.success) {
         setCommunity(communityResponse.data)
+
+        // Load apps for the community's plan if it has one
+        if (communityResponse.data.plan_unique_id) {
+          try {
+            const appsResponse = await apiClient.getPlanSelectedApps(communityResponse.data.plan_unique_id)
+            if (appsResponse.success) {
+              setCommunityApps(appsResponse.data || [])
+            }
+          } catch (err) {
+            console.error('Error loading community apps:', err)
+            // Don't fail the whole page if apps fail to load
+            setCommunityApps([])
+          }
+        }
       } else {
         toast.error('שגיאה בטעינת פרטי הקהילה')
         navigate('/communities')
         return
-      }
-
-      if (appsResponse.success) {
-        setCommunityApps(appsResponse.data || [])
       }
 
     } catch (err) {
@@ -153,18 +160,23 @@ const CommunityDetails = () => {
   }
 
   const handleEditApps = () => {
+    if (!community?.plan_unique_id) {
+      toast.error('לקהילה זו אין תכנית משויכת')
+      return
+    }
+
     openModal({
       layout: 'customPlanApps',
       title: 'בחירת אפליקציות - קהילה',
       size: 'xl',
       data: {
         clientUniqueId: null,
-        planUniqueId: communityId,
+        planUniqueId: community.plan_unique_id,
         onSave: async (selectedAppIds) => {
           // Reload community apps after successful save
           setAppsLoading(true)
           try {
-            const appsResponse = await apiClient.getPlanSelectedApps(communityId)
+            const appsResponse = await apiClient.getPlanSelectedApps(community.plan_unique_id)
             if (appsResponse.success) {
               setCommunityApps(appsResponse.data || [])
               toast.success('רשימת האפליקציות עודכנה בהצלחה')
@@ -225,17 +237,17 @@ const CommunityDetails = () => {
               <span>קהילות</span>
             </button>
             <span className="text-gray-400">/</span>
-            <span className="text-gray-900 font-medium">{community.plan_name}</span>
+            <span className="text-gray-900 font-medium">{community.community_name}</span>
           </div>
 
           {/* Community Header */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
             <div className="flex items-center gap-6 mb-6">
               <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                {community.image_url ? (
+                {community.watermark_logo || community.image_url ? (
                   <img
-                    src={community.image_url}
-                    alt={community.plan_name}
+                    src={community.watermark_logo || community.image_url}
+                    alt={community.community_name}
                     className="w-16 h-16 rounded-2xl object-cover"
                   />
                 ) : (
@@ -243,23 +255,39 @@ const CommunityDetails = () => {
                 )}
               </div>
               <div className="flex-1">
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">{community.plan_name}</h1>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">{community.community_name}</h1>
                 <div className="flex items-center gap-4">
                   <span className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-lg text-sm font-medium">
                     <Users className="w-4 h-4" />
                     קהילת סינון
                   </span>
-                  <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium ${
-                    community.is_public
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {community.is_public ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    {community.is_public ? 'ציבורית' : 'פרטית'}
-                  </span>
+                  {community.plan_name && (
+                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
+                      <Package className="w-4 h-4" />
+                      {community.plan_name}
+                    </span>
+                  )}
+                  {community.is_public !== null && (
+                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium ${
+                      community.is_public
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {community.is_public ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                      {community.is_public ? 'ציבורית' : 'פרטית'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
+
+            {/* Community Description */}
+            {community.description && (
+              <div className="mb-6 p-4 bg-purple-50 rounded-xl">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">תיאור הקהילה</h3>
+                <p className="text-gray-700">{community.description}</p>
+              </div>
+            )}
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -267,18 +295,28 @@ const CommunityDetails = () => {
                 <div className="text-3xl font-bold text-blue-600 mb-1">{communityApps.length}</div>
                 <div className="text-sm text-gray-600">אפליקציות</div>
               </div>
-              <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-                <div className="text-3xl font-bold text-green-600 mb-1">₪{community.price_monthly}</div>
-                <div className="text-sm text-gray-600">מחיר חודשי</div>
-              </div>
-              <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl">
-                <div className="text-3xl font-bold text-purple-600 mb-1">₪{community.price_yearly || (community.price_monthly * 12)}</div>
-                <div className="text-sm text-gray-600">מחיר שנתי</div>
-              </div>
+              {community.price_monthly && (
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+                  <div className="text-3xl font-bold text-green-600 mb-1">₪{community.price_monthly}</div>
+                  <div className="text-sm text-gray-600">מחיר חודשי</div>
+                </div>
+              )}
+              {community.price_yearly && (
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl">
+                  <div className="text-3xl font-bold text-purple-600 mb-1">₪{community.price_yearly}</div>
+                  <div className="text-sm text-gray-600">מחיר שנתי</div>
+                </div>
+              )}
               <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl">
-                <div className="text-3xl font-bold text-orange-600 mb-1">{community.plan_unique_id.slice(0, 8)}</div>
+                <div className="text-3xl font-bold text-orange-600 mb-1">{community.community_unique_id?.slice(0, 8)}</div>
                 <div className="text-sm text-gray-600">מזהה קהילה</div>
               </div>
+              {community.clients_count !== undefined && (
+                <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl">
+                  <div className="text-3xl font-bold text-pink-600 mb-1">{community.clients_count}</div>
+                  <div className="text-sm text-gray-600">לקוחות</div>
+                </div>
+              )}
             </div>
 
             {/* Features */}
