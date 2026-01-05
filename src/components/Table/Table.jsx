@@ -120,6 +120,8 @@ export const Table = ({
     
     if (newSelectedRows[rowId]) {
       delete newSelectedRows[rowId];
+
+ 
     } else {
       newSelectedRows[rowId] = true;
     }

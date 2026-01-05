@@ -203,7 +203,7 @@ const EditAdminForm = ({ admin, communityPlans, onSuccess, onClose }) => {
     first_name: admin.first_name || '',
     last_name: admin.last_name || '',
     user_type: admin.user_type || 'manager',
-    community_unique_id: admin.community_unique_id || ''
+    community_plan_unique_id: admin.community_plan_unique_id || ''
   })
   const [loading, setLoading] = useState(false)
 
@@ -238,9 +238,9 @@ const EditAdminForm = ({ admin, communityPlans, onSuccess, onClose }) => {
         delete dataToSend.password
       }
 
-      // Remove community_unique_id if not community manager
+      // Remove community_plan_unique_id if not community manager
       if (dataToSend.user_type !== 'community_manager') {
-        dataToSend.community_unique_id = null
+        dataToSend.community_plan_unique_id = null
       }
 
       const response = await apiClient.updateAdmin(admin.id, dataToSend)
@@ -394,48 +394,9 @@ const AdminsTable = () => {
   const [loadingMore, setLoadingMore] = useState(false)
   const itemsPerPage = 25
 
-  useEffect(() => {
-    loadInitialData()
-  }, [])
-
-  // Reload data when filters change
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      loadFilteredData()
-    }, 300) // Debounce search
-
-    return () => clearTimeout(timeoutId)
-  }, [searchTerm, userTypeFilter])
-
-  const loadInitialData = async () => {
-    try {
-      setLoading(true)
-
-      const [adminsResponse, plansResponse] = await Promise.all([
-        apiClient.getAdminsWithDetails(1, itemsPerPage),
-        apiClient.getCommunityPlansForAdmins()
-      ])
-
-      if (adminsResponse.success) {
-        const responseData = adminsResponse.data?.data || adminsResponse.data || []
-        const pagination = adminsResponse.data?.pagination
-
-        setAdmins(responseData)
-        setHasMore(pagination?.has_more || false)
-      }
-
-      if (plansResponse.success) {
-        setCommunityPlans(plansResponse.data || [])
-      }
-    } catch (err) {
-      toast.error('שגיאה בטעינת הנתונים')
-      console.error('Error loading data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadFilteredData = async () => {
+ // Better solution: Combine both into a single effect
+useEffect(() => {
+  const loadData = async () => {
     try {
       setLoading(true)
       setCurrentPage(1)
@@ -445,22 +406,47 @@ const AdminsTable = () => {
         user_type: userTypeFilter !== 'all' ? userTypeFilter : undefined
       }
 
-      const response = await apiClient.getAdminsWithDetails(1, itemsPerPage, filters)
+      // Load community plans only on initial load or when needed
+      if (communityPlans.length === 0) {
+        const [adminsResponse, plansResponse] = await Promise.all([
+          apiClient.getAdminsWithDetails(1, itemsPerPage, filters),
+          apiClient.getCommunityPlansForAdmins()
+        ])
 
-      if (response.success) {
-        const responseData = response.data?.data || response.data || []
-        const pagination = response.data?.pagination
+        if (adminsResponse.success) {
+          const responseData = adminsResponse.data?.data || adminsResponse.data || []
+          const pagination = adminsResponse.data?.pagination
+          setAdmins(responseData)
+          setHasMore(pagination?.has_more || false)
+        }
 
-        setAdmins(responseData)
-        setHasMore(pagination?.has_more || false)
+        if (plansResponse.success) {
+          setCommunityPlans(plansResponse.data || [])
+        }
+      } else {
+        // Only load admins when filters change
+        const response = await apiClient.getAdminsWithDetails(1, itemsPerPage, filters)
+        if (response.success) {
+          const responseData = response.data?.data || response.data || []
+          const pagination = response.data?.pagination
+          setAdmins(responseData)
+          setHasMore(pagination?.has_more || false)
+        }
       }
     } catch (err) {
       toast.error('שגיאה בטעינת הנתונים')
-      console.error('Error loading filtered data:', err)
+      console.error('Error loading data:', err)
     } finally {
       setLoading(false)
     }
   }
+
+  const timeoutId = setTimeout(() => {
+    loadData()
+  }, searchTerm ? 300 : 0) // Debounce only for search, not for initial load
+
+  return () => clearTimeout(timeoutId)
+}, [searchTerm, userTypeFilter])
 
   const loadMoreAdmins = async () => {
     if (loadingMore || !hasMore) return
@@ -621,15 +607,26 @@ const AdminsTable = () => {
       )
     },
     {
-      id: 'community',
-      key: 'community_name',
-      label: 'קהילה',
-      type: 'text',
-      render: (row) => (
-        row.user_type === 'community_manager'
-          ? <span className="text-sm text-gray-700">{row.community_name || row.community_unique_id || '-'}</span>
-          : <span className="text-sm text-gray-400">-</span>
-      )
+      id: 'community_plan',
+      key: 'community_plan_name',
+      label: 'תכנית קהילה',
+      type: 'custom',
+      render: (row) => {
+        if (row.user_type !== 'community_manager') {
+          return <span className="text-sm text-gray-400">-</span>
+        }
+
+        // Try multiple possible field names for the community ID
+        const communityId = row.community_plan_unique_id || row.community_unique_id
+
+        // Find the community plan name from communityPlans array
+        const communityPlan = communityPlans.find(
+          plan => plan.community_unique_id === communityId
+        )
+        const communityName = communityPlan?.community_name || row.community_plan_name || communityId || '-'
+
+        return <span className="text-sm text-gray-700">{communityName}</span>
+      }
     },
     {
       id: 'created_at',

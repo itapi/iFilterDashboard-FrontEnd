@@ -829,6 +829,29 @@ class ApiClient {
       }
     });
   }
+
+  // App Tags API
+  async getAllTags() {
+    return this.apiRequest('app-tags?action=get_all');
+  }
+
+  async getClientAppTags(clientUniqueId) {
+    return this.apiRequest(`app-tags?action=get_client_app_tags&client_unique_id=${clientUniqueId}`);
+  }
+
+  async getAppsWithTags(clientUniqueId) {
+    return this.apiRequest(`app-tags?action=get_apps_with_tags&client_unique_id=${clientUniqueId}`);
+  }
+
+  async updateClientAppTags(clientUniqueId, appTags) {
+    return this.apiRequest('app-tags?action=update_client_app_tags', {
+      method: 'POST',
+      body: {
+        client_unique_id: clientUniqueId,
+        app_tags: appTags
+      }
+    });
+  }
 }
 
 // Create a singleton instance
