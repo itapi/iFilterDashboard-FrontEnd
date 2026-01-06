@@ -843,12 +843,13 @@ class ApiClient {
     return this.apiRequest(`app-tags?action=get_apps_with_tags&client_unique_id=${clientUniqueId}`);
   }
 
-  async updateClientAppTags(clientUniqueId, appTags) {
+  async updateClientAppTags(clientUniqueId, appTags, modifiedPackages = []) {
     return this.apiRequest('app-tags?action=update_client_app_tags', {
       method: 'POST',
       body: {
         client_unique_id: clientUniqueId,
-        app_tags: appTags
+        app_tags: appTags,
+        modified_packages: modifiedPackages
       }
     });
   }

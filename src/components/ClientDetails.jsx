@@ -23,11 +23,17 @@ const ClientDetails = () => {
   const location = useLocation()
   const { openModal } = useGlobalState()
 
+  // Get initial tab from URL query params or default to 'overview'
+  const getInitialTab = () => {
+    const params = new URLSearchParams(location.search)
+    return params.get('tab') || 'overview'
+  }
+
   // State management
   const [client, setClient] = useState(location.state?.client || null)
   const [loading, setLoading] = useState(!client)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(getInitialTab())
   const [availablePlans, setAvailablePlans] = useState([])
   const [loadingPlans, setLoadingPlans] = useState(false)
   const [deviceData, setDeviceData] = useState(null)
@@ -112,6 +118,18 @@ const ClientDetails = () => {
   }
 
   /**
+   * Handle tab change and update URL
+   */
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab)
+
+    // Update URL with new tab without reloading page
+    const params = new URLSearchParams(location.search)
+    params.set('tab', newTab)
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true })
+  }
+
+  /**
    * Handle client data updates
    */
   const handleClientUpdate = (updatedClient) => {
@@ -156,7 +174,7 @@ const ClientDetails = () => {
         client={client}
         onBack={() => navigate('/clients')}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         isCustomPlan={isCustomPlan()}
       />
 
