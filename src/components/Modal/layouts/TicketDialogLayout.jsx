@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
 import apiClient from '../../../utils/api'
+import AttachmentPreview from '../../AttachmentPreview'
 import {
   Send,
   CheckCircle,
@@ -14,7 +15,9 @@ import {
   ExternalLink,
   Edit2,
   X,
-  Save
+  Save,
+  Paperclip,
+  Loader
 } from 'lucide-react'
 
 /**
@@ -104,6 +107,14 @@ const MessageBubble = ({
             <div className="text-sm leading-relaxed whitespace-pre-wrap">
               {update.message}
             </div>
+
+            {/* Display attachments if any */}
+            {update.attachments && update.attachments.length > 0 && (
+              <div className="mt-3">
+                <AttachmentPreview attachments={update.attachments} compact={true} />
+              </div>
+            )}
+
             <div className={`text-xs mt-2 flex items-center justify-between ${
               isFromAdmin ? 'text-purple-100' : 'text-gray-500'
             }`}>
@@ -144,13 +155,17 @@ export const TicketDialogLayout = forwardRef(({ data }, ref) => {
   const { ticket, currentUser, users = [], onTicketUpdate, onClose } = data || {}
 
   const [ticketUpdates, setTicketUpdates] = useState([])
+  const [ticketAttachments, setTicketAttachments] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editedMessageText, setEditedMessageText] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
   const messagesEndRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (ticket) {
@@ -174,7 +189,14 @@ export const TicketDialogLayout = forwardRef(({ data }, ref) => {
       setLoading(true)
       const response = await apiClient.getTicketUpdates(ticket.id)
       if (response.success) {
-        setTicketUpdates(response.data)
+        // Handle new response structure with updates and ticket_attachments
+        if (response.data.updates) {
+          setTicketUpdates(response.data.updates)
+          setTicketAttachments(response.data.ticket_attachments || [])
+        } else {
+          // Fallback for old response format
+          setTicketUpdates(response.data)
+        }
       }
     } catch (err) {
       console.error('Error loading ticket updates:', err)
@@ -195,28 +217,39 @@ export const TicketDialogLayout = forwardRef(({ data }, ref) => {
   }
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !ticket || !currentUser || sending) return
+    if ((!newMessage.trim() && selectedFiles.length === 0) || !ticket || !currentUser || sending) return
 
     try {
       setSending(true)
 
-      const response = await apiClient.addTicketUpdate(
-        ticket.id,
-        newMessage.trim(),
-        currentUser.id,
-        'user'
-      )
+      let updateId = null
 
-      if (response.success) {
-        setTicketUpdates(prev => [...prev, response.data])
-        setNewMessage('')
+      // Send message if there's text
+      if (newMessage.trim()) {
+        const response = await apiClient.addTicketUpdate(
+          ticket.id,
+          newMessage.trim(),
+          currentUser.id,
+          'user'
+        )
 
-        // Notify parent component about the update
-        if (onTicketUpdate) {
-          onTicketUpdate(ticket.id, 'message_added', response.data)
+        if (response.success) {
+          updateId = response.data.id
+          setTicketUpdates(prev => [...prev, response.data])
+          setNewMessage('')
+
+          // Notify parent component about the update
+          if (onTicketUpdate) {
+            onTicketUpdate(ticket.id, 'message_added', response.data)
+          }
+        } else {
+          throw new Error(response.message || 'Failed to send message')
         }
-      } else {
-        throw new Error(response.message || 'Failed to send message')
+      }
+
+      // Upload files if any are selected
+      if (selectedFiles.length > 0) {
+        await handleFileUpload(updateId)
       }
     } catch (err) {
       toast.error('שגיאה בשליחת ההודעה: ' + (err.message || 'אירעה שגיאה לא צפויה'))
@@ -299,6 +332,49 @@ export const TicketDialogLayout = forwardRef(({ data }, ref) => {
       console.error('Error editing message:', err)
     } finally {
       setSavingEdit(false)
+    }
+  }
+
+  const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files)
+    if (files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...files])
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeSelectedFile = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleFileUpload = async (updateId) => {
+    if (selectedFiles.length === 0) return
+
+    try {
+      setUploadingFiles(true)
+
+      // Upload all selected files
+      const uploadPromises = selectedFiles.map(file =>
+        apiClient.uploadTicketAttachment(ticket.id, file, updateId)
+      )
+
+      await Promise.all(uploadPromises)
+
+      // Clear selected files
+      setSelectedFiles([])
+
+      // Reload ticket updates to show new attachments
+      await loadTicketUpdates()
+
+      toast.success('הקבצים הועלו בהצלחה')
+    } catch (err) {
+      console.error('Error uploading files:', err)
+      toast.error('שגיאה בהעלאת הקבצים')
+    } finally {
+      setUploadingFiles(false)
     }
   }
 
@@ -389,6 +465,14 @@ export const TicketDialogLayout = forwardRef(({ data }, ref) => {
         {/* Ticket Description */}
         <div className="bg-gray-50 rounded-lg p-4">
           <p className="text-gray-700 whitespace-pre-wrap">{ticket.description}</p>
+
+          {/* Display ticket-level attachments */}
+          {ticketAttachments && ticketAttachments.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">קבצים מצורפים:</h4>
+              <AttachmentPreview attachments={ticketAttachments} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -426,73 +510,115 @@ export const TicketDialogLayout = forwardRef(({ data }, ref) => {
       {/* Message Input (only for open tickets) */}
       {ticket.status === 'open' && (
         <div className="p-6 border-t border-gray-100 bg-gray-50">
-          <div className="flex items-end space-x-reverse space-x-3">
-            <div className="flex-1">
-              <div className="relative">
-                <textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSendMessage()
-                    }
-                  }}
-                  placeholder="כתוב תגובה... (לחץ Enter לשליחה, Shift+Enter לשורה חדשה)"
-                  className={`w-full px-4 py-3 border rounded-xl resize-none transition-all duration-200 ${
-                    sending
-                      ? 'border-purple-300 bg-purple-50'
-                      : 'border-gray-200 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent'
-                  }`}
-                  rows={3}
-                  disabled={sending}
-                />
-                {sending && (
-                  <div className="absolute inset-0 bg-white bg-opacity-50 rounded-xl flex items-center justify-center">
-                    <div className="text-sm text-purple-600 flex items-center">
-                      <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin ml-2" />
-                      שולח הודעה...
+          <div className="space-y-3">
+            {/* Selected Files Preview */}
+            {selectedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 pb-2 border-b border-gray-200">
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center space-x-reverse space-x-2 bg-white border border-purple-200 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <Paperclip className="w-4 h-4 text-purple-600" />
+                    <span className="max-w-[150px] truncate text-gray-700">{file.name}</span>
+                    <button
+                      onClick={() => removeSelectedFile(index)}
+                      className="text-gray-400 hover:text-red-600 transition-colors"
+                      disabled={sending || uploadingFiles}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-end space-x-reverse space-x-3">
+              <div className="flex-1">
+                <div className="relative">
+                  <textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSendMessage()
+                      }
+                    }}
+                    placeholder="כתוב תגובה... (לחץ Enter לשליחה, Shift+Enter לשורה חדשה)"
+                    className={`w-full px-4 py-3 border rounded-xl resize-none transition-all duration-200 ${
+                      sending || uploadingFiles
+                        ? 'border-purple-300 bg-purple-50'
+                        : 'border-gray-200 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent'
+                    }`}
+                    rows={3}
+                    disabled={sending || uploadingFiles}
+                  />
+                  {(sending || uploadingFiles) && (
+                    <div className="absolute inset-0 bg-white bg-opacity-50 rounded-xl flex items-center justify-center">
+                      <div className="text-sm text-purple-600 flex items-center">
+                        <Loader className="w-4 h-4 ml-2 animate-spin" />
+                        {uploadingFiles ? 'מעלה קבצים...' : 'שולח הודעה...'}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Character counter and help text */}
-              <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                <div className="flex items-center space-x-reverse space-x-4">
-                  <span>תווים: {newMessage.length}</span>
-                  <span>Enter = שלח, Shift+Enter = שורה חדשה</span>
+                  )}
                 </div>
-                {newMessage.trim() && (
-                  <div className="text-green-600 flex items-center">
-                    <CheckCircle className="w-3 h-3 ml-1" />
-                    מוכן לשליחה
-                  </div>
-                )}
-              </div>
-            </div>
 
-            <button
-              onClick={handleSendMessage}
-              disabled={!newMessage.trim() || sending}
-              className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center min-w-[100px] justify-center ${
-                !newMessage.trim() || sending
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5'
-              }`}
-            >
-              {sending ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin ml-1" />
-                  שולח...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 ml-1" />
-                  שלח
-                </>
-              )}
-            </button>
+                {/* Character counter and help text */}
+                <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                  <div className="flex items-center space-x-reverse space-x-4">
+                    <span>תווים: {newMessage.length}</span>
+                    <span>Enter = שלח, Shift+Enter = שורה חדשה</span>
+                  </div>
+                  {(newMessage.trim() || selectedFiles.length > 0) && (
+                    <div className="text-green-600 flex items-center">
+                      <CheckCircle className="w-3 h-3 ml-1" />
+                      מוכן לשליחה
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* File Attach Button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending || uploadingFiles}
+                className="px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="צרף קובץ"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={handleSendMessage}
+                disabled={(!newMessage.trim() && selectedFiles.length === 0) || sending || uploadingFiles}
+                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center min-w-[100px] justify-center ${
+                  (!newMessage.trim() && selectedFiles.length === 0) || sending || uploadingFiles
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5'
+                }`}
+              >
+                {sending || uploadingFiles ? (
+                  <>
+                    <Loader className="w-4 h-4 ml-1 animate-spin" />
+                    שולח...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 ml-1" />
+                    שלח
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

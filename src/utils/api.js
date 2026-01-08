@@ -577,6 +577,52 @@ class ApiClient {
     return this.apiRequest('tickets?action=unread_counts');
   }
 
+  // Ticket Attachments API
+  async uploadTicketAttachment(ticketId, file, updateId = null) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('ticket_id', ticketId);
+    if (updateId) {
+      formData.append('update_id', updateId);
+    }
+
+    const url = `${this.apiURL}/tickets?action=upload_attachment`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.token ? `Bearer ${this.token}` : undefined,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to upload attachment:', error);
+      throw error;
+    }
+  }
+
+  async getTicketAttachments(ticketId, updateId = null) {
+    let url = `tickets?action=get_attachments&ticket_id=${ticketId}`;
+    if (updateId) {
+      url += `&update_id=${updateId}`;
+    }
+    return this.apiRequest(url);
+  }
+
+  async deleteTicketAttachment(attachmentId) {
+    return this.apiRequest('tickets?action=delete_attachment', {
+      method: 'DELETE',
+      body: { attachment_id: attachmentId }
+    });
+  }
+
   // Users API (for ticket assignment)
   async getUsers() {
     return this.apiRequest('users');
