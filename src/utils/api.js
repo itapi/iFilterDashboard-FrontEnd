@@ -799,6 +799,10 @@ class ApiClient {
     return this.apiRequest(`clients?action=device_data&client_unique_id=${clientUniqueId}`);
   }
 
+  async getClientSyncLogs(clientUniqueId) {
+    return this.apiRequest(`clients?action=sync_logs&client_unique_id=${clientUniqueId}`);
+  }
+
   // Client Settings Management
   async getClientSettingsMeta() {
     return this.apiRequest('client_settings?action=get_meta');

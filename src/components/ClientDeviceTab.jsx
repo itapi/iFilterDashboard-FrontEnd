@@ -1,4 +1,7 @@
+import { useState, useEffect } from 'react'
 import { Smartphone, Package, Cpu, HardDrive, Info, RefreshCw, Box, Zap, AlertTriangle, Database } from 'lucide-react'
+import { Tooltip } from 'react-tooltip'
+import apiClient from '../utils/api'
 
 /**
  * ClientDeviceTab - Device information tab showing device details, Magisk and Xposed modules
@@ -7,6 +10,29 @@ import { Smartphone, Package, Cpu, HardDrive, Info, RefreshCw, Box, Zap, AlertTr
  * @param {boolean} loadingDeviceData - Whether device data is being loaded
  */
 const ClientDeviceTab = ({ deviceData, loadingDeviceData }) => {
+  const [syncLogs, setSyncLogs] = useState([])
+  const [loadingSyncLogs, setLoadingSyncLogs] = useState(false)
+
+  // Fetch sync logs when deviceData is available
+  useEffect(() => {
+    const fetchSyncLogs = async () => {
+      if (!deviceData?.client_unique_id) return
+
+      setLoadingSyncLogs(true)
+      try {
+        const response = await apiClient.getClientSyncLogs(deviceData.client_unique_id)
+        if (response.success && Array.isArray(response.data)) {
+          setSyncLogs(response.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch sync logs:', error)
+      } finally {
+        setLoadingSyncLogs(false)
+      }
+    }
+
+    fetchSyncLogs()
+  }, [deviceData?.client_unique_id])
 
   const formatDateTime = (dateString) => {
     if (!dateString) return 'לא זמין'
@@ -23,6 +49,48 @@ const ClientDeviceTab = ({ deviceData, loadingDeviceData }) => {
     if (!total || !available || total === null || available === null) return null
     const used = total - available
     return ((used / total) * 100).toFixed(1)
+  }
+
+  // Format relative time in Hebrew
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'עכשיו'
+    if (diffMins < 60) return `לפני ${diffMins} דקות`
+    if (diffHours < 24) return `לפני ${diffHours} שעות`
+    if (diffDays === 1) return 'אתמול'
+    if (diffDays < 7) return `לפני ${diffDays} ימים`
+    return formatDateTime(dateString)
+  }
+
+  // Get sync type label in Hebrew
+  const getSyncTypeLabel = (syncType) => {
+    const labels = {
+      'manual': 'ידני',
+      'automatic': 'אוטומטי',
+      'aidl': 'AIDL'
+    }
+    return labels[syncType] || syncType
+  }
+
+  // Get sync result styling
+  const getSyncResultStyle = (result) => {
+    switch (result) {
+      case 'success':
+        return { label: 'הצליח', color: 'text-green-600', bg: 'bg-green-100' }
+      case 'partial':
+        return { label: 'חלקי', color: 'text-yellow-600', bg: 'bg-yellow-100' }
+      case 'failed':
+        return { label: 'נכשל', color: 'text-red-600', bg: 'bg-red-100' }
+      default:
+        return { label: result || 'לא ידוע', color: 'text-gray-600', bg: 'bg-gray-100' }
+    }
   }
 
   if (loadingDeviceData) {
@@ -68,15 +136,18 @@ const ClientDeviceTab = ({ deviceData, loadingDeviceData }) => {
             </div>
           </div>
 
-          {/* Sync Status Badge */}
+          {/* Sync Status Badge with History Tooltip */}
           <div className="text-left">
-            <span className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium border shadow-sm ${
-              deviceData.sync_status === 'recent' ? 'bg-green-50 text-green-800 border-green-200' :
-              deviceData.sync_status === 'normal' ? 'bg-blue-50 text-blue-800 border-blue-200' :
-              deviceData.sync_status === 'stale' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
-              'bg-gray-50 text-gray-800 border-gray-200'
-            }`}>
-              <RefreshCw className="w-4 h-4 ml-2" />
+            <span
+              data-tooltip-id="sync-history-tooltip"
+              className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium border shadow-sm cursor-pointer transition-all hover:shadow-md ${
+                deviceData.sync_status === 'recent' ? 'bg-green-50 text-green-800 border-green-200 hover:bg-green-100' :
+                deviceData.sync_status === 'normal' ? 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100' :
+                deviceData.sync_status === 'stale' ? 'bg-yellow-50 text-yellow-800 border-yellow-200 hover:bg-yellow-100' :
+                'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              <RefreshCw className={`w-4 h-4 ml-2 ${loadingSyncLogs ? 'animate-spin' : ''}`} />
               {{
                 'recent': 'סונכרן לאחרונה',
                 'normal': 'סינכרון רגיל',
@@ -87,6 +158,55 @@ const ClientDeviceTab = ({ deviceData, loadingDeviceData }) => {
             <p className="text-xs text-gray-500 mt-2 text-center">
               {formatDateTime(deviceData.last_sync)}
             </p>
+
+            {/* Sync History Tooltip */}
+            <Tooltip
+              id="sync-history-tooltip"
+              place="bottom"
+              className="!bg-white !text-gray-900 !rounded-xl !shadow-xl !border !border-gray-200 !p-0 !opacity-100 z-50"
+              style={{ maxWidth: '320px' }}
+              clickable
+            >
+              <div className="p-4" dir="rtl">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-gray-500" />
+                  היסטוריית סנכרון
+                </h4>
+
+                {loadingSyncLogs ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="mr-2 text-sm text-gray-500">טוען...</span>
+                  </div>
+                ) : syncLogs.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500">אין היסטוריית סנכרון</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {syncLogs.map((log) => {
+                      const resultStyle = getSyncResultStyle(log.sync_result)
+                      return (
+                        <div
+                          key={log.id}
+                          className="flex items-center justify-between gap-3 py-2 px-3 bg-gray-50 rounded-lg text-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${resultStyle.bg} ${resultStyle.color}`}>
+                              {resultStyle.label}
+                            </span>
+                            <span className="text-gray-600">{getSyncTypeLabel(log.sync_type)}</span>
+                          </div>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">
+                            {formatRelativeTime(log.created_at)}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </Tooltip>
           </div>
         </div>
 
