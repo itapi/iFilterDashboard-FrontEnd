@@ -11,6 +11,7 @@ import TicketsTable from './components/TicketsTable'
 import ClientsTable from './components/ClientsTable'
 import ClientDetails from './components/ClientDetails'
 import AdminsTable from './components/AdminsTable'
+import BroadcastMessages from './components/BroadcastMessages'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
@@ -81,6 +82,13 @@ function AppContent() {
               <Route path="/admins" element={
                 <SuperAdminRoute showForbidden={true}>
                   <AdminsTable />
+                </SuperAdminRoute>
+              } />
+
+              {/* Broadcast Messages - Super Admin only */}
+              <Route path="/broadcast-messages" element={
+                <SuperAdminRoute showForbidden={true}>
+                  <BroadcastMessages />
                 </SuperAdminRoute>
               } />
 

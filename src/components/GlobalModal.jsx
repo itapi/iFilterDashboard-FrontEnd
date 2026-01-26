@@ -15,6 +15,7 @@ import { CustomPlanAppsLayout } from './Modal/layouts/CustomPlanAppsLayout'
 import { ManageCategoriesLayout } from './Modal/layouts/ManageCategoriesLayout'
 import { EditPlanLayout } from './Modal/layouts/EditPlanLayout'
 import { WatermarkEditorLayout } from './Modal/layouts/WatermarkEditorLayout'
+import { BroadcastMessageLayout } from './Modal/layouts/BroadcastMessageLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -98,6 +99,12 @@ const GlobalModal = () => {
 
       adminForm: {
         component: <AdminFormLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      broadcastMessage: {
+        component: <BroadcastMessageLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
         showFooter: true,
         hasRef: true,
       },

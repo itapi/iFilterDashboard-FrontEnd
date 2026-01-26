@@ -903,6 +903,42 @@ class ApiClient {
       }
     });
   }
+
+  // Broadcast Messages API
+  async getBroadcastMessagesWithDetails(page = 1, limit = 25, filters = {}) {
+    let url = `broadcast-messages?action=with_details&page=${page}&limit=${limit}`;
+
+    // Add sorting parameters if provided
+    if (filters.sort) {
+      url += `&sort=${filters.sort}`;
+    }
+
+    if (filters.order) {
+      url += `&order=${filters.order}`;
+    }
+
+    return this.apiRequest(url);
+  }
+
+  async createBroadcastMessage(messageData) {
+    return this.apiRequest('broadcast-messages', {
+      method: 'POST',
+      body: messageData
+    });
+  }
+
+  async updateBroadcastMessage(messageId, messageData) {
+    return this.apiRequest(`broadcast-messages/${messageId}`, {
+      method: 'PUT',
+      body: messageData
+    });
+  }
+
+  async deleteBroadcastMessage(messageId) {
+    return this.apiRequest(`broadcast-messages/${messageId}`, {
+      method: 'DELETE'
+    });
+  }
 }
 
 // Create a singleton instance
