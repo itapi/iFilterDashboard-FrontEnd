@@ -174,8 +174,8 @@ const ClientsTable = () => {
     const counts = {
       all: stats.totals?.all_clients || 0,
       active: stats.plan_status?.active || 0,
-      trial: stats.plan_status?.trial || 0,
-      inactive: (stats.plan_status?.expired || 0) + (stats.plan_status?.suspended || 0) + (stats.plan_status?.pending || 0) + (stats.plan_status?.inactive || 0)
+      trial: stats.trial_count || 0, // Now using trial_count for inactive users with trial
+      inactive: stats.plan_status?.inactive || 0
     }
     setFilterCounts(counts)
   }
@@ -271,7 +271,12 @@ const ClientsTable = () => {
       pending: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיل', icon: X }
     }
 
-    const config = statusConfig[status] || statusConfig.inactive
+    // Check if inactive user has active trial (remaining trial days)
+    const daysRemaining = calculateDaysRemaining(client)
+    const isActiveTrial = status === 'inactive' && client.trial_expiry_date && daysRemaining > 0
+
+    // If inactive with active trial, show trial badge
+    const config = isActiveTrial ? statusConfig.trial : (statusConfig[status] || statusConfig.inactive)
     const Icon = config.icon
     const daysRemainingText = getDaysRemainingText(client)
     const tooltipId = `status-tooltip-${client?.client_unique_id || Math.random()}`
@@ -328,7 +333,8 @@ const ClientsTable = () => {
     const now = new Date()
     let expiryDate = null
 
-    if (client.plan_status === 'trial' && client.trial_expiry_date) {
+    // inactive = trial users, active = paid users
+    if (client.plan_status === 'inactive' && client.trial_expiry_date) {
       expiryDate = new Date(client.trial_expiry_date)
     } else if (client.plan_status === 'active' && client.plan_expiry_date) {
       expiryDate = new Date(client.plan_expiry_date)
@@ -477,8 +483,7 @@ const ClientsTable = () => {
           >
             <option value="">שנה סטטוס</option>
             <option value="active">פעיל</option>
-            <option value="trial">ניסיון</option>
-            <option value="inactive">לא פעיל</option>
+            <option value="inactive">לא פעיל / ניסיון</option>
           </select>
           
           <button

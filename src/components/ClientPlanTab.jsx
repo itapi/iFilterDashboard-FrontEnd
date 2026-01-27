@@ -40,21 +40,59 @@ const ClientPlanTab = ({
   setSaving,
   apiClient
 }) => {
-  const { openConfirmModal } = useModal()
+  const { openConfirmModal, closeModal } = useModal()
 
   const formatDate = (dateString) => {
     if (!dateString) return 'לא זמין'
     return new Date(dateString).toLocaleDateString('he-IL')
   }
 
+  const calculateDaysRemaining = (client) => {
+    const now = new Date()
+    let expiryDate = null
+
+    // inactive = trial users, active = paid users
+    if (client.plan_status === 'inactive' && client.trial_expiry_date) {
+      expiryDate = new Date(client.trial_expiry_date)
+    } else if (client.plan_status === 'active' && client.plan_expiry_date) {
+      expiryDate = new Date(client.plan_expiry_date)
+    }
+
+    if (!expiryDate) return null
+
+    const timeDiff = expiryDate.getTime() - now.getTime()
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24))
+
+    return daysDiff
+  }
+
+  const getDaysRemainingText = (client) => {
+    const daysRemaining = calculateDaysRemaining(client)
+
+    if (daysRemaining === null) return null
+
+    if (daysRemaining > 0) {
+      return `נותרו ${daysRemaining} ימים`
+    } else if (daysRemaining === 0) {
+      return 'פג היום'
+    } else {
+      return `פג לפני ${Math.abs(daysRemaining)} ימים`
+    }
+  }
+
   const getStatusBadge = (status) => {
+    // Check if inactive user has active trial (remaining trial days)
+    const daysRemaining = calculateDaysRemaining(client)
+    const isActiveTrial = status === 'inactive' && client.trial_expiry_date && daysRemaining > 0
+
     const statusConfig = {
       active: { color: 'bg-green-100 text-green-800 border-green-200', label: 'פעיל', icon: CheckCircle },
       trial: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'ניסיון', icon: Zap },
       inactive: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X }
     }
 
-    const config = statusConfig[status] || statusConfig.inactive
+    // If inactive with active trial, show trial badge
+    const config = isActiveTrial ? statusConfig.trial : (statusConfig[status] || statusConfig.inactive)
     const Icon = config.icon
 
     return (
@@ -63,6 +101,20 @@ const ClientPlanTab = ({
         {config.label}
       </span>
     )
+  }
+
+  // Get the appropriate expiry date based on status
+  const getExpiryDate = () => {
+    if (client.plan_status === 'inactive') {
+      return client.trial_expiry_date
+    }
+    return client.plan_expiry_date
+  }
+
+  // Get days until expiry (calculated on the fly)
+  const getDaysUntilExpiry = () => {
+    const daysRemaining = calculateDaysRemaining(client)
+    return daysRemaining !== null ? daysRemaining : client.days_until_expiry || 0
   }
 
   const handlePlanChange = (newPlanId, planName) => {
@@ -154,7 +206,13 @@ const ClientPlanTab = ({
             {otherPlans.map(plan => (
               <button
                 key={plan.plan_unique_id}
-                onClick={() => handlePlanChange(plan.plan_unique_id, plan.plan_name)}
+                onClick={() => {
+                  closeModal() // Close the plan selection modal first
+                  // Small delay to ensure smooth transition between modals
+                  setTimeout(() => {
+                    handlePlanChange(plan.plan_unique_id, plan.plan_name)
+                  }, 1)
+                }}
                 className="w-full p-3 text-right border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
               >
                 <div className="flex items-center justify-between">
@@ -216,25 +274,29 @@ const ClientPlanTab = ({
         {/* Plan Details Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
           <div>
-            <label className="block text-gray-500 mb-1">תאריך התחלה</label>
-            <p className="font-medium text-gray-900">{formatDate(client.plan_start_date)}</p>
+            <label className="block text-gray-500 mb-1">
+              {client.plan_status === 'inactive' ? 'תחילת ניסיון' : 'תאריך התחלה'}
+            </label>
+            <p className="font-medium text-gray-900">
+              {formatDate(client.plan_status === 'inactive' ? client.trial_started_date : client.plan_start_date)}
+            </p>
           </div>
           <div>
             <label className="block text-gray-500 mb-1">תאריך תפוגה</label>
             <p className={`font-medium ${
-              client.days_until_expiry < 0 ? 'text-red-600' :
-              client.days_until_expiry < 7 ? 'text-yellow-600' : 'text-gray-900'
+              getDaysUntilExpiry() < 0 ? 'text-red-600' :
+              getDaysUntilExpiry() < 7 ? 'text-yellow-600' : 'text-gray-900'
             }`}>
-              {formatDate(client.plan_expiry_date)}
+              {formatDate(getExpiryDate())}
             </p>
           </div>
           <div>
             <label className="block text-gray-500 mb-1">ימים נותרו</label>
             <p className={`font-medium ${
-              client.days_until_expiry < 0 ? 'text-red-600' :
-              client.days_until_expiry < 7 ? 'text-yellow-600' : 'text-green-600'
+              getDaysUntilExpiry() < 0 ? 'text-red-600' :
+              getDaysUntilExpiry() < 7 ? 'text-yellow-600' : 'text-green-600'
             }`}>
-              {client.days_until_expiry < 0 ? 'פג תוקף' : `${client.days_until_expiry} ימים`}
+              {getDaysUntilExpiry() < 0 ? 'פג תוקף' : `${getDaysUntilExpiry()} ימים`}
             </p>
           </div>
           <div>
@@ -255,11 +317,20 @@ const ClientPlanTab = ({
                 const response = await apiClient.extendSubscription(clientUniqueId, 'week')
 
                 if (response.success) {
-                  onClientUpdate({
+                  // Update the correct expiry date field based on plan_status
+                  const updatedClient = {
                     ...client,
-                    plan_expiry_date: response.data.new_expiry_date,
                     days_until_expiry: response.data.days_until_expiry
-                  })
+                  }
+
+                  // Update trial_expiry_date if inactive (trial), plan_expiry_date if active
+                  if (client.plan_status === 'inactive') {
+                    updatedClient.trial_expiry_date = response.data.new_expiry_date
+                  } else {
+                    updatedClient.plan_expiry_date = response.data.new_expiry_date
+                  }
+
+                  onClientUpdate(updatedClient)
                   toast.success(`המנוי הוארך בשבוע - תפוגה חדשה: ${new Date(response.data.new_expiry_date).toLocaleDateString('he-IL')}`)
                 } else {
                   toast.error(response.message || 'שגיאה בהארכת המנוי')
