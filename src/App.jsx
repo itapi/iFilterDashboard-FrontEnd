@@ -12,6 +12,7 @@ import ClientsTable from './components/ClientsTable'
 import ClientDetails from './components/ClientDetails'
 import AdminsTable from './components/AdminsTable'
 import BroadcastMessages from './components/BroadcastMessages'
+import FirmwareManager from './components/FirmwareManager'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
@@ -89,6 +90,13 @@ function AppContent() {
               <Route path="/broadcast-messages" element={
                 <SuperAdminRoute showForbidden={true}>
                   <BroadcastMessages />
+                </SuperAdminRoute>
+              } />
+
+              {/* Firmware Management - Super Admin only */}
+              <Route path="/firmwares" element={
+                <SuperAdminRoute showForbidden={true}>
+                  <FirmwareManager />
                 </SuperAdminRoute>
               } />
 

@@ -16,6 +16,7 @@ import { ManageCategoriesLayout } from './Modal/layouts/ManageCategoriesLayout'
 import { EditPlanLayout } from './Modal/layouts/EditPlanLayout'
 import { WatermarkEditorLayout } from './Modal/layouts/WatermarkEditorLayout'
 import { BroadcastMessageLayout } from './Modal/layouts/BroadcastMessageLayout'
+import { FirmwareDetailsLayout } from './Modal/layouts/FirmwareDetailsLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -154,6 +155,12 @@ const GlobalModal = () => {
 
       simpleText: {
         component: <SimpleTextLayout data={modal.data} />,
+        showFooter: true,
+      },
+
+      // Firmware details layout
+      firmwareDetails: {
+        component: <FirmwareDetailsLayout data={modal.data} />,
         showFooter: true,
       },
 

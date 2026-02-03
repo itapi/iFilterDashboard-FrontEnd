@@ -67,8 +67,8 @@ class ApiClient {
           this.clearToken();
           localStorage.removeItem('iFilter_userData');
 
-          // Redirect to login page
-          window.location.href = '/login';
+          // Redirect to login page (respecting the router basename)
+          window.location.href = '/iFilterDashboard-FrontEnd/login';
 
           throw new Error('Session expired. Please login again.');
         }
@@ -172,8 +172,8 @@ class ApiClient {
           this.clearToken();
           localStorage.removeItem('iFilter_userData');
 
-          // Redirect to login page
-          window.location.href = '/login';
+          // Redirect to login page (respecting the router basename)
+          window.location.href = '/iFilterDashboard-FrontEnd/login';
 
           throw new Error('Session expired. Please login again.');
         }
@@ -937,6 +937,18 @@ class ApiClient {
   async deleteBroadcastMessage(messageId) {
     return this.apiRequest(`broadcast-messages/${messageId}`, {
       method: 'DELETE'
+    });
+  }
+
+  // Firmwares API
+  async getFirmwares(type = 'stock', page = 1, limit = 25) {
+    return this.apiRequest(`firmwares?type=${type}&page=${page}&limit=${limit}`);
+  }
+
+  async startFirmwarePatch(firmwareId) {
+    return this.apiRequest('firmware-patch', {
+      method: 'POST',
+      body: { firmware_id: firmwareId }
     });
   }
 }
