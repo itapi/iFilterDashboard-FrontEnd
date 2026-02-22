@@ -1,4 +1,4 @@
-import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, Settings } from 'lucide-react'
+import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, Settings, Radio } from 'lucide-react'
 
 /**
  * ClientDetailsHeader - Header section with avatar, client info, status badges, and tabs
@@ -8,8 +8,9 @@ import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, S
  * @param {string} activeTab - Currently active tab id
  * @param {Function} onTabChange - Callback when tab is changed
  * @param {boolean} isCustomPlan - Whether client has custom plan
+ * @param {Function} onStartLiveSession - Callback to open the live session overlay
  */
-const ClientDetailsHeader = ({ client, onBack, activeTab, onTabChange, isCustomPlan }) => {
+const ClientDetailsHeader = ({ client, onBack, activeTab, onTabChange, isCustomPlan, onStartLiveSession }) => {
 
   const calculateDaysRemaining = (client) => {
     const now = new Date()
@@ -117,6 +118,16 @@ const ClientDetailsHeader = ({ client, onBack, activeTab, onTabChange, isCustomP
                     <Crown className="w-3 h-3 ml-1" />
                     {client.level_name}
                   </span>
+                )}
+                {onStartLiveSession && (
+                  <button
+                    onClick={onStartLiveSession}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors"
+                    title="פתח שיחה חיה עם הלקוח"
+                  >
+                    <Radio className="w-3.5 h-3.5" />
+                    שיחה חיה
+                  </button>
                 )}
               </div>
             </div>

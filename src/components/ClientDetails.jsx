@@ -10,6 +10,7 @@ import ClientPlanTab from './ClientPlanTab'
 import ClientDeviceTab from './ClientDeviceTab'
 import ClientAppsTab from './ClientAppsTab'
 import AdditionalSettingsTab from './AdditionalSettingsTab'
+import LiveSessionOverlay from './LiveSessionOverlay'
 
 /**
  * ClientDetails - Main component orchestrating client detail views
@@ -38,6 +39,8 @@ const ClientDetails = () => {
   const [loadingPlans, setLoadingPlans] = useState(false)
   const [deviceData, setDeviceData] = useState(null)
   const [loadingDeviceData, setLoadingDeviceData] = useState(false)
+  const [liveSessionActive, setLiveSessionActive] = useState(false)
+  const [liveSessionId, setLiveSessionId] = useState(null)
 
   // Load client details and plans on mount
   useEffect(() => {
@@ -136,6 +139,24 @@ const ClientDetails = () => {
     setClient(updatedClient)
   }
 
+  /**
+   * Start a live session: insert DB record via PHP, then open the overlay
+   */
+  const handleStartLiveSession = async () => {
+    try {
+      const response = await apiClient.startLiveSession(client.client_unique_id)
+      if (response.success) {
+        setLiveSessionId(response.data.session_id)
+        setLiveSessionActive(true)
+      } else {
+        toast.error('שגיאה בפתיחת שיחה חיה')
+      }
+    } catch (err) {
+      console.error('Error starting live session:', err)
+      toast.error('שגיאה בפתיחת שיחה חיה')
+    }
+  }
+
   // Loading state
   if (loading) {
     return (
@@ -169,6 +190,19 @@ const ClientDetails = () => {
 
   return (
     <div className="p-8" dir="rtl">
+      {/* Live Session full-screen overlay */}
+      {liveSessionActive && (
+        <LiveSessionOverlay
+          clientId={client.client_unique_id}
+          clientName={`${client.first_name} ${client.last_name}`}
+          sessionId={liveSessionId}
+          onClose={() => {
+            setLiveSessionActive(false)
+            setLiveSessionId(null)
+          }}
+        />
+      )}
+
       {/* Header with tabs */}
       <ClientDetailsHeader
         client={client}
@@ -176,6 +210,7 @@ const ClientDetails = () => {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         isCustomPlan={isCustomPlan()}
+        onStartLiveSession={handleStartLiveSession}
       />
 
       {/* Tab Content */}

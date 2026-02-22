@@ -951,6 +951,28 @@ class ApiClient {
       body: { firmware_id: firmwareId }
     });
   }
+
+  // Live Sessions API
+  async startLiveSession(clientUniqueId) {
+    return this.apiRequest('live-sessions?action=start', {
+      method: 'POST',
+      body: { client_unique_id: clientUniqueId },
+    });
+  }
+
+  async endLiveSession(sessionId) {
+    return this.apiRequest('live-sessions?action=end', {
+      method: 'POST',
+      body: { session_id: sessionId },
+    });
+  }
+
+  async markLiveSessionClientConnected(sessionId) {
+    return this.apiRequest('live-sessions?action=client_connected', {
+      method: 'POST',
+      body: { session_id: sessionId },
+    });
+  }
 }
 
 // Create a singleton instance

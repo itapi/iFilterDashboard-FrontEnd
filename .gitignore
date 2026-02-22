@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 backEndPhp
+iFilterDashboard-BackEnd
+socket-server
 
 # Editor directories and files
 .vscode/*
