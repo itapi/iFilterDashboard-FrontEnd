@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
 import {
-  ArrowRight, Send, Radio, Wifi, WifiOff,
+  ArrowRight, Send, Square, Radio, Wifi, WifiOff,
   Clock, AlertCircle, Terminal, Smartphone,
 } from 'lucide-react'
 import apiClient from '../utils/api'
@@ -81,7 +81,10 @@ const MessageBubble = ({ message }) => {
 
   // ── output ────────────────────────────────────────────────────────────────
   if (message.kind === 'output') {
-    const failed = typeof message.exitCode === 'number' && message.exitCode !== 0
+    const streaming = message.streaming === true
+    const displayText = message.lines != null ? message.lines.join('\n') : (message.text ?? '')
+    const failed = !streaming && typeof message.exitCode === 'number'
+                   && message.exitCode !== 0 && message.exitCode !== 130
     return (
       <div className="flex justify-end mb-2">
         <div className="max-w-[80%] flex flex-col gap-1 items-end">
@@ -93,13 +96,17 @@ const MessageBubble = ({ message }) => {
                 : 'bg-gray-900 text-gray-100'
             }`}
           >
-            {message.text
-              ? message.text
+            {displayText || streaming
+              ? <>{displayText}{streaming && <span className="inline-block animate-pulse text-green-400 ml-0.5">▌</span>}</>
               : <span className="italic text-gray-500">(no output)</span>
             }
           </div>
           <span className="text-xs text-gray-400 px-1">
-            {failed ? `exit ${message.exitCode} · ` : ''}{time}
+            {failed ? `exit ${message.exitCode} · ` : ''}
+            {streaming
+              ? <span className="text-green-500 animate-pulse">streaming...</span>
+              : time
+            }
           </span>
         </div>
       </div>
@@ -156,12 +163,14 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
   const [canSend, setCanSend]         = useState(false)
   const [deviceInfo, setDeviceInfo]   = useState(null)
   const [lastHeartbeat, setLastHeartbeat] = useState(null)
+  const [isStreaming, setIsStreaming]  = useState(false)
 
-  const socketRef        = useRef(null)
-  const messagesEndRef   = useRef(null)
-  const inputRef         = useRef(null)
-  const sessionEndedRef  = useRef(false)
-  const pendingRef       = useRef(new Map()) // id → command text, for correlation
+  const socketRef          = useRef(null)
+  const messagesEndRef     = useRef(null)
+  const inputRef           = useRef(null)
+  const sessionEndedRef    = useRef(false)
+  const pendingRef         = useRef(new Map()) // id → command text, for correlation
+  const streamingMsgIdRef  = useRef(null)      // id of the message bubble being streamed into
 
   // Auto-scroll on new messages
   const scrollToBottom = useCallback(() => {
@@ -245,18 +254,39 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
       if (v !== PROTOCOL_VERSION) return
 
       switch (type) {
+        case 'stream': {
+          // A single line from a streaming command — append to its output bubble
+          const line = payload?.line ?? ''
+          if (streamingMsgIdRef.current === id) {
+            setMessages(prev => prev.map(m =>
+              m.id === id ? { ...m, lines: [...m.lines, line] } : m
+            ))
+          }
+          break
+        }
+
         case 'res': {
           pendingRef.current.delete(id)
           const cmd = payload?.cmd
 
           if (cmd === 'shell') {
-            addMessage({
-              kind: 'output',
-              text: payload.stdout ?? '',
-              exitCode: payload.exitCode ?? 0,
-              id,
-              timestamp: envelope.relayedAt || Date.now(),
-            })
+            if (streamingMsgIdRef.current === id) {
+              // Finalize the streaming bubble
+              streamingMsgIdRef.current = null
+              setIsStreaming(false)
+              setMessages(prev => prev.map(m =>
+                m.id === id ? { ...m, streaming: false, exitCode: payload.exitCode ?? 0 } : m
+              ))
+            } else {
+              // Non-streaming (blocking) response
+              addMessage({
+                kind: 'output',
+                text: payload.stdout ?? '',
+                exitCode: payload.exitCode ?? 0,
+                id,
+                timestamp: envelope.relayedAt || Date.now(),
+              })
+            }
           } else if (cmd === 'pong') {
             addMessage({
               kind: 'system',
@@ -313,10 +343,11 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
   // ── Send ──────────────────────────────────────────────────────────────────
   const sendMessage = () => {
     const text = inputText.trim()
-    if (!text || !canSend || !socketRef.current) return
+    if (!text || !canSend || !socketRef.current || isStreaming) return
 
     const id = crypto.randomUUID()
     let envelope
+    let isShellCmd = false
 
     // Special slash commands
     if (text === '/ping') {
@@ -324,7 +355,8 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
     } else if (text === '/info') {
       envelope = buildEnvelope('cmd', id, { cmd: 'info' })
     } else {
-      envelope = buildEnvelope('cmd', id, { cmd: 'shell', args: text })
+      envelope = buildEnvelope('cmd', id, { cmd: 'shell', args: text, stream: true })
+      isShellCmd = true
     }
 
     addMessage({ kind: 'command', text, id, timestamp: Date.now() })
@@ -332,6 +364,19 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
     socketRef.current.emit('message', envelope)
     setInputText('')
     inputRef.current?.focus()
+
+    if (isShellCmd) {
+      // Pre-create the streaming output bubble that lines will fill in
+      addMessage({ kind: 'output', lines: [], streaming: true, exitCode: null, id, timestamp: Date.now() })
+      streamingMsgIdRef.current = id
+      setIsStreaming(true)
+    }
+  }
+
+  const sendStop = () => {
+    socketRef.current?.emit('message',
+      buildEnvelope('cmd', crypto.randomUUID(), { cmd: 'stop' })
+    )
   }
 
   const handleKeyDown = (e) => {
@@ -438,16 +483,18 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={!canSend}
+              disabled={!canSend || isStreaming}
               dir="ltr"
               placeholder={
-                canSend
-                  ? 'shell command, /ping, /info'
-                  : 'ממתין ללקוח להתחבר...'
+                !canSend
+                  ? 'ממתין ללקוח להתחבר...'
+                  : isStreaming
+                    ? 'פקודה רצה... לחץ ■ לעצירה'
+                    : 'shell command, /ping, /info'
               }
               rows={1}
               className={`flex-1 resize-none text-sm font-mono outline-none bg-transparent
-                ${canSend
+                ${canSend && !isStreaming
                   ? 'text-gray-800 placeholder-gray-400'
                   : 'text-gray-400 placeholder-gray-300 cursor-not-allowed'
                 }`}
@@ -455,18 +502,29 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
             />
           </div>
 
-          <button
-            onClick={sendMessage}
-            disabled={!canSend || !inputText.trim()}
-            className={`flex-shrink-0 p-3 rounded-xl transition-all ${
-              canSend && inputText.trim()
-                ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-            }`}
-            aria-label="שלח פקודה"
-          >
-            <Send size={18} />
-          </button>
+          {isStreaming ? (
+            <button
+              onClick={sendStop}
+              className="flex-shrink-0 p-3 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all"
+              aria-label="עצור פקודה"
+              title="Ctrl+C — עצור פקודה"
+            >
+              <Square size={18} />
+            </button>
+          ) : (
+            <button
+              onClick={sendMessage}
+              disabled={!canSend || !inputText.trim()}
+              className={`flex-shrink-0 p-3 rounded-xl transition-all ${
+                canSend && inputText.trim()
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+              }`}
+              aria-label="שלח פקודה"
+            >
+              <Send size={18} />
+            </button>
+          )}
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-2">
