@@ -954,21 +954,21 @@ class ApiClient {
 
   // Live Sessions API
   async startLiveSession(clientUniqueId) {
-    return this.apiRequest('live-sessions?action=start', {
+    return this.apiRequest('remote-commands?action=live_session_start', {
       method: 'POST',
       body: { client_unique_id: clientUniqueId },
     });
   }
 
   async endLiveSession(sessionId) {
-    return this.apiRequest('live-sessions?action=end', {
+    return this.apiRequest('remote-commands?action=live_session_end', {
       method: 'POST',
       body: { session_id: sessionId },
     });
   }
 
   async markLiveSessionClientConnected(sessionId) {
-    return this.apiRequest('live-sessions?action=client_connected', {
+    return this.apiRequest('remote-commands?action=live_session_client_connected', {
       method: 'POST',
       body: { session_id: sessionId },
     });

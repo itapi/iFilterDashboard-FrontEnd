@@ -259,7 +259,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
           const line = payload?.line ?? ''
           if (streamingMsgIdRef.current === id) {
             setMessages(prev => prev.map(m =>
-              m.id === id ? { ...m, lines: [...m.lines, line] } : m
+              m.id === id && Array.isArray(m.lines) ? { ...m, lines: [...m.lines, line] } : m
             ))
           }
           break
