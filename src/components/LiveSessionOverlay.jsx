@@ -87,10 +87,10 @@ const MessageBubble = ({ message }) => {
                    && message.exitCode !== 0 && message.exitCode !== 130
     return (
       <div className="flex justify-end mb-2">
-        <div className="max-w-[80%] flex flex-col gap-1 items-end">
+        <div className="w-full flex flex-col gap-1 items-end">
           <div
             dir="ltr"
-            className={`px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm font-mono leading-relaxed whitespace-pre-wrap break-all shadow-sm ${
+            className={`w-full px-4 py-3 rounded-2xl rounded-tr-sm text-sm font-mono leading-relaxed whitespace-pre overflow-x-auto shadow-sm text-left ${
               failed
                 ? 'bg-red-950 text-red-300 border border-red-900'
                 : 'bg-gray-900 text-gray-100'
@@ -171,6 +171,9 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
   const sessionEndedRef    = useRef(false)
   const pendingRef         = useRef(new Map()) // id → command text, for correlation
   const streamingMsgIdRef  = useRef(null)      // id of the message bubble being streamed into
+  const historyRef         = useRef([])        // sent command history
+  const historyIdxRef      = useRef(-1)        // -1 = live input, ≥0 = navigating history
+  const savedInputRef      = useRef('')         // input snapshot before navigating
 
   // Auto-scroll on new messages
   const scrollToBottom = useCallback(() => {
@@ -362,6 +365,13 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
     addMessage({ kind: 'command', text, id, timestamp: Date.now() })
     pendingRef.current.set(id, text)
     socketRef.current.emit('message', envelope)
+
+    // Save to history (avoid duplicate consecutive entries)
+    const hist = historyRef.current
+    if (hist[hist.length - 1] !== text) hist.push(text)
+    historyIdxRef.current = -1
+    savedInputRef.current = ''
+
     setInputText('')
     inputRef.current?.focus()
 
@@ -383,6 +393,35 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage()
+      return
+    }
+
+    const hist = historyRef.current
+    if (!hist.length) return
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (historyIdxRef.current === -1) {
+        // Start navigating — save current live input
+        savedInputRef.current = inputText
+        historyIdxRef.current = hist.length - 1
+      } else if (historyIdxRef.current > 0) {
+        historyIdxRef.current -= 1
+      }
+      setInputText(hist[historyIdxRef.current])
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (historyIdxRef.current === -1) return
+      if (historyIdxRef.current < hist.length - 1) {
+        historyIdxRef.current += 1
+        setInputText(hist[historyIdxRef.current])
+      } else {
+        // Past the end — restore saved live input
+        historyIdxRef.current = -1
+        setInputText(savedInputRef.current)
+      }
     }
   }
 
@@ -483,7 +522,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={!canSend || isStreaming}
+              disabled={!canSend}
               dir="ltr"
               placeholder={
                 !canSend
@@ -494,7 +533,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
               }
               rows={1}
               className={`flex-1 resize-none text-sm font-mono outline-none bg-transparent
-                ${canSend && !isStreaming
+                ${canSend
                   ? 'text-gray-800 placeholder-gray-400'
                   : 'text-gray-400 placeholder-gray-300 cursor-not-allowed'
                 }`}
@@ -528,7 +567,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-2">
-          Enter לשליחה · Shift+Enter לשורה חדשה · /ping לבדיקת חביון · /info לפרטי מכשיר
+          Enter לשליחה · Shift+Enter לשורה חדשה · ↑↓ היסטוריית פקודות · /ping · /info
         </p>
       </div>
     </div>
