@@ -83,13 +83,13 @@ function getH264CodecString(configData) {
           const profile = configData[start + 1].toString(16).padStart(2, '0')
           const compat  = configData[start + 2].toString(16).padStart(2, '0')
           const level   = configData[start + 3].toString(16).padStart(2, '0')
-          return `avc1.${profile}${compat}${level}`
+          return `avc3.${profile}${compat}${level}`
         }
       }
     }
     i++
   }
-  return 'avc1.420028' // safe fallback: Baseline Level 4.0
+  return 'avc3.420028' // safe fallback: Baseline Level 4.0
 }
 
 // ---------------------------------------------------------------------------
