@@ -1,0 +1,80 @@
+[
+  {
+    "category": "אפליקציות",
+    "commands": [
+      { "label": "התקן APK",         "template": "pm install -r "                        },
+      { "label": "הסר אפליקציה",     "template": "pm uninstall "                         },
+      { "label": "עצור בכוח",        "template": "am force-stop "                        },
+      { "label": "נקה מטמון",        "template": "pm clear "                             },
+      { "label": "הפעל אפליקציה",    "template": "monkey -p  1"                          },
+      { "label": "רשימת חבילות",     "template": "pm list packages"                      },
+      { "label": "רשימת חבילות משתמש","template": "pm list packages -3"                  },
+      { "label": "מידע על חבילה",    "template": "dumpsys package "                      },
+      { "label": "הפעל/כבה חבילה",   "template": "pm disable-user --user 0 "             }
+    ]
+  },
+  {
+    "category": "מערכת",
+    "commands": [
+      { "label": "אתחל מכשיר",       "template": "reboot"                                },
+      { "label": "אתחל Recovery",    "template": "reboot recovery"                       },
+      { "label": "מידע Build",       "template": "getprop ro.build.display.id"           },
+      { "label": "כל ה-props",       "template": "getprop"                               },
+      { "label": "גרסת אנדרואיד",    "template": "getprop ro.build.version.release"      },
+      { "label": "מזהה מכשיר",       "template": "settings get secure android_id"        },
+      { "label": "זמן פעילות",       "template": "uptime"                                },
+      { "label": "שימוש דיסק",       "template": "df -h"                                 },
+      { "label": "שימוש RAM",        "template": "cat /proc/meminfo"                     },
+      { "label": "טמפרטורה",         "template": "cat /sys/class/thermal/thermal_zone0/temp" }
+    ]
+  },
+  {
+    "category": "קבצים",
+    "commands": [
+      { "label": "הצג תיקייה",       "template": "ls -la "                               },
+      { "label": "Storage חיצוני",   "template": "ls -la /sdcard/"                       },
+      { "label": "הצג קובץ",         "template": "cat "                                  },
+      { "label": "מחק קובץ",         "template": "rm -f "                                },
+      { "label": "העתק קובץ",        "template": "cp "                                   },
+      { "label": "גודל תיקייה",      "template": "du -sh "                               },
+      { "label": "חפש קובץ",         "template": "find /sdcard -name "                   }
+    ]
+  },
+  {
+    "category": "רשת",
+    "commands": [
+      { "label": "כתובת IP",         "template": "ip addr show wlan0"                    },
+      { "label": "Ping",             "template": "ping -c 4 8.8.8.8"                     },
+      { "label": "חיבורים פעילים",   "template": "netstat -tn"                           },
+      { "label": "Wi-Fi SSID",       "template": "dumpsys wifi | grep 'mWifiInfo'"       },
+      { "label": "כבה Wi-Fi",        "template": "svc wifi disable"                      },
+      { "label": "הפעל Wi-Fi",       "template": "svc wifi enable"                       },
+      { "label": "DNS lookup",       "template": "nslookup "                             }
+    ]
+  },
+  {
+    "category": "מסך וקלט",
+    "commands": [
+      { "label": "רזולוציית מסך",    "template": "wm size"                               },
+      { "label": "צפיפות מסך",       "template": "wm density"                            },
+      { "label": "צילום מסך",        "template": "screencap -p /sdcard/screen.png"       },
+      { "label": "נעל מסך",          "template": "input keyevent 26"                     },
+      { "label": "בית (Home)",       "template": "input keyevent 3"                      },
+      { "label": "חזרה (Back)",      "template": "input keyevent 4"                      },
+      { "label": "הקלד טקסט",        "template": "input text "                           },
+      { "label": "בהירות מסך",       "template": "settings put system screen_brightness " }
+    ]
+  },
+  {
+    "category": "לוגים",
+    "commands": [
+      { "label": "Logcat (כל)",      "template": "logcat -d -t 100"                      },
+      { "label": "Logcat שגיאות",    "template": "logcat -d *:E -t 50"                   },
+      { "label": "נקה logcat",       "template": "logcat -c"                             },
+      { "label": "Crash log",        "template": "dumpsys dropbox --print"               },
+      { "label": "מצב סוללה",        "template": "dumpsys battery"                       },
+      { "label": "תהליכים פעילים",   "template": "ps -A"                                 },
+      { "label": "שימוש CPU",        "template": "top -n 1 -b"                           }
+    ]
+  }
+]

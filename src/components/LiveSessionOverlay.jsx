@@ -3,8 +3,10 @@ import { io } from 'socket.io-client'
 import {
   ArrowRight, Send, Square, Radio, Wifi, WifiOff,
   Clock, AlertCircle, Terminal, Smartphone, Monitor, MonitorOff, Loader,
+  ChevronDown, Zap,
 } from 'lucide-react'
 import apiClient from '../utils/api'
+import shellCommands from '../data/shellCommands.json'
 
 const SOCKET_URL      = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001'
 const PROTOCOL_VERSION = 1
@@ -264,6 +266,93 @@ const MessageBubble = ({ message }) => {
   return (
     <div className="flex justify-center my-4">
       <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">{message.text}</span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Quick commands picker
+// ---------------------------------------------------------------------------
+const QuickCommands = ({ onSelect, disabled }) => {
+  const [open,            setOpen]            = useState(false)
+  const [activeCategory,  setActiveCategory]  = useState(shellCommands[0]?.category ?? '')
+  const panelRef = useRef(null)
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const handlePick = (template) => {
+    onSelect(template)
+    setOpen(false)
+  }
+
+  const category = shellCommands.find(c => c.category === activeCategory)
+
+  return (
+    <div className="relative" ref={panelRef}>
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen(v => !v)}
+        disabled={disabled}
+        title="פקודות מהירות"
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all flex-shrink-0 ${
+          disabled
+            ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed'
+            : open
+              ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+              : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
+        }`}
+      >
+        <Zap size={15} />
+        <span className="hidden sm:inline">פקודות מהירות</span>
+        <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute bottom-full mb-2 left-0 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
+          style={{ width: 480 }}
+          dir="rtl"
+        >
+          {/* Category tabs */}
+          <div className="flex overflow-x-auto border-b border-gray-100 bg-gray-50 px-2 pt-2 gap-1 flex-shrink-0">
+            {shellCommands.map(c => (
+              <button
+                key={c.category}
+                onClick={() => setActiveCategory(c.category)}
+                className={`px-3 py-1.5 rounded-t-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                  activeCategory === c.category
+                    ? 'bg-white text-purple-700 border border-b-white border-gray-200 -mb-px'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                {c.category}
+              </button>
+            ))}
+          </div>
+
+          {/* Commands grid */}
+          <div className="p-3 grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+            {category?.commands.map(cmd => (
+              <button
+                key={cmd.label}
+                onClick={() => handlePick(cmd.template)}
+                className="flex flex-col items-start px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50 hover:bg-purple-50 hover:border-purple-200 transition-colors text-right group"
+              >
+                <span className="text-sm font-medium text-gray-800 group-hover:text-purple-700">{cmd.label}</span>
+                <span className="text-xs text-gray-400 font-mono mt-0.5 truncate w-full dir-ltr" dir="ltr">{cmd.template}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1009,6 +1098,13 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
           {/* Input */}
           <div className="flex-shrink-0 px-6 py-4 bg-white border-t border-gray-200">
             <div className="flex items-end gap-3 max-w-4xl mx-auto">
+              <QuickCommands
+                disabled={!canSend || isStreaming}
+                onSelect={(template) => {
+                  setInputText(template)
+                  inputRef.current?.focus()
+                }}
+              />
               <div className="flex-1 flex items-end gap-2 px-4 py-3 rounded-xl border transition-colors bg-white border-gray-300 focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100">
                 <span className="text-gray-400 font-mono text-sm select-none pb-0.5 flex-shrink-0">$</span>
                 <textarea
