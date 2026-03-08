@@ -44,7 +44,6 @@ function buildScreenWsUrl(socketUrl, clientId, token) {
 
 /**
  * Scan an Annex-B H.264 buffer for NALU type 5 (IDR = keyframe).
- * We look at the type of the first real video NALU we encounter.
  */
 function isH264Keyframe(data) {
   let i = 0
@@ -53,11 +52,10 @@ function isH264Keyframe(data) {
       let naluByte = -1
       if (data[i + 2] === 1 && i + 3 < data.length)                           naluByte = data[i + 3]
       else if (data[i + 2] === 0 && data[i + 3] === 1 && i + 4 < data.length) naluByte = data[i + 4]
-
       if (naluByte !== -1) {
         const naluType = naluByte & 0x1F
-        if (naluType === 5) return true   // IDR slice
-        if (naluType === 1) return false  // Non-IDR slice — stop searching
+        if (naluType === 5) return true
+        if (naluType === 1) return false
       }
     }
     i++
@@ -66,30 +64,100 @@ function isH264Keyframe(data) {
 }
 
 /**
- * Extract H.264 profile/compat/level bytes from the first SPS NALU
- * in an Annex-B config packet and return the codec string, e.g. "avc1.420028".
+ * Split an Annex-B buffer into individual NAL unit Uint8Arrays (no start codes).
+ */
+function splitAnnexBNalus(annexB) {
+  const nalus = []
+  let i = 0
+  let naluStart = -1
+  let naluStartCodeLen = 0
+
+  const tryStartCode = (j) => {
+    if (annexB[j] === 0 && annexB[j+1] === 0 && annexB[j+2] === 0 && annexB[j+3] === 1) return 4
+    if (annexB[j] === 0 && annexB[j+1] === 0 && annexB[j+2] === 1)                       return 3
+    return 0
+  }
+
+  while (i < annexB.length) {
+    const scLen = (i + 3 < annexB.length) ? tryStartCode(i) : 0
+    if (scLen > 0) {
+      if (naluStart !== -1) nalus.push(annexB.subarray(naluStart, i))
+      naluStart = i + scLen
+      naluStartCodeLen = scLen
+      i += scLen
+    } else {
+      i++
+    }
+  }
+  if (naluStart !== -1 && naluStart < annexB.length) nalus.push(annexB.subarray(naluStart))
+  return nalus
+}
+
+/**
+ * Convert Annex-B H.264 to AVCC (4-byte big-endian length prefix per NAL unit).
+ * WebCodecs VideoDecoder with avc1 requires AVCC format.
+ */
+function annexBToAvcc(annexB) {
+  const nalus = splitAnnexBNalus(annexB)
+  if (nalus.length === 0) return annexB
+
+  let totalSize = 0
+  for (const n of nalus) totalSize += 4 + n.length
+
+  const avcc = new Uint8Array(totalSize)
+  let pos = 0
+  for (const n of nalus) {
+    avcc[pos]   = (n.length >>> 24) & 0xFF
+    avcc[pos+1] = (n.length >>> 16) & 0xFF
+    avcc[pos+2] = (n.length >>>  8) & 0xFF
+    avcc[pos+3] =  n.length         & 0xFF
+    avcc.set(n, pos + 4)
+    pos += 4 + n.length
+  }
+  return avcc
+}
+
+/**
+ * Build an AVCDecoderConfigurationRecord (used as VideoDecoderConfig.description)
+ * from the Annex-B SPS/PPS config packet emitted by MediaCodec.
+ */
+function buildAvccDescription(configData) {
+  const nalus = splitAnnexBNalus(configData)
+  const sps = nalus.find(n => (n[0] & 0x1F) === 7)
+  const pps = nalus.find(n => (n[0] & 0x1F) === 8)
+  if (!sps || !pps) return null
+
+  const record = new Uint8Array(11 + sps.length + pps.length)
+  let p = 0
+  record[p++] = 0x01          // configurationVersion
+  record[p++] = sps[1]        // AVCProfileIndication
+  record[p++] = sps[2]        // profile_compatibility
+  record[p++] = sps[3]        // AVCLevelIndication
+  record[p++] = 0xFF          // lengthSizeMinusOne (4-byte lengths)
+  record[p++] = 0xE1          // numSequenceParameterSets = 1
+  record[p++] = (sps.length >> 8) & 0xFF
+  record[p++] =  sps.length       & 0xFF
+  record.set(sps, p); p += sps.length
+  record[p++] = 0x01          // numPictureParameterSets = 1
+  record[p++] = (pps.length >> 8) & 0xFF
+  record[p++] =  pps.length       & 0xFF
+  record.set(pps, p)
+  return record
+}
+
+/**
+ * Extract avc1 codec string from Annex-B SPS NALU.
  */
 function getH264CodecString(configData) {
-  let i = 0
-  while (i < configData.length - 5) {
-    if (configData[i] === 0 && configData[i + 1] === 0) {
-      let start = -1
-      if (configData[i + 2] === 1)                          start = i + 3
-      else if (configData[i + 2] === 0 && configData[i + 3] === 1) start = i + 4
-
-      if (start !== -1 && start + 3 < configData.length) {
-        const naluType = configData[start] & 0x1F
-        if (naluType === 7) {  // SPS
-          const profile = configData[start + 1].toString(16).padStart(2, '0')
-          const compat  = configData[start + 2].toString(16).padStart(2, '0')
-          const level   = configData[start + 3].toString(16).padStart(2, '0')
-          return `avc3.${profile}${compat}${level}`
-        }
-      }
-    }
-    i++
+  const nalus = splitAnnexBNalus(configData)
+  const sps = nalus.find(n => (n[0] & 0x1F) === 7)
+  if (sps && sps.length >= 4) {
+    const profile = sps[1].toString(16).padStart(2, '0')
+    const compat  = sps[2].toString(16).padStart(2, '0')
+    const level   = sps[3].toString(16).padStart(2, '0')
+    return `avc1.${profile}${compat}${level}`
   }
-  return 'avc3.420028' // safe fallback: Baseline Level 4.0
+  return 'avc1.640028' // fallback: High Profile Level 4.0
 }
 
 // ---------------------------------------------------------------------------
@@ -238,6 +306,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
   const configDataRef  = useRef(null)  // stored SPS/PPS Annex-B bytes
   const deviceDimsRef  = useRef(null)  // { realW, realH } — actual device pixel dimensions
   const chunkTsRef     = useRef(0)     // monotonic microsecond timestamp for VideoDecoder
+  const pointerDownRef = useRef(null)  // { deviceX, deviceY, normX, normY, time } — drag detection
 
   // ── Auto-scroll ────────────────────────────────────────────────────────────
   const scrollToBottom = useCallback(() => {
@@ -272,7 +341,9 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
       return
     }
 
-    const codec = getH264CodecString(configData)
+    const codec       = getH264CodecString(configData)
+    const description = buildAvccDescription(configData)
+    console.log('[screen] initDecoder — codec:', codec, 'description bytes:', description?.byteLength ?? 'null')
 
     const decoder = new VideoDecoder({
       output: (videoFrame) => {
@@ -288,6 +359,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
             realW: videoFrame.codedWidth  * 2,
             realH: videoFrame.codedHeight * 2,
           }
+          console.log(`[screen] first frame: ${videoFrame.codedWidth}×${videoFrame.codedHeight}`)
         }
 
         const ctx = canvas.getContext('2d')
@@ -299,12 +371,13 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
         setScreenActive(true)
       },
       error: (err) => {
-        console.error('[screen] VideoDecoder error:', err)
+        console.error('[screen] VideoDecoder error:', err.message ?? err)
       },
     })
 
     try {
-      decoder.configure({ codec })
+      decoder.configure({ codec, description: description ?? undefined, optimizeForLatency: true })
+      console.log('[screen] decoder configured, state:', decoder.state)
       decoderRef.current = decoder
     } catch (err) {
       console.error('[screen] configure failed:', err)
@@ -328,6 +401,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
 
     if (frameType === SCREEN_FRAME_CONFIG) {
       // SPS/PPS — store and initialise the decoder
+      console.log('[screen] CONFIG received, size:', payloadSize)
       configDataRef.current = payload
       initDecoder(payload)
       return
@@ -335,18 +409,15 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
 
     if (frameType === SCREEN_FRAME_VIDEO) {
       const decoder = decoderRef.current
-      if (!decoder || decoder.state === 'closed') return
-
-      const isKey = isH264Keyframe(payload)
-
-      // For keyframes: prepend the SPS/PPS so the decoder always has parameters
-      let frameData = payload
-      if (isKey && configDataRef.current) {
-        const combined = new Uint8Array(configDataRef.current.length + payload.length)
-        combined.set(configDataRef.current)
-        combined.set(payload, configDataRef.current.length)
-        frameData = combined
+      if (!decoder || decoder.state === 'closed') {
+        console.warn('[screen] VIDEO frame dropped — decoder not ready, state:', decoder?.state)
+        return
       }
+
+      const isKey   = isH264Keyframe(payload)
+      const avccData = annexBToAvcc(payload)   // WebCodecs avc1 requires AVCC format
+
+      if (isKey) console.log('[screen] keyframe, size:', payloadSize, 'avcc size:', avccData.length, 'decoder.state:', decoder.state)
 
       try {
         // Timestamps must be monotonically increasing (microseconds)
@@ -354,10 +425,10 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
         decoder.decode(new EncodedVideoChunk({
           type:      isKey ? 'key' : 'delta',
           timestamp: chunkTsRef.current,
-          data:      frameData,
+          data:      avccData,
         }))
       } catch (err) {
-        console.warn('[screen] decode error:', err)
+        console.warn('[screen] decode error:', err.message ?? err)
       }
     }
   }, [initDecoder])
@@ -450,27 +521,93 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
     setTimeout(() => setTapIndicators(prev => prev.filter(t => t.id !== id)), 650)
   }, [])
 
-  const handleScreenClick = useCallback((e) => {
-    if (!canSend || !deviceDimsRef.current) return
+  /**
+   * Map a pointer event to device coordinates, correcting for object-fit:contain
+   * letterboxing — the canvas CSS box may be larger than the rendered content area.
+   */
+  const getDeviceCoords = useCallback((e) => {
     const canvas = screenCanvasRef.current
-    if (!canvas) return
+    if (!canvas || !deviceDimsRef.current) return null
 
-    const rect  = canvas.getBoundingClientRect()
-    const normX = (e.clientX - rect.left) / rect.width
-    const normY = (e.clientY - rect.top)  / rect.height
+    const rect = canvas.getBoundingClientRect()
 
+    // Compute the rendered content area inside the CSS box (object-fit: contain)
+    const intrinsicAspect = canvas.width / canvas.height
+    const cssAspect       = rect.width  / rect.height
+
+    let contentW, contentH, offsetX, offsetY
+    if (intrinsicAspect > cssAspect) {
+      // Pillarbox: black bars top & bottom
+      contentW = rect.width
+      contentH = rect.width / intrinsicAspect
+      offsetX  = 0
+      offsetY  = (rect.height - contentH) / 2
+    } else {
+      // Letterbox: black bars left & right
+      contentH = rect.height
+      contentW = rect.height * intrinsicAspect
+      offsetX  = (rect.width - contentW) / 2
+      offsetY  = 0
+    }
+
+    const relX = e.clientX - rect.left - offsetX
+    const relY = e.clientY - rect.top  - offsetY
+
+    // Outside the actual video area — ignore
+    if (relX < 0 || relX > contentW || relY < 0 || relY > contentH) return null
+
+    const normX   = relX / contentW
+    const normY   = relY / contentH
     const deviceX = Math.round(normX * deviceDimsRef.current.realW)
     const deviceY = Math.round(normY * deviceDimsRef.current.realH)
 
-    // Send silently — no bubble in the terminal
-    const tapId = crypto.randomUUID()
-    silentCmdsRef.current.add(tapId)
-    socketRef.current?.emit('message', buildEnvelope('cmd', tapId, {
-      cmd: 'shell', args: `input tap ${deviceX} ${deviceY}`, stream: false,
-    }))
+    return { normX, normY, deviceX, deviceY }
+  }, [])
 
-    addTapIndicator(normX * 100, normY * 100)
-  }, [canSend, addTapIndicator])
+  const sendSilentShell = useCallback((args) => {
+    const id = crypto.randomUUID()
+    silentCmdsRef.current.add(id)
+    socketRef.current?.emit('message', buildEnvelope('cmd', id, { cmd: 'shell', args, stream: false }))
+  }, [])
+
+  const handlePointerDown = useCallback((e) => {
+    if (!canSend || !deviceDimsRef.current) return
+    const coords = getDeviceCoords(e)
+    if (!coords) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    pointerDownRef.current = { ...coords, time: Date.now() }
+  }, [canSend, getDeviceCoords])
+
+  const handlePointerUp = useCallback((e) => {
+    if (!canSend || !pointerDownRef.current) return
+    const start = pointerDownRef.current
+    pointerDownRef.current = null
+
+    const end = getDeviceCoords(e)
+    if (!end) return
+
+    const dx       = end.deviceX - start.deviceX
+    const dy       = end.deviceY - start.deviceY
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    const duration = Math.max(Date.now() - start.time, 80)
+
+    if (distance > 20) {
+      // Swipe / drag
+      sendSilentShell(
+        `input swipe ${start.deviceX} ${start.deviceY} ${end.deviceX} ${end.deviceY} ${duration}`
+      )
+      addTapIndicator(start.normX * 100, start.normY * 100)
+      addTapIndicator(end.normX   * 100, end.normY   * 100)
+    } else {
+      // Tap
+      sendSilentShell(`input tap ${end.deviceX} ${end.deviceY}`)
+      addTapIndicator(end.normX * 100, end.normY * 100)
+    }
+  }, [canSend, getDeviceCoords, sendSilentShell, addTapIndicator])
+
+  const handlePointerCancel = useCallback(() => {
+    pointerDownRef.current = null
+  }, [])
 
   // ── Socket.IO setup ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -810,10 +947,13 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
                 ref={screenCanvasRef}
                 className="max-w-full max-h-full object-contain"
                 style={{
-                  cursor:  canSend ? 'crosshair' : 'default',
-                  opacity: screenConnecting && !screenActive ? 0 : 1,
+                  cursor:     canSend ? 'crosshair' : 'default',
+                  opacity:    screenConnecting && !screenActive ? 0 : 1,
+                  userSelect: 'none',
                 }}
-                onClick={handleScreenClick}
+                onPointerDown={handlePointerDown}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerCancel}
               />
 
               {/* Tap ripple indicators */}
