@@ -71,6 +71,8 @@
       { "label": "Logcat (כל)",      "template": "logcat -d -t 100"                      },
       { "label": "Logcat שגיאות",    "template": "logcat -d *:E -t 50"                   },
       { "label": "נקה logcat",       "template": "logcat -c"                             },
+      
+      
       { "label": "Crash log",        "template": "dumpsys dropbox --print"               },
       { "label": "מצב סוללה",        "template": "dumpsys battery"                       },
       { "label": "תהליכים פעילים",   "template": "ps -A"                                 },

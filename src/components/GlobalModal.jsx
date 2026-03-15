@@ -17,6 +17,8 @@ import { EditPlanLayout } from './Modal/layouts/EditPlanLayout'
 import { WatermarkEditorLayout } from './Modal/layouts/WatermarkEditorLayout'
 import { BroadcastMessageLayout } from './Modal/layouts/BroadcastMessageLayout'
 import { FirmwareDetailsLayout } from './Modal/layouts/FirmwareDetailsLayout'
+import { DomainPolicyFormLayout } from './Modal/layouts/DomainPolicyFormLayout'
+import { ReviewRejectLayout } from './Modal/layouts/ReviewRejectLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -162,6 +164,20 @@ const GlobalModal = () => {
       firmwareDetails: {
         component: <FirmwareDetailsLayout data={modal.data} />,
         showFooter: true,
+      },
+
+      // SafeBrowser domain policy form
+      domainPolicyForm: {
+        component: <DomainPolicyFormLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      // Review request reject with notes
+      reviewReject: {
+        component: <ReviewRejectLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
       },
 
       // Custom layout for passing React components directly

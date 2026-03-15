@@ -973,6 +973,53 @@ class ApiClient {
       body: { session_id: sessionId },
     });
   }
+
+  // ── SafeBrowser domain policy methods ──────────────────────────────────────
+
+  async getDomainPolicies(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.apiRequest(`safe-browser${query ? '?' + query : ''}`);
+  }
+
+  async createDomainPolicy(data) {
+    return this.apiRequest('safe-browser', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async updateDomainPolicy(id, data) {
+    return this.apiRequest(`safe-browser?id=${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  }
+
+  async deleteDomainPolicy(id) {
+    return this.apiRequest(`safe-browser?id=${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── Review requests methods ────────────────────────────────────────────────
+
+  async getReviewRequests(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.apiRequest(`review-requests${query ? '?' + query : ''}`);
+  }
+
+  async updateReviewRequest(id, data) {
+    return this.apiRequest(`review-requests?id=${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  }
+
+  async deleteReviewRequest(id) {
+    return this.apiRequest(`review-requests?id=${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create a singleton instance

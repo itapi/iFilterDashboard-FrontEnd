@@ -13,6 +13,7 @@ import ClientDetails from './components/ClientDetails'
 import AdminsTable from './components/AdminsTable'
 import BroadcastMessages from './components/BroadcastMessages'
 import FirmwareManager from './components/FirmwareManager'
+import SafeBrowserManager from './components/SafeBrowserManager'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
@@ -91,6 +92,13 @@ function AppContent() {
                 <SuperAdminRoute showForbidden={true}>
                   <BroadcastMessages />
                 </SuperAdminRoute>
+              } />
+
+              {/* SafeBrowser - Managers and Super Admins */}
+              <Route path="/safe-browser" element={
+                <ManagerRoute showForbidden={true}>
+                  <SafeBrowserManager />
+                </ManagerRoute>
               } />
 
               {/* Firmware Management - Super Admin only */}
