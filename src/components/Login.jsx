@@ -59,7 +59,7 @@ function Login() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             iFilter
           </h1>
-          <p className="text-gray-600 mt-2 text-lg">פאנל ניהול מסנן תוכן</p>
+          <p className="text-gray-600 mt-2 text-lg">פאנל ניהול  </p>
           <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full"></div>
         </div>
 

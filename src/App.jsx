@@ -29,18 +29,19 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader text="טוען..." />
       </div>
     )
   }
 
+  if (!isLoggedIn) {
+    return <Login />
+  }
+
   return (
     <Router basename="/iFilterDashboard-FrontEnd">
-      {!isLoggedIn ? (
-        <Login />
-      ) : (
-        <div className="min-h-screen bg-gray-50 flex" dir="rtl">
+      <div className="min-h-screen bg-gray-50 flex" dir="rtl">
           <Sidebar />
           <main className="flex-1 overflow-hidden">
             <Routes>
@@ -159,7 +160,6 @@ function AppContent() {
             </Routes>
           </main>
         </div>
-      )}
       <GlobalModal />
       <ToastContainer
         position="top-left"

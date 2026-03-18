@@ -3,7 +3,7 @@ import { io } from 'socket.io-client'
 import {
   ArrowRight, Send, Square, Radio, Wifi, WifiOff,
   Clock, AlertCircle, Terminal, Smartphone, Monitor, MonitorOff, Loader,
-  ChevronDown, Zap,
+  ChevronDown, Zap, ChevronLeft, Circle, LayoutGrid, Keyboard,
 } from 'lucide-react'
 import apiClient from '../utils/api'
 import shellCommands from '../data/shellCommands.json'
@@ -395,7 +395,13 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
   const configDataRef  = useRef(null)  // stored SPS/PPS Annex-B bytes
   const deviceDimsRef  = useRef(null)  // { realW, realH } — actual device pixel dimensions
   const chunkTsRef     = useRef(0)     // monotonic microsecond timestamp for VideoDecoder
-  const pointerDownRef = useRef(null)  // { deviceX, deviceY, normX, normY, time } — drag detection
+  const pointerDownRef  = useRef(null)  // { deviceX, deviceY, normX, normY, time } — drag detection
+  const longPressTimerRef = useRef(null) // setTimeout id for long-press detection
+  const longPressFiredRef = useRef(false) // true if long-press already sent (skip tap on pointerUp)
+  const screenPanelRef    = useRef(null)  // screen panel div — for keyboard capture
+
+  // ── Keyboard state ─────────────────────────────────────────────────────────
+  const [keyboardMode, setKeyboardMode] = useState(false) // when true, keyboard events go to device
 
   // ── Auto-scroll ────────────────────────────────────────────────────────────
   const scrollToBottom = useCallback(() => {
@@ -659,18 +665,59 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
     socketRef.current?.emit('message', buildEnvelope('cmd', id, { cmd: 'shell', args, stream: false }))
   }, [])
 
+  // ── Long-press threshold ───────────────────────────────────────────────────
+  const LONG_PRESS_MS = 500
+
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }, [])
+
   const handlePointerDown = useCallback((e) => {
     if (!canSend || !deviceDimsRef.current) return
     const coords = getDeviceCoords(e)
     if (!coords) return
     e.currentTarget.setPointerCapture(e.pointerId)
+    longPressFiredRef.current = false
     pointerDownRef.current = { ...coords, time: Date.now() }
-  }, [canSend, getDeviceCoords])
+
+    // Start long-press timer
+    clearLongPressTimer()
+    longPressTimerRef.current = setTimeout(() => {
+      if (!pointerDownRef.current) return
+      const start = pointerDownRef.current
+      longPressFiredRef.current = true
+      // Long press = swipe to same point with long duration
+      sendSilentShell(`input swipe ${start.deviceX} ${start.deviceY} ${start.deviceX} ${start.deviceY} 800`)
+      addTapIndicator(start.normX * 100, start.normY * 100)
+    }, LONG_PRESS_MS)
+  }, [canSend, getDeviceCoords, clearLongPressTimer, sendSilentShell, addTapIndicator])
+
+  const handlePointerMove = useCallback((e) => {
+    if (!pointerDownRef.current) return
+    const coords = getDeviceCoords(e)
+    if (!coords) return
+    // If finger moved significantly, cancel long-press (it's a drag)
+    const dx = coords.deviceX - pointerDownRef.current.deviceX
+    const dy = coords.deviceY - pointerDownRef.current.deviceY
+    if (Math.sqrt(dx * dx + dy * dy) > 20) {
+      clearLongPressTimer()
+    }
+  }, [getDeviceCoords, clearLongPressTimer])
 
   const handlePointerUp = useCallback((e) => {
+    clearLongPressTimer()
     if (!canSend || !pointerDownRef.current) return
     const start = pointerDownRef.current
     pointerDownRef.current = null
+
+    // If long-press already fired, don't also send a tap
+    if (longPressFiredRef.current) {
+      longPressFiredRef.current = false
+      return
+    }
 
     const end = getDeviceCoords(e)
     if (!end) return
@@ -692,11 +739,87 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
       sendSilentShell(`input tap ${end.deviceX} ${end.deviceY}`)
       addTapIndicator(end.normX * 100, end.normY * 100)
     }
-  }, [canSend, getDeviceCoords, sendSilentShell, addTapIndicator])
+  }, [canSend, getDeviceCoords, sendSilentShell, addTapIndicator, clearLongPressTimer])
 
   const handlePointerCancel = useCallback(() => {
+    clearLongPressTimer()
+    longPressFiredRef.current = false
     pointerDownRef.current = null
-  }, [])
+  }, [clearLongPressTimer])
+
+  // ── Scroll / wheel forwarding ──────────────────────────────────────────────
+
+  const handleWheel = useCallback((e) => {
+    if (!canSend || !deviceDimsRef.current) return
+    e.preventDefault()
+
+    const coords = getDeviceCoords(e)
+    if (!coords) return
+
+    const { deviceX, deviceY } = coords
+    const scrollAmount = Math.min(Math.abs(e.deltaY), 600)
+    const distance     = Math.max(Math.round(scrollAmount * 1.5), 100)
+
+    if (e.deltaY > 0) {
+      // Scroll down — swipe up
+      sendSilentShell(`input swipe ${deviceX} ${deviceY} ${deviceX} ${Math.max(deviceY - distance, 0)} 200`)
+    } else {
+      // Scroll up — swipe down
+      const maxY = deviceDimsRef.current.realH
+      sendSilentShell(`input swipe ${deviceX} ${deviceY} ${deviceX} ${Math.min(deviceY + distance, maxY)} 200`)
+    }
+  }, [canSend, getDeviceCoords, sendSilentShell])
+
+  // ── Keyboard forwarding ────────────────────────────────────────────────────
+
+  // Android keyevent codes for special keys
+  const KEY_MAP = {
+    Backspace:  67,
+    Enter:      66,
+    Tab:        61,
+    Escape:     111,
+    ArrowUp:    19,
+    ArrowDown:  20,
+    ArrowLeft:  21,
+    ArrowRight: 22,
+    Delete:     112,
+    Home:       122,  // KEYCODE_MOVE_HOME
+    End:        123,  // KEYCODE_MOVE_END
+    ' ':        62,   // KEYCODE_SPACE
+  }
+
+  const handleScreenKeyDown = useCallback((e) => {
+    if (!canSend || !keyboardMode || !screenActive) return
+
+    // Don't capture if a text input is focused
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+    e.preventDefault()
+
+    const androidKeyCode = KEY_MAP[e.key]
+    if (androidKeyCode !== undefined) {
+      sendSilentShell(`input keyevent ${androidKeyCode}`)
+    } else if (e.key.length === 1) {
+      // Single printable character — use `input text`
+      // Escape shell-sensitive characters
+      const escaped = e.key.replace(/'/g, "'\\''")
+      sendSilentShell(`input text '${escaped}'`)
+    }
+  }, [canSend, keyboardMode, screenActive, sendSilentShell])
+
+  // Attach keyboard listener to window when keyboard mode is active
+  useEffect(() => {
+    if (!keyboardMode || !screenActive) return
+    window.addEventListener('keydown', handleScreenKeyDown)
+    return () => window.removeEventListener('keydown', handleScreenKeyDown)
+  }, [keyboardMode, screenActive, handleScreenKeyDown])
+
+  // ── Navigation buttons ─────────────────────────────────────────────────────
+
+  const sendNavButton = useCallback((keycode) => {
+    if (!canSend) return
+    sendSilentShell(`input keyevent ${keycode}`)
+  }, [canSend, sendSilentShell])
 
   // ── Socket.IO setup ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1039,10 +1162,13 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
                   cursor:     canSend ? 'crosshair' : 'default',
                   opacity:    screenConnecting && !screenActive ? 0 : 1,
                   userSelect: 'none',
+                  touchAction: 'none',
                 }}
                 onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerCancel}
+                onWheel={handleWheel}
               />
 
               {/* Tap ripple indicators */}
@@ -1062,14 +1188,71 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
               </div>
             </div>
 
-            {/* Screen footer */}
-            <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between bg-gray-900 border-t border-gray-800" dir="rtl">
-              <span className="text-xs text-gray-500">
-                {deviceDimsRef.current
-                  ? `${deviceDimsRef.current.realW}×${deviceDimsRef.current.realH}`
-                  : 'מחכה לנתוני מסך...'}
-              </span>
-              <span className="text-xs text-gray-600">לחץ על המסך לשלוח tap</span>
+            {/* Navigation bar + controls */}
+            <div className="flex-shrink-0 bg-gray-900 border-t border-gray-800">
+              {/* Nav buttons row */}
+              <div className="flex items-center justify-center gap-6 py-2.5">
+                {/* Back */}
+                <button
+                  onClick={() => sendNavButton(4)}
+                  disabled={!canSend}
+                  className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Back"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+
+                {/* Home */}
+                <button
+                  onClick={() => sendNavButton(3)}
+                  disabled={!canSend}
+                  className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Home"
+                >
+                  <Circle size={20} />
+                </button>
+
+                {/* Recents */}
+                <button
+                  onClick={() => sendNavButton(187)}
+                  disabled={!canSend}
+                  className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Recents"
+                >
+                  <LayoutGrid size={20} />
+                </button>
+
+                {/* Divider */}
+                <div className="w-px h-6 bg-gray-700" />
+
+                {/* Keyboard toggle */}
+                <button
+                  onClick={() => setKeyboardMode(v => !v)}
+                  disabled={!canSend || !screenActive}
+                  className={`p-2.5 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                    keyboardMode
+                      ? 'text-purple-400 bg-purple-900/40 hover:bg-purple-900/60'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                  title={keyboardMode ? 'מקלדת פעילה — הקלדה נשלחת למכשיר' : 'הפעל מקלדת'}
+                >
+                  <Keyboard size={20} />
+                </button>
+              </div>
+
+              {/* Status bar */}
+              <div className="flex items-center justify-between px-4 py-1.5 border-t border-gray-800" dir="rtl">
+                <span className="text-xs text-gray-500">
+                  {deviceDimsRef.current
+                    ? `${deviceDimsRef.current.realW}×${deviceDimsRef.current.realH}`
+                    : 'מחכה לנתוני מסך...'}
+                </span>
+                <span className="text-xs text-gray-600">
+                  {keyboardMode
+                    ? 'מקלדת פעילה — הקש מקשים לשליחה למכשיר'
+                    : 'לחץ · החלק · גלגל · לחיצה ארוכה'}
+                </span>
+              </div>
             </div>
           </div>
         )}
