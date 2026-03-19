@@ -1020,6 +1020,31 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // ── Web Inquiries methods ──────────────────────────────────────────────────
+
+  async getWebInquiries(page = 1, limit = 25, params = {}) {
+    const query = new URLSearchParams({ page, limit, ...params }).toString();
+    return this.apiRequest(`web-inquiries?action=with_details&${query}`);
+  }
+
+  async getWebInquiryStatistics() {
+    return this.apiRequest('web-inquiries?action=statistics');
+  }
+
+  async updateWebInquiryStatus(id, status) {
+    return this.apiRequest('web-inquiries?action=update_status', {
+      method: 'PUT',
+      body: { id, status },
+    });
+  }
+
+  async respondToWebInquiry(id, responseText, adminName) {
+    return this.apiRequest('web-inquiries?action=respond', {
+      method: 'POST',
+      body: { id, response_text: responseText, admin_name: adminName },
+    });
+  }
 }
 
 // Create a singleton instance

@@ -17,6 +17,7 @@ import SafeBrowserManager from './components/SafeBrowserManager'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
+import WebInquiriesTable from './components/WebInquiriesTable'
 import Loader from './components/Loader'
 import { ProtectedRoute, SuperAdminRoute, ManagerRoute } from './components/ProtectedRoute'
 import { GlobalStateProvider, useUser } from './contexts/GlobalStateContext'
@@ -70,6 +71,13 @@ function AppContent() {
               <Route path="/communities/:communityId" element={
                 <ManagerRoute showForbidden={true}>
                   <CommunityDetails />
+                </ManagerRoute>
+              } />
+
+              {/* Web Inquiries - Managers and Super Admins */}
+              <Route path="/web-inquiries" element={
+                <ManagerRoute showForbidden={true}>
+                  <WebInquiriesTable />
                 </ManagerRoute>
               } />
 

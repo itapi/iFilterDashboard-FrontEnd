@@ -19,6 +19,7 @@ import { BroadcastMessageLayout } from './Modal/layouts/BroadcastMessageLayout'
 import { FirmwareDetailsLayout } from './Modal/layouts/FirmwareDetailsLayout'
 import { DomainPolicyFormLayout } from './Modal/layouts/DomainPolicyFormLayout'
 import { ReviewRejectLayout } from './Modal/layouts/ReviewRejectLayout'
+import WebInquiryResponseLayout from './Modal/layouts/WebInquiryResponseLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -160,6 +161,11 @@ const GlobalModal = () => {
         showFooter: true,
       },
 
+
+    
+
+      
+
       // Firmware details layout
       firmwareDetails: {
         component: <FirmwareDetailsLayout data={modal.data} />,
@@ -169,6 +175,13 @@ const GlobalModal = () => {
       // SafeBrowser domain policy form
       domainPolicyForm: {
         component: <DomainPolicyFormLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      // Web inquiry email response
+      webInquiryResponse: {
+        component: <WebInquiryResponseLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
         showFooter: true,
         hasRef: true,
       },
