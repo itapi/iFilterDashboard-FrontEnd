@@ -189,6 +189,14 @@ export const FirmwareDetailsLayout = ({ data }) => {
               value={firmware.product_name}
             />
 
+            {firmware.patched_firmware_id && (
+              <DetailRow
+                icon={HardDrive}
+                label="מזהה קושחה מותאמת"
+                value={`#${firmware.patched_firmware_id}`}
+              />
+            )}
+
             <DetailRow
               icon={Calendar}
               label="תאריך Build"
@@ -240,6 +248,66 @@ export const FirmwareDetailsLayout = ({ data }) => {
               value={firmware.build_fingerprint}
               fullWidth={true}
             />
+
+            {/* Device info from original (via JOIN) */}
+            {firmware.original_firmware_id ? (
+              <>
+                <DetailRow
+                  icon={Smartphone}
+                  label="שם מכשיר"
+                  value={firmware.device_name || firmware.product_device}
+                />
+
+                <DetailRow
+                  icon={Info}
+                  label="דגם"
+                  value={firmware.model}
+                />
+
+                <DetailRow
+                  icon={Layers}
+                  label="יצרן"
+                  value={firmware.manufacturer}
+                />
+
+                <DetailRow
+                  icon={Layers}
+                  label="מותג"
+                  value={firmware.brand}
+                />
+
+                <DetailRow
+                  icon={Smartphone}
+                  label="גרסת אנדרואיד"
+                  value={firmware.android_version}
+                />
+
+                <DetailRow
+                  icon={FileCode}
+                  label="רמת SDK"
+                  value={firmware.sdk_level}
+                />
+
+                <DetailRow
+                  icon={Cpu}
+                  label="ארכיטקטורת CPU"
+                  value={firmware.cpu_arch}
+                />
+              </>
+            ) : (
+              <div className="col-span-2 flex items-center gap-2 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700">
+                <Info className="w-4 h-4 flex-shrink-0" />
+                <span>קושחת המקור המקורית נמחקה — אין מידע על המכשיר</span>
+              </div>
+            )}
+
+            {firmware.original_firmware_id && (
+              <DetailRow
+                icon={Smartphone}
+                label="מזהה קושחת מקור"
+                value={`#${firmware.original_firmware_id}`}
+              />
+            )}
 
             <DetailRow
               icon={Shield}

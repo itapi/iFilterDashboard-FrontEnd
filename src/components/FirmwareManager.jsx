@@ -169,21 +169,43 @@ const FirmwareManager = () => {
     {
       id: 'android_version',
       key: 'android_version',
-      label: 'גרסת אנדרואיד',
+      label: 'מכשיר / גרסה',
       type: 'text',
       render: (row) => {
-
-          return (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Smartphone className="w-4 h-4 text-green-600" />
-              </div>
-              <span className="font-medium text-gray-900">
-                {row.android_version || '-'}
-              </span>
+        const deviceName = row.model || row.device_name || row.product_device
+        const manufacturer = row.manufacturer || row.brand
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-4 h-4 text-green-600" />
             </div>
-          )
-
+            <div>
+              {deviceName && (
+                <p className="font-medium text-gray-900 text-sm leading-tight">
+                  {manufacturer ? `${manufacturer} ${deviceName}` : deviceName}
+                </p>
+              )}
+              <p className={`text-gray-500 ${deviceName ? 'text-xs' : 'text-sm font-medium text-gray-900'}`}>
+                {row.android_version ? `Android ${row.android_version}` : '-'}
+              </p>
+            </div>
+          </div>
+        )
+      }
+    },
+    {
+      id: 'linked_firmware',
+      key: 'linked_firmware',
+      label: firmwareType === 'stock' ? 'קושחה מותאמת' : 'קושחת מקור',
+      type: 'custom',
+      render: (row) => {
+        const linkedId = firmwareType === 'stock' ? row.patched_firmware_id : row.original_firmware_id
+        if (!linkedId) return <span className="text-gray-400 text-sm">—</span>
+        return (
+          <span className="font-mono text-sm bg-purple-50 text-purple-700 px-2 py-1 rounded">
+            #{linkedId}
+          </span>
+        )
       }
     },
     {
