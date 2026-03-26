@@ -1021,6 +1021,28 @@ class ApiClient {
     });
   }
 
+  // Remote Commands API
+  async getRemoteCommands(status = null, clientId = null) {
+    const params = new URLSearchParams({ action: 'list_all' });
+    if (status) params.set('status', status);
+    if (clientId) params.set('client_id', clientId);
+    return this.apiRequest(`remote-commands?${params.toString()}`);
+  }
+
+  async sendRemoteCommand(clientUniqueId, commandType, commandData = null) {
+    return this.apiRequest('remote-commands?action=send_command', {
+      method: 'POST',
+      body: { client_unique_id: clientUniqueId, command_type: commandType, command_data: commandData }
+    });
+  }
+
+  async sendBroadcastCommand(commandType, commandData = null) {
+    return this.apiRequest('remote-commands?action=send_broadcast', {
+      method: 'POST',
+      body: { command_type: commandType, command_data: commandData }
+    });
+  }
+
   // ── Web Inquiries methods ──────────────────────────────────────────────────
 
   async getWebInquiries(page = 1, limit = 25, params = {}) {

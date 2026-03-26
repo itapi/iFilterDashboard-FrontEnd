@@ -20,6 +20,7 @@ import { FirmwareDetailsLayout } from './Modal/layouts/FirmwareDetailsLayout'
 import { DomainPolicyFormLayout } from './Modal/layouts/DomainPolicyFormLayout'
 import { ReviewRejectLayout } from './Modal/layouts/ReviewRejectLayout'
 import WebInquiryResponseLayout from './Modal/layouts/WebInquiryResponseLayout'
+import { SendCommandLayout } from './Modal/layouts/SendCommandLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -165,6 +166,13 @@ const GlobalModal = () => {
     
 
       
+
+      // Remote command form
+      sendCommand: {
+        component: <SendCommandLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
 
       // Firmware details layout
       firmwareDetails: {

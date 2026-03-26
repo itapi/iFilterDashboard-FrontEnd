@@ -13,6 +13,7 @@ import ClientDetails from './components/ClientDetails'
 import AdminsTable from './components/AdminsTable'
 import BroadcastMessages from './components/BroadcastMessages'
 import FirmwareManager from './components/FirmwareManager'
+import RemoteCommandsManager from './components/RemoteCommandsManager'
 import SafeBrowserManager from './components/SafeBrowserManager'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
@@ -107,6 +108,13 @@ function AppContent() {
               <Route path="/safe-browser" element={
                 <ManagerRoute showForbidden={true}>
                   <SafeBrowserManager />
+                </ManagerRoute>
+              } />
+
+              {/* Remote Commands - Managers and Super Admins */}
+              <Route path="/remote-commands" element={
+                <ManagerRoute showForbidden={true}>
+                  <RemoteCommandsManager />
                 </ManagerRoute>
               } />
 

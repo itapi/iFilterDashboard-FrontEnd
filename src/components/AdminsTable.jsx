@@ -203,7 +203,7 @@ const EditAdminForm = ({ admin, communityPlans, onSuccess, onClose }) => {
     first_name: admin.first_name || '',
     last_name: admin.last_name || '',
     user_type: admin.user_type || 'manager',
-    community_plan_unique_id: admin.community_plan_unique_id || ''
+    community_unique_id: admin.community_unique_id || ''
   })
   const [loading, setLoading] = useState(false)
 
@@ -238,9 +238,9 @@ const EditAdminForm = ({ admin, communityPlans, onSuccess, onClose }) => {
         delete dataToSend.password
       }
 
-      // Remove community_plan_unique_id if not community manager
+      // Remove community_unique_id if not community manager
       if (dataToSend.user_type !== 'community_manager') {
-        dataToSend.community_plan_unique_id = null
+        dataToSend.community_unique_id = null
       }
 
       const response = await apiClient.updateAdmin(admin.id, dataToSend)
@@ -617,7 +617,7 @@ useEffect(() => {
         }
 
         // Try multiple possible field names for the community ID
-        const communityId = row.community_plan_unique_id || row.community_unique_id
+        const communityId = row.community_unique_id
 
         // Find the community plan name from communityPlans array
         const communityPlan = communityPlans.find(

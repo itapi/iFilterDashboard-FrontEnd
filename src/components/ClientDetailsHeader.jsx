@@ -1,4 +1,5 @@
-import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, Settings, Radio } from 'lucide-react'
+import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, Settings, Radio, Terminal } from 'lucide-react'
+import { usePermissions } from '../hooks/usePermissions'
 
 /**
  * ClientDetailsHeader - Header section with avatar, client info, status badges, and tabs
@@ -11,6 +12,7 @@ import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, S
  * @param {Function} onStartLiveSession - Callback to open the live session overlay
  */
 const ClientDetailsHeader = ({ client, onBack, activeTab, onTabChange, isCustomPlan, onStartLiveSession }) => {
+  const { isSuperAdmin } = usePermissions()
 
   const calculateDaysRemaining = (client) => {
     const now = new Date()
@@ -81,6 +83,7 @@ const ClientDetailsHeader = ({ client, onBack, activeTab, onTabChange, isCustomP
     ...(isCustomPlan ? [{ id: 'apps', label: 'אפליקציות מותרות', icon: Smartphone }] : []),
     { id: 'settings', label: 'הגדרות נוספות', icon: Settings },
     { id: 'payments', label: 'תשלומים', icon: CreditCard },
+    ...(isSuperAdmin() ? [{ id: 'commands', label: 'פקודות מרחוק', icon: Terminal }] : []),
   ]
 
   return (

@@ -11,6 +11,7 @@ import ClientDeviceTab from './ClientDeviceTab'
 import ClientAppsTab from './ClientAppsTab'
 import AdditionalSettingsTab from './AdditionalSettingsTab'
 import LiveSessionOverlay from './LiveSessionOverlay'
+import ClientCommandsTab from './ClientCommandsTab'
 
 /**
  * ClientDetails - Main component orchestrating client detail views
@@ -275,6 +276,10 @@ const ClientDetails = () => {
 
         {activeTab === 'payments' && (
           <PaymentsTab clientUniqueId={clientUniqueId} />
+        )}
+
+        {activeTab === 'commands' && (
+          <ClientCommandsTab clientUniqueId={clientUniqueId} />
         )}
       </div>
     </div>

@@ -209,6 +209,15 @@ const FirmwareManager = () => {
       }
     },
     {
+      id: 'is_stock',
+      key: 'is_stock',
+      label: 'סוג',
+      type: 'custom',
+      render: (row) => row.is_stock
+        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">מקורי</span>
+        : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">מותאם אישית</span>
+    },
+    {
       id: 'actions',
       key: 'actions',
       label: 'פעולות',
