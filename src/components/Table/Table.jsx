@@ -15,6 +15,7 @@ export const Table = ({
   onSortChange,
   sortColumn: externalSortColumn = null,
   sortDirection: externalSortDirection = 'asc',
+  getRowClassName,
 }) => {
   const { columns, data, onRowClick } = tableConfig;
   const observerRef = useRef(null);
@@ -227,15 +228,15 @@ export const Table = ({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {localData?.length > 0 &&
-              localData.map((row, index) => (
+              localData.map((row, index) => {
+                const urgencyClass = getRowClassName ? getRowClassName(row) : ''
+                return (
                 <tr
                   key={row.id}
                   className={`transition-colors duration-200 cursor-pointer ${
-                    selectedRows[row.id] 
-                      ? 'bg-purple-50 hover:bg-purple-100' 
-                      : index % 2 === 0 
-                        ? 'bg-white hover:bg-gray-50' 
-                        : 'bg-gray-25 hover:bg-gray-75'
+                    selectedRows[row.id]
+                      ? 'bg-purple-50 hover:bg-purple-100'
+                      : urgencyClass || (index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-25 hover:bg-gray-75')
                   }`}
                   onClick={(e) => handleRowClick(row, e)}
                 >
@@ -263,7 +264,8 @@ export const Table = ({
                     </td>
                   ))}
                 </tr>
-              ))}
+                )
+              })}
           </tbody>
         </table>
         
@@ -314,4 +316,5 @@ Table.propTypes = {
   onSortChange: PropTypes.func,
   sortColumn: PropTypes.string,
   sortDirection: PropTypes.oneOf(['asc', 'desc']),
+  getRowClassName: PropTypes.func,
 };
