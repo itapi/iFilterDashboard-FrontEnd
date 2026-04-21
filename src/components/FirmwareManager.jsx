@@ -3,7 +3,7 @@ import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
 import { Table } from './Table/Table'
 import { Toggle } from './Toggle'
-import { Smartphone, HardDrive, Wrench, Loader2, Download } from 'lucide-react'
+import { Smartphone, HardDrive, Wrench, Loader2, Download, Bell } from 'lucide-react'
 import { useGlobalState } from '../contexts/GlobalStateContext'
 
 const FirmwareManager = () => {
@@ -12,7 +12,8 @@ const FirmwareManager = () => {
   const [loading, setLoading] = useState(true)
   const [tableLoading, setTableLoading] = useState(false)
   const [firmwareType, setFirmwareType] = useState('stock') // 'stock' or 'patched'
-  const [patchingId, setPatchingId] = useState(null) // Track which firmware is being patched
+  const [patchingId, setPatchingId] = useState(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -35,7 +36,9 @@ const FirmwareManager = () => {
 
         setCurrentPage(1)
 
-        const response = await apiClient.getFirmwares(firmwareType, 1, itemsPerPage)
+        const response = firmwareType === 'notifications'
+          ? await apiClient.getSupportNotifications(1, itemsPerPage)
+          : await apiClient.getFirmwares(firmwareType, 1, itemsPerPage)
 
         if (response.success) {
           const responseData = response.data?.data || response.data || []
@@ -56,7 +59,7 @@ const FirmwareManager = () => {
     }
 
     loadData()
-  }, [firmwareType])
+  }, [firmwareType, refreshTrigger])
 
   // Load more for pagination
   const handleLoadMore = async () => {
@@ -66,7 +69,9 @@ const FirmwareManager = () => {
       setLoadingMore(true)
       const nextPage = currentPage + 1
 
-      const response = await apiClient.getFirmwares(firmwareType, nextPage, itemsPerPage)
+      const response = firmwareType === 'notifications'
+          ? await apiClient.getSupportNotifications(nextPage, itemsPerPage)
+          : await apiClient.getFirmwares(firmwareType, nextPage, itemsPerPage)
 
       if (response.success) {
         const responseData = response.data?.data || response.data || []
@@ -128,6 +133,20 @@ const FirmwareManager = () => {
     })
   }
 
+  const handleNotificationRowClick = (notification) => {
+    openModal({
+      layout: 'uploadFirmware',
+      title: 'העלאת קושחת מקור',
+      size: 'lg',
+      data: {
+        notification,
+        onSuccess: () => setRefreshTrigger((n) => n + 1)
+      },
+      showCancelButton: true,
+      cancelText: 'ביטול'
+    })
+  }
+
   // Toggle options
   const toggleOptions = [
     {
@@ -139,6 +158,91 @@ const FirmwareManager = () => {
       id: 'patched',
       label: 'קושחות מותאמות',
       icon: <HardDrive className="w-4 h-4" />
+    },
+    {
+      id: 'notifications',
+      label: 'בקשות התראה',
+      icon: <Bell className="w-4 h-4" />
+    }
+  ]
+
+  // Notifications columns
+  const notificationColumns = [
+    {
+      id: 'id',
+      key: 'id',
+      label: 'מזהה',
+      type: 'text',
+      render: (row) => (
+        <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">#{row.id}</span>
+      )
+    },
+    {
+      id: 'contact',
+      key: 'email',
+      label: 'פרטי קשר',
+      type: 'text',
+      render: (row) => (
+        <div>
+          <p className="font-medium text-gray-900 text-sm">{row.full_name || '—'}</p>
+          <p className="text-xs text-gray-500">{row.email}</p>
+          {row.phone && <p className="text-xs text-gray-400">{row.phone}</p>}
+        </div>
+      )
+    },
+    {
+      id: 'device',
+      key: 'model',
+      label: 'מכשיר',
+      type: 'text',
+      render: (row) => {
+        const name = row.model || row.product_device
+        const maker = row.manufacturer || row.brand
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm leading-tight">
+                {maker ? `${maker} ${name}` : name || '—'}
+              </p>
+              {row.android_version && (
+                <p className="text-xs text-gray-500">Android {row.android_version}</p>
+              )}
+            </div>
+          </div>
+        )
+      }
+    },
+    {
+      id: 'build_fingerprint',
+      key: 'build_fingerprint',
+      label: 'טביעת אצבע',
+      type: 'text',
+      render: (row) => (
+        <span className="font-mono text-xs text-gray-700 break-all">{row.build_fingerprint}</span>
+      )
+    },
+    {
+      id: 'notified',
+      key: 'notified',
+      label: 'סטטוס',
+      type: 'custom',
+      render: (row) => row.notified
+        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">נשלחה התראה</span>
+        : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">ממתין</span>
+    },
+    {
+      id: 'created_at',
+      key: 'created_at',
+      label: 'תאריך רישום',
+      type: 'text',
+      render: (row) => (
+        <span className="text-sm text-gray-600">
+          {row.created_at ? new Date(row.created_at).toLocaleDateString('he-IL') : '—'}
+        </span>
+      )
     }
   ]
 
@@ -296,10 +400,10 @@ const FirmwareManager = () => {
   ]
 
   const tableConfig = {
-    columns: tableColumns,
+    columns: firmwareType === 'notifications' ? notificationColumns : tableColumns,
     data: firmwares,
     tableType: 'firmwares',
-    onRowClick: handleRowClick
+    onRowClick: firmwareType === 'notifications' ? handleNotificationRowClick : handleRowClick
   }
 
   // Loading state
@@ -349,17 +453,21 @@ const FirmwareManager = () => {
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                 firmwareType === 'stock'
                   ? 'bg-green-100'
-                  : 'bg-purple-100'
+                  : firmwareType === 'patched'
+                  ? 'bg-purple-100'
+                  : 'bg-blue-100'
               }`}>
                 {firmwareType === 'stock' ? (
                   <Smartphone className="w-6 h-6 text-green-600" />
-                ) : (
+                ) : firmwareType === 'patched' ? (
                   <HardDrive className="w-6 h-6 text-purple-600" />
+                ) : (
+                  <Bell className="w-6 h-6 text-blue-600" />
                 )}
               </div>
               <div>
                 <p className="text-sm text-gray-600">
-                  {firmwareType === 'stock' ? 'קושחות מקור' : 'קושחות מותאמות'}
+                  {firmwareType === 'stock' ? 'קושחות מקור' : firmwareType === 'patched' ? 'קושחות מותאמות' : 'בקשות התראה'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">{firmwares.length}</p>
               </div>
@@ -382,7 +490,7 @@ const FirmwareManager = () => {
             <Smartphone className="w-16 h-16 text-gray-300 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">אין קושחות</h3>
             <p className="text-gray-600">
-              לא נמצאו {firmwareType === 'stock' ? 'קושחות מקור' : 'קושחות מותאמות'}
+              {firmwareType === 'stock' ? 'לא נמצאו קושחות מקור' : firmwareType === 'patched' ? 'לא נמצאו קושחות מותאמות' : 'לא נמצאו בקשות התראה'}
             </p>
           </div>
         </div>

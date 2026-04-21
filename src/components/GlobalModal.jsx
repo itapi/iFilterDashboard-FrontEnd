@@ -21,6 +21,7 @@ import { DomainPolicyFormLayout } from './Modal/layouts/DomainPolicyFormLayout'
 import { ReviewRejectLayout } from './Modal/layouts/ReviewRejectLayout'
 import WebInquiryResponseLayout from './Modal/layouts/WebInquiryResponseLayout'
 import { SendCommandLayout } from './Modal/layouts/SendCommandLayout'
+import { UploadFirmwareLayout } from './Modal/layouts/UploadFirmwareLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -178,6 +179,13 @@ const GlobalModal = () => {
       firmwareDetails: {
         component: <FirmwareDetailsLayout data={modal.data} />,
         showFooter: true,
+      },
+
+      // Upload stock firmware from notification
+      uploadFirmware: {
+        component: <UploadFirmwareLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: false,
+        hasRef: true,
       },
 
       // SafeBrowser domain policy form

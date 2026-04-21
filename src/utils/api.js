@@ -945,6 +945,22 @@ class ApiClient {
     return this.apiRequest(`firmwares?type=${type}&page=${page}&limit=${limit}`);
   }
 
+  async getSupportNotifications(page = 1, limit = 25) {
+    return this.apiRequest(`firmwares?type=notifications&page=${page}&limit=${limit}`);
+  }
+
+  async uploadStockFirmware(formData) {
+    const url = `${this.apiURL}/firmware-upload`;
+    const token = this.token || localStorage.getItem('iFilter_authToken');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return response.json();
+  }
+
   async startFirmwarePatch(firmwareId) {
     return this.apiRequest('firmware-patch', {
       method: 'POST',

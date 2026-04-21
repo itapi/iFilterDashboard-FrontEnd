@@ -157,8 +157,7 @@ const ClientPlanTab = ({
       setSaving(true)
 
       const updateData = {
-        plan_unique_id: newPlanId,
-        plan_status: 'active'
+        plan_unique_id: newPlanId
       }
 
       if (client.plan_status === 'inactive' || !client.plan_start_date) {
@@ -172,7 +171,6 @@ const ClientPlanTab = ({
           ...client,
           plan_unique_id: newPlanId,
           plan_name: planName,
-          plan_status: 'active',
           plan_start_date: updateData.plan_start_date || client.plan_start_date
         })
         toast.success(`התוכנית עודכנה בהצלחה ל"${planName}"`)

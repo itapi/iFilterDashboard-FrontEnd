@@ -393,6 +393,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
   const decoderRef     = useRef(null)
   const screenCanvasRef = useRef(null)
   const configDataRef  = useRef(null)  // stored SPS/PPS Annex-B bytes
+  const initDecoderRef = useRef(null)   // kept in sync below — used for error recovery
   const deviceDimsRef  = useRef(null)  // { realW, realH } — actual device pixel dimensions
   const chunkTsRef     = useRef(0)     // monotonic microsecond timestamp for VideoDecoder
   const pointerDownRef  = useRef(null)  // { deviceX, deviceY, normX, normY, time } — drag detection
@@ -467,6 +468,9 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
       },
       error: (err) => {
         console.error('[screen] VideoDecoder error:', err.message ?? err)
+        if (configDataRef.current) {
+          setTimeout(() => initDecoderRef.current?.(configDataRef.current), 100)
+        }
       },
     })
 
@@ -479,6 +483,9 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
       addMessage({ kind: 'error', code: 'DECODE_INIT', text: `שגיאת אתחול מפענח: ${err.message}`, timestamp: Date.now() })
     }
   }, [destroyDecoder, addMessage])
+
+  // Keep initDecoderRef in sync so the error-recovery callback always calls the latest version
+  useEffect(() => { initDecoderRef.current = initDecoder }, [initDecoder])
 
   /**
    * Process one binary message from the /screen WebSocket.
@@ -509,17 +516,21 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
         return
       }
 
-      const isKey   = isH264Keyframe(payload)
-      const avccData = annexBToAvcc(payload)   // WebCodecs avc1 requires AVCC format
+      const isKey = isH264Keyframe(payload)
 
-      if (isKey) console.log('[screen] keyframe, size:', payloadSize, 'avcc size:', avccData.length, 'decoder.state:', decoder.state)
+      // Back-pressure: decoder queue too deep — skip delta frames so it can catch up
+      if (!isKey && decoder.decodeQueueSize > 4) return
+
+      const avccData = annexBToAvcc(payload)
 
       try {
-        // Timestamps must be monotonically increasing (microseconds)
-        chunkTsRef.current += 33_333  // ~30fps spacing; actual rate driven by device
+        // Real wall-clock µs — correct when frame delivery is irregular (e.g. poor connection)
+        // Math.max guards strict monotonicity if two frames arrive within the same µs
+        const ts = Math.max(performance.now() * 1000, chunkTsRef.current + 1)
+        chunkTsRef.current = ts
         decoder.decode(new EncodedVideoChunk({
           type:      isKey ? 'key' : 'delta',
-          timestamp: chunkTsRef.current,
+          timestamp: ts,
           data:      avccData,
         }))
       } catch (err) {
