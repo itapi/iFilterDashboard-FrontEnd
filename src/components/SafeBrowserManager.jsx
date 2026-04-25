@@ -3,6 +3,7 @@ import { toast } from 'react-toastify'
 import { Plus, Search, Globe, Shield, ShieldOff, Eye, Zap, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react'
 import { useGlobalState } from '../contexts/GlobalStateContext'
 import apiClient from '../utils/api'
+import { Table } from './Table/Table'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -124,6 +125,76 @@ function DomainPoliciesTab({ openModal }) {
     })
   }
 
+  const columns = [
+    {
+      id: 'domain',
+      key: 'domain',
+      label: 'דומיין',
+      type: 'custom',
+      render: (policy) => (
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <div>
+            <a
+              href={`https://${policy.domain}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-900 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            >{policy.domain}</a>
+            {!!policy.include_subdomains && <span className="mr-1.5 text-xs text-gray-400">+ תת-דומיינים</span>}
+            {policy.description && <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{policy.description}</p>}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'mode',
+      key: 'mode',
+      label: 'מצב',
+      type: 'custom',
+      render: (policy) => <ModeTag mode={policy.mode} />,
+    },
+    {
+      id: 'is_active',
+      key: 'is_active',
+      label: 'פעיל',
+      type: 'custom',
+      render: (policy) => (
+        <button
+          onClick={(e) => { e.stopPropagation(); handleToggleActive(policy) }}
+          className={`relative w-10 h-5 rounded-full transition-colors ${policy.is_active ? 'bg-green-500' : 'bg-gray-200'}`}
+        >
+          <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${policy.is_active ? 'right-0.5' : 'left-0.5'}`} />
+        </button>
+      ),
+    },
+    {
+      id: 'actions',
+      key: 'id',
+      label: '',
+      type: 'custom',
+      render: (policy) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); openForm(policy) }}
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="עריכה"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleDelete(policy) }}
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="מחיקה"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <>
       {/* Toolbar */}
@@ -161,71 +232,20 @@ function DomainPoliciesTab({ openModal }) {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="py-16 flex items-center justify-center"><RefreshCw className="w-6 h-6 animate-spin text-blue-500" /></div>
-        ) : policies.length === 0 ? (
-          <div className="py-16 text-center">
-            <Globe className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">לא נמצאו כללי דומיין</p>
-            <p className="text-sm text-gray-400 mt-1">הוסף את הכלל הראשון כדי להתחיל</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="text-right px-5 py-3.5 font-medium text-gray-600">דומיין</th>
-                <th className="text-right px-5 py-3.5 font-medium text-gray-600">מצב</th>
-                <th className="text-right px-5 py-3.5 font-medium text-gray-600">פעיל</th>
-                <th className="px-5 py-3.5"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {policies.map(policy => (
-                <tr key={policy.id} className="hover:bg-gray-50 transition-colors group">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <div>
-                        <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-900">{policy.domain}</span>
-                        {!!policy.include_subdomains && <span className="mr-1.5 text-xs text-gray-400">+ תת-דומיינים</span>}
-                        {policy.description && <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{policy.description}</p>}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4"><ModeTag mode={policy.mode} /></td>
-                  <td className="px-5 py-4">
-                    <button onClick={() => handleToggleActive(policy)}
-                      className={`relative w-10 h-5 rounded-full transition-colors ${policy.is_active ? 'bg-green-500' : 'bg-gray-200'}`}>
-                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${policy.is_active ? 'right-0.5' : 'left-0.5'}`} />
-                    </button>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openForm(policy)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="עריכה">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      </button>
-                      <button onClick={() => handleDelete(policy)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="מחיקה">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {pagination && pagination.total_pages > 1 && (
-          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">הקודם</button>
-            <span className="text-sm text-gray-500">עמוד {pagination.current_page} מתוך {pagination.total_pages}</span>
-            <button disabled={!pagination.has_more} onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">הבא</button>
-          </div>
-        )}
-      </div>
+      <Table
+        tableConfig={{ columns, data: policies }}
+        loading={loading}
+        hasMore={false}
+      />
+      {pagination?.total_pages > 1 && (
+        <div className="px-5 py-4 flex items-center justify-between mt-3">
+          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">הקודם</button>
+          <span className="text-sm text-gray-500">עמוד {pagination.current_page} מתוך {pagination.total_pages}</span>
+          <button disabled={!pagination.has_more} onClick={() => setPage(p => p + 1)}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">הבא</button>
+        </div>
+      )}
     </>
   )
 }
@@ -319,6 +339,90 @@ function ReviewRequestsTab({ openModal }) {
     })
   }
 
+  const columns = [
+    {
+      id: 'domain',
+      key: 'domain',
+      label: 'דומיין',
+      type: 'custom',
+      render: (req) => (
+        <div>
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <a
+              href={`https://${req.domain}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-900 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            >{req.domain}</a>
+          </div>
+          {req.admin_notes && (
+            <p className="text-xs text-gray-400 mt-1 max-w-xs truncate pr-6">{req.admin_notes}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'client_unique_id',
+      key: 'client_unique_id',
+      label: 'לקוח',
+      type: 'custom',
+      render: (req) => (
+        <span className="text-gray-500 text-xs font-mono">
+          {req.client_unique_id || <span className="text-gray-300">—</span>}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      key: 'status',
+      label: 'סטטוס',
+      type: 'custom',
+      render: (req) => <StatusTag status={req.status} />,
+    },
+    {
+      id: 'created_at',
+      key: 'created_at',
+      label: 'תאריך',
+      type: 'custom',
+      render: (req) => <span className="text-gray-400 text-xs">{formatDate(req.created_at)}</span>,
+    },
+    {
+      id: 'actions',
+      key: 'id',
+      label: '',
+      type: 'custom',
+      render: (req) => (
+        <div className="flex items-center justify-end gap-1.5">
+          {req.status === 'pending' && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleApprove(req) }}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />אשר
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleReject(req) }}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                <XCircle className="w-3.5 h-3.5" />דחה
+              </button>
+            </>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); handleDelete(req) }}
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="מחיקה"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <>
       {/* Toolbar */}
@@ -345,77 +449,20 @@ function ReviewRequestsTab({ openModal }) {
         {pagination && <span className="text-xs text-gray-400 mr-auto">{pagination.total} בקשות סה"כ</span>}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="py-16 flex items-center justify-center"><RefreshCw className="w-6 h-6 animate-spin text-blue-500" /></div>
-        ) : requests.length === 0 ? (
-          <div className="py-16 text-center">
-            <CheckCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">אין בקשות סקירה</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="text-right px-5 py-3.5 font-medium text-gray-600">דומיין</th>
-                <th className="text-right px-5 py-3.5 font-medium text-gray-600">לקוח</th>
-                <th className="text-right px-5 py-3.5 font-medium text-gray-600">סטטוס</th>
-                <th className="text-right px-5 py-3.5 font-medium text-gray-600">תאריך</th>
-                <th className="px-5 py-3.5"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {requests.map(req => (
-                <tr key={req.id} className="hover:bg-gray-50 transition-colors group">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-900">{req.domain}</span>
-                    </div>
-                    {req.admin_notes && (
-                      <p className="text-xs text-gray-400 mt-1 max-w-xs truncate pr-6">{req.admin_notes}</p>
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-gray-500 text-xs font-mono">
-                    {req.client_unique_id || <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-5 py-4"><StatusTag status={req.status} /></td>
-                  <td className="px-5 py-4 text-gray-400 text-xs">{formatDate(req.created_at)}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {req.status === 'pending' && (
-                        <>
-                          <button onClick={() => handleApprove(req)}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                            <CheckCircle className="w-3.5 h-3.5" />אשר
-                          </button>
-                          <button onClick={() => handleReject(req)}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                            <XCircle className="w-3.5 h-3.5" />דחה
-                          </button>
-                        </>
-                      )}
-                      <button onClick={() => handleDelete(req)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="מחיקה">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {pagination && pagination.total_pages > 1 && (
-          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">הקודם</button>
-            <span className="text-sm text-gray-500">עמוד {pagination.current_page} מתוך {pagination.total_pages}</span>
-            <button disabled={!pagination.has_more} onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">הבא</button>
-          </div>
-        )}
-      </div>
+      <Table
+        tableConfig={{ columns, data: requests }}
+        loading={loading}
+        hasMore={false}
+      />
+      {pagination?.total_pages > 1 && (
+        <div className="px-5 py-4 flex items-center justify-between mt-3">
+          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">הקודם</button>
+          <span className="text-sm text-gray-500">עמוד {pagination.current_page} מתוך {pagination.total_pages}</span>
+          <button disabled={!pagination.has_more} onClick={() => setPage(p => p + 1)}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">הבא</button>
+        </div>
+      )}
     </>
   )
 }

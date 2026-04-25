@@ -157,7 +157,7 @@ export const UploadFirmwareLayout = forwardRef(({ data }, ref) => {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".zip,.img,.tar,.gz,.lz4,.br"
+          accept=".zip,.tar,.img,.gz,.lz4,.br"
           onChange={handleFileChange}
           className="hidden"
         />
@@ -181,7 +181,7 @@ export const UploadFirmwareLayout = forwardRef(({ data }, ref) => {
             <Upload className="w-10 h-10 text-blue-400 mx-auto mb-3" />
             <p className="font-medium text-gray-700 text-sm">גרור קובץ קושחה לכאן</p>
             <p className="text-xs text-gray-400 mt-1">או לחץ לבחירת קובץ</p>
-            <p className="text-xs text-gray-400 mt-1">zip, img, tar, gz, lz4, br</p>
+            <p className="text-xs text-gray-400 mt-1">zip, tar, img, gz, lz4, br</p>
           </>
         )}
       </div>
