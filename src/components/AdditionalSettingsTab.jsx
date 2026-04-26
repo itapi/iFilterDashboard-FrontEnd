@@ -97,20 +97,19 @@ const AdditionalSettingsTab = ({ clientUniqueId, apiClient }) => {
         const initialSelections = {}
 
         apps.forEach(app => {
-          // Backend now returns selected_tag_ids as an array
-          // Ensure all IDs are numbers for consistent comparison
           let tagIds = (app.selected_tag_ids || []).map(id => Number(id))
 
-          // If no tags are selected, auto-select default tags IN UI ONLY (not saved)
-          if (tagIds.length === 0 && app.available_tags && app.available_tags.length > 0) {
-            const defaultTags = app.available_tags.filter(tag => tag.is_default === 1)
-            tagIds = defaultTags.map(tag => Number(tag.id))
+          // Always ensure default tags appear in the UI (they are never stored in DB)
+          if (app.available_tags && app.available_tags.length > 0) {
+            const defaultTagIds = app.available_tags
+              .filter(tag => tag.is_default === 1)
+              .map(tag => Number(tag.id))
+            defaultTagIds.forEach(id => {
+              if (!tagIds.includes(id)) tagIds.push(id)
+            })
           }
 
           initialSelections[app.package_name] = tagIds
-
-          // Debug log
-          console.log('App:', app.app_name, 'Selected tag IDs:', tagIds, 'Available tags:', app.available_tags)
         })
         setSelectedTags(initialSelections)
       } else {
