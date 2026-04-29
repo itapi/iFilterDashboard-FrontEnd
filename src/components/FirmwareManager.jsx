@@ -3,7 +3,7 @@ import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
 import { Table } from './Table/Table'
 import { Toggle } from './Toggle'
-import { Smartphone, HardDrive, Wrench, Loader2, Download, Bell } from 'lucide-react'
+import { Smartphone, HardDrive, Wrench, Loader2, Download, Bell, Trash2 } from 'lucide-react'
 import { useGlobalState } from '../contexts/GlobalStateContext'
 
 const FirmwareManager = () => {
@@ -102,8 +102,8 @@ const FirmwareManager = () => {
 
       if (response.success) {
         toast.success('תיקון הקושחה הושלם בהצלחה!')
+        setRefreshTrigger((n) => n + 1)
 
-        // Show additional info if available
         if (response.data?.size_mb) {
           console.log('Patched firmware size:', response.data.size_mb, 'MB')
         }
@@ -116,6 +116,31 @@ const FirmwareManager = () => {
     } finally {
       setPatchingId(null)
     }
+  }
+
+  // Handle delete patched firmware
+  const handleDeletePatched = (firmware) => {
+    openModal({
+      layout: 'deleteConfirm',
+      title: 'מחיקת קושחה מותאמת',
+      size: 'sm',
+      data: {
+        itemType: 'קושחה מותאמת',
+        itemName: firmware.build_fingerprint || `#${firmware.id}`,
+        warningText: 'פעולה זו תמחק את הקושחה המותאמת לצמיתות ואינה ניתנת לביטול!'
+      },
+      confirmText: 'מחק',
+      cancelText: 'ביטול',
+      onConfirm: async () => {
+        const response = await apiClient.deletePatchedFirmware(firmware.id)
+        if (response.success) {
+          toast.success('הקושחה המותאמת נמחקה בהצלחה')
+          setFirmwares((prev) => prev.filter((f) => f.id !== firmware.id))
+        } else {
+          toast.error(response.message || 'שגיאה במחיקת הקושחה')
+        }
+      }
+    })
   }
 
   // Handle row click to show firmware details
@@ -336,7 +361,7 @@ const FirmwareManager = () => {
             : null
 
           return (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
               <a
                 href={downloadUrl}
                 download
@@ -359,6 +384,17 @@ const FirmwareManager = () => {
                 <Download className="w-4 h-4" />
                 <span>הורדה</span>
               </a>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeletePatched(row)
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
+                title="מחק קושחה"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>מחיקה</span>
+              </button>
             </div>
           )
         }

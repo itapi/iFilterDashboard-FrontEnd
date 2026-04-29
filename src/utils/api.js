@@ -968,6 +968,12 @@ class ApiClient {
     });
   }
 
+  async deletePatchedFirmware(firmwareId) {
+    return this.apiRequest(`firmwares/${firmwareId}`, {
+      method: 'DELETE'
+    });
+  }
+
   // Live Sessions API
   async startLiveSession(clientUniqueId) {
     return this.apiRequest('remote-commands?action=live_session_start', {
