@@ -401,6 +401,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
   const longPressFiredRef = useRef(false) // true if long-press already sent (skip tap on pointerUp)
   const screenPanelRef    = useRef(null)  // screen panel div — for keyboard capture
 
+  const waitingForKeyframeRef = useRef(false);
   // ── Keyboard state ─────────────────────────────────────────────────────────
   const [keyboardMode, setKeyboardMode] = useState(false) // when true, keyboard events go to device
 
@@ -491,7 +492,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
    * Process one binary message from the /screen WebSocket.
    * Wire format: [1 byte type][4 bytes size big-endian][N bytes H.264 NAL]
    */
-  const handleScreenFrame = useCallback((buffer) => {
+const handleScreenFrame = useCallback((buffer) => {
     const data = new Uint8Array(buffer)
     if (data.length < 5) return
 
@@ -506,6 +507,8 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
       console.log('[screen] CONFIG received, size:', payloadSize)
       configDataRef.current = payload
       initDecoder(payload)
+      // If we re-initialize the decoder, we immediately need a keyframe
+      waitingForKeyframeRef.current = true 
       return
     }
 
@@ -518,8 +521,24 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
 
       const isKey = isH264Keyframe(payload)
 
-      // Back-pressure: decoder queue too deep — skip delta frames so it can catch up
-      if (!isKey && decoder.decodeQueueSize > 4) return
+      // --- NEW: Safe Backpressure Logic ---
+      // If the queue gets too deep, we must drop frames. But if we drop a delta frame, 
+      // the decoder will be corrupted until the next keyframe. 
+      // So, we enter a "waiting for keyframe" state.
+      if (decoder.decodeQueueSize > 4) {
+        waitingForKeyframeRef.current = true
+      }
+
+      if (waitingForKeyframeRef.current) {
+        if (isKey) {
+          // We got a keyframe! Clean slate, we can resume rendering.
+          waitingForKeyframeRef.current = false
+        } else {
+          // Drop this delta frame. Feeding it to the decoder would cause visual glitches.
+          return
+        }
+      }
+      // ------------------------------------
 
       const avccData = annexBToAvcc(payload)
 
@@ -535,6 +554,8 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
         }))
       } catch (err) {
         console.warn('[screen] decode error:', err.message ?? err)
+        // If the decoder crashes, force it to wait for a clean keyframe again
+        waitingForKeyframeRef.current = true
       }
     }
   }, [initDecoder])
