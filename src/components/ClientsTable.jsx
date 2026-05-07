@@ -391,7 +391,25 @@ const ClientsTable = () => {
             </span>
           </div>
           <div>
-            <div className="font-medium text-gray-900">{row.full_name}</div>
+            <div className="flex items-center gap-2">
+              <div className="font-medium text-gray-900">{row.full_name}</div>
+              {row.device_label && (
+                <span
+                  className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full"
+                  title="כינוי מכשיר"
+                >
+                  {row.device_label}
+                </span>
+              )}
+              {row.siblings_total > 1 && (
+                <span
+                  className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"
+                  title="מספר מנויים תחת אותו מייל"
+                >
+                  {row.siblings_total} מנויים
+                </span>
+              )}
+            </div>
             <div className="text-sm text-gray-500">{row.email}</div>
             <div className="text-xs text-gray-400">{row.phone}</div>
           </div>

@@ -139,26 +139,30 @@ const globalReducer = (state, action) => {
 export const GlobalStateProvider = ({ children }) => {
   const [state, dispatch] = useReducer(globalReducer, initialState)
 
-  // Check for existing user session on mount
+  // Check for existing user session on mount — verify with server to avoid stale token flash
   useEffect(() => {
     const checkSession = async () => {
       const token = apiClient.getToken()
-      const userData = localStorage.getItem('iFilter_userData')
 
-      if (token && userData) {
-        try {
-          const parsedUser = JSON.parse(userData)
-          dispatch({
-            type: ACTIONS.SET_USER,
-            payload: { user: parsedUser }
-          })
-        } catch (error) {
-          console.error('Error parsing stored user data:', error)
-          localStorage.removeItem('iFilter_userData')
-          dispatch({ type: ACTIONS.SET_USER_LOADING, payload: false })
-        }
-      } else {
+      if (!token) {
         dispatch({ type: ACTIONS.SET_USER_LOADING, payload: false })
+        return
+      }
+
+      try {
+        const response = await apiClient.getCurrentUser()
+        if (response?.success && response?.user) {
+          localStorage.setItem('iFilter_userData', JSON.stringify(response.user))
+          dispatch({ type: ACTIONS.SET_USER, payload: { user: response.user } })
+        } else {
+          apiClient.clearToken()
+          localStorage.removeItem('iFilter_userData')
+          dispatch({ type: ACTIONS.LOGOUT_USER })
+        }
+      } catch {
+        apiClient.clearToken()
+        localStorage.removeItem('iFilter_userData')
+        dispatch({ type: ACTIONS.LOGOUT_USER })
       }
     }
 
