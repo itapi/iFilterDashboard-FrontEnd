@@ -476,7 +476,7 @@ const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
     })
 
     try {
-      decoder.configure({ codec, description: description ?? undefined, optimizeForLatency: true })
+      decoder.configure({ codec, description: description ?? undefined, optimizeForLatency: true, hardwareAcceleration: 'prefer-software' })
       console.log('[screen] decoder configured, state:', decoder.state)
       decoderRef.current = decoder
     } catch (err) {
@@ -504,7 +504,6 @@ const handleScreenFrame = useCallback((buffer) => {
 
     if (frameType === SCREEN_FRAME_CONFIG) {
       // SPS/PPS — store and initialise the decoder
-      console.log('[screen] CONFIG received, size:', payloadSize)
       configDataRef.current = payload
       initDecoder(payload)
       // If we re-initialize the decoder, we immediately need a keyframe
