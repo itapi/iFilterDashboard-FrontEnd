@@ -482,6 +482,10 @@ class ApiClient {
       url += `&order=${filters.order}`;
     }
 
+    if (filters.client_unique_id) {
+      url += `&client_unique_id=${encodeURIComponent(filters.client_unique_id)}`;
+    }
+
     return this.apiRequest(url);
   }
 

@@ -1,4 +1,4 @@
-import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, Settings, Radio, Terminal } from 'lucide-react'
+import { ArrowRight, User, Crown, Smartphone, CreditCard, CheckCircle, X, Zap, Settings, Radio, Terminal, MessageCircle } from 'lucide-react'
 import { usePermissions } from '../hooks/usePermissions'
 
 /**
@@ -83,6 +83,7 @@ const ClientDetailsHeader = ({ client, onBack, activeTab, onTabChange, isCustomP
     ...(isCustomPlan ? [{ id: 'apps', label: 'אפליקציות מותרות', icon: Smartphone }] : []),
     { id: 'settings', label: 'הגדרות נוספות', icon: Settings },
     { id: 'payments', label: 'תשלומים', icon: CreditCard },
+    { id: 'tickets', label: 'פניות', icon: MessageCircle },
     ...(isSuperAdmin() ? [{ id: 'commands', label: 'פקודות מרחוק', icon: Terminal }] : []),
   ]
 

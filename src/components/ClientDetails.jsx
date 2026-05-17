@@ -12,6 +12,7 @@ import ClientAppsTab from './ClientAppsTab'
 import AdditionalSettingsTab from './AdditionalSettingsTab'
 import LiveSessionOverlay from './LiveSessionOverlay'
 import ClientCommandsTab from './ClientCommandsTab'
+import ClientTicketsTab from './ClientTicketsTab'
 
 /**
  * ClientDetails - Main component orchestrating client detail views
@@ -251,7 +252,7 @@ const ClientDetails = () => {
               openModal({
                 layout: 'customPlanApps',
                 title: 'בחירת אפליקציות - מסלול אישי',
-                size: 'xl',
+                size: 'full',
                 data: {
                   clientUniqueId,
                   planUniqueId: null,
@@ -280,6 +281,10 @@ const ClientDetails = () => {
 
         {activeTab === 'commands' && (
           <ClientCommandsTab clientUniqueId={clientUniqueId} />
+        )}
+
+        {activeTab === 'tickets' && (
+          <ClientTicketsTab clientUniqueId={clientUniqueId} />
         )}
       </div>
     </div>

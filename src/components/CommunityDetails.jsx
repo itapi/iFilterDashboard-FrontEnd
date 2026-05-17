@@ -161,7 +161,7 @@ const CommunityDetails = () => {
     openModal({
       layout: 'customPlanApps',
       title: 'בחירת אפליקציות - קהילה',
-      size: 'xl',
+      size: 'full',
       data: {
         clientUniqueId: null,
         planUniqueId: community.plan_unique_id,

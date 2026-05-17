@@ -2,59 +2,114 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { toast } from 'react-toastify'
 import apiClient from '../../../utils/api'
 import { useGlobalState } from '../../../contexts/GlobalStateContext'
-import { Search, Package, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Package, ChevronLeft, ChevronRight, X, Smartphone } from 'lucide-react'
 import AppCard from '../../AppCard'
 import Loader from '../../Loader'
+
+// Compact tile shown in the right "selected" panel
+const SelectedTile = ({ app, onRemove }) => {
+  const [imageError, setImageError] = useState(false)
+  return (
+    <div className="relative bg-white border border-purple-200 rounded-xl p-2 group">
+      <button
+        onClick={() => onRemove(app.app_id)}
+        className="absolute top-1 left-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+      >
+        <X className="w-3 h-3" />
+      </button>
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <div className="w-12 h-12 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {app.icon_url && !imageError ? (
+            <img
+              src={app.icon_url}
+              alt={app.app_name}
+              className="w-10 h-10 rounded-lg object-cover"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <Smartphone className="w-6 h-6 text-purple-400" />
+          )}
+        </div>
+        <p className="text-xs font-medium text-gray-800 leading-tight line-clamp-2 w-full">
+          {app.app_name}
+        </p>
+      </div>
+    </div>
+  )
+}
 
 export const CustomPlanAppsLayout = forwardRef(({ data }, ref) => {
   const { clientUniqueId, planUniqueId, onSave } = data
   const { closeModal } = useGlobalState()
 
+  // Left panel
   const [availableApps, setAvailableApps] = useState([])
-  const [selectedApps, setSelectedApps] = useState(new Set())
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
-  const [loadingGrid, setLoadingGrid] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [loadingApps, setLoadingApps] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState(null)
-  const [initialSelectedAppIds, setInitialSelectedAppIds] = useState(new Set())
-  const searchTimeoutRef = useRef(null)
 
-  const handleSearchChange = (value) => {
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    searchTimeoutRef.current = setTimeout(() => {
-      setSearchTerm(value)
-      setCurrentPage(1)
-    }, 500)
-  }
+  // Right panel
+  const [selectedAppIds, setSelectedAppIds] = useState(new Set())
+  const [selectedAppsDetails, setSelectedAppsDetails] = useState([])
+  const [initialSelectedAppIds, setInitialSelectedAppIds] = useState(new Set())
+  const [initialSelectedAppsDetails, setInitialSelectedAppsDetails] = useState([])
+
+  const [saving, setSaving] = useState(false)
+  const searchTimeoutRef = useRef(null)
+  const isInitialMount = useRef(true)
 
   useEffect(() => {
-    loadData()
-  }, [clientUniqueId, planUniqueId, currentPage, searchTerm, selectedCategory])
+    loadInitial()
+  }, [clientUniqueId, planUniqueId])
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    loadAvailableApps()
+  }, [searchTerm, categoryFilter, currentPage])
+
+  const loadInitial = async () => {
     try {
-      const isInitialLoad = categories.length === 0 && currentPage === 1 && !searchTerm && selectedCategory === 'all'
-      if (isInitialLoad) setLoading(true)
-      else setLoadingGrid(true)
-
-      if (categories.length === 0) {
-        const categoriesResponse = await apiClient.getCategories()
-        if (categoriesResponse.success) setCategories(categoriesResponse.data)
+      setLoading(true)
+      const [catsRes, appsRes, selectedRes] = await Promise.all([
+        apiClient.getCategories(),
+        apiClient.getPlanAvailableApps({
+          planId: planUniqueId,
+          clientId: clientUniqueId,
+          page: 1,
+          limit: 20
+        }),
+        apiClient.getPlanSelectedApps(planUniqueId, clientUniqueId)
+      ])
+      if (catsRes.success) setCategories(catsRes.data)
+      if (appsRes.success) {
+        setAvailableApps(appsRes.data?.data || [])
+        setPagination(appsRes.data?.pagination || null)
       }
-
-      if (currentPage === 1 && searchTerm === '' && selectedCategory === 'all' && selectedApps.size === 0) {
-        const selectedAppsResponse = await apiClient.getPlanSelectedApps(planUniqueId, clientUniqueId)
-        if (selectedAppsResponse.success) {
-          const currentlySelectedIds = new Set(selectedAppsResponse.data.map(app => app.app_id))
-          setInitialSelectedAppIds(currentlySelectedIds)
-          setSelectedApps(currentlySelectedIds)
-        }
+      if (selectedRes.success) {
+        const apps = selectedRes.data || []
+        const ids = new Set(apps.map(a => a.app_id))
+        setSelectedAppIds(ids)
+        setInitialSelectedAppIds(new Set(ids))
+        setSelectedAppsDetails(apps)
+        setInitialSelectedAppsDetails(apps)
       }
+    } catch {
+      toast.error('שגיאה בטעינת הנתונים')
+    } finally {
+      setLoading(false)
+    }
+  }
 
+  const loadAvailableApps = async () => {
+    try {
+      setLoadingApps(true)
       const filters = {
         planId: planUniqueId,
         clientId: clientUniqueId,
@@ -62,80 +117,87 @@ export const CustomPlanAppsLayout = forwardRef(({ data }, ref) => {
         limit: 20
       }
       if (searchTerm) filters.search = searchTerm
-      if (selectedCategory !== 'all') filters.categoryId = selectedCategory
-
-      const appsResponse = await apiClient.getPlanAvailableApps(filters)
-      if (appsResponse.success) {
-        setAvailableApps(appsResponse.data.data)
-        setPagination(appsResponse.data.pagination)
+      if (categoryFilter !== 'all') filters.categoryId = categoryFilter
+      const res = await apiClient.getPlanAvailableApps(filters)
+      if (res.success) {
+        setAvailableApps(res.data?.data || [])
+        setPagination(res.data?.pagination || null)
       }
-    } catch (error) {
-      console.error('Error loading data:', error)
-      toast.error('שגיאה בטעינת הנתונים')
+    } catch {
+      toast.error('שגיאה בטעינת האפליקציות')
     } finally {
-      setLoading(false)
-      setLoadingGrid(false)
+      setLoadingApps(false)
     }
   }
 
-  const handleAppToggle = useCallback((appId) => {
-    setSelectedApps(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(appId)) newSet.delete(appId)
-      else newSet.add(appId)
-      return newSet
+  const handleSearchInput = (e) => {
+    const val = e.target.value
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchTerm(val)
+      setCurrentPage(1)
+    }, 400)
+  }
+
+  // Called by AppCard — receives app_id, but we need the full object
+  const handleToggle = useCallback((appId) => {
+    const app = availableApps.find(a => a.app_id === appId)
+    if (!app) return
+    setSelectedAppIds(prev => {
+      const next = new Set(prev)
+      if (next.has(appId)) next.delete(appId)
+      else next.add(appId)
+      return next
     })
+    setSelectedAppsDetails(prev => {
+      if (prev.some(a => a.app_id === appId)) return prev.filter(a => a.app_id !== appId)
+      return [...prev, app]
+    })
+  }, [availableApps])
+
+  const removeApp = useCallback((appId) => {
+    setSelectedAppIds(prev => {
+      const next = new Set(prev)
+      next.delete(appId)
+      return next
+    })
+    setSelectedAppsDetails(prev => prev.filter(a => a.app_id !== appId))
   }, [])
 
-  const handleSelectAll = useCallback(() => {
-    const currentPageAppIds = availableApps.map(app => app.app_id)
-    const allSelected = currentPageAppIds.every(id => selectedApps.has(id))
-    setSelectedApps(prev => {
-      const newSet = new Set(prev)
-      if (allSelected) currentPageAppIds.forEach(id => newSet.delete(id))
-      else currentPageAppIds.forEach(id => newSet.add(id))
-      return newSet
-    })
-  }, [availableApps, selectedApps])
+  const handleReset = useCallback(() => {
+    setSelectedAppIds(new Set(initialSelectedAppIds))
+    setSelectedAppsDetails([...initialSelectedAppsDetails])
+  }, [initialSelectedAppIds, initialSelectedAppsDetails])
 
   const handleSave = useCallback(async () => {
     try {
       setSaving(true)
-      const selectedArray = Array.from(selectedApps)
+      const selectedArray = Array.from(selectedAppIds)
       const response = await apiClient.updatePlanSelectedApps(planUniqueId, clientUniqueId, selectedArray)
       if (response.success) {
         const entityType = planUniqueId ? 'הקהילה' : 'הלקוח'
         toast.success(`נשמרו ${selectedArray.length} אפליקציות עבור ${entityType}`)
-        setInitialSelectedAppIds(new Set(selectedApps))
+        setInitialSelectedAppIds(new Set(selectedAppIds))
+        setInitialSelectedAppsDetails([...selectedAppsDetails])
         onSave && onSave(selectedArray)
         closeModal()
       } else {
         throw new Error(response.message || 'שגיאה בשמירת האפליקציות')
       }
-    } catch (error) {
-      console.error('Error saving apps:', error)
+    } catch {
       toast.error('שגיאה בשמירת האפליקציות')
     } finally {
       setSaving(false)
     }
-  }, [clientUniqueId, planUniqueId, selectedApps, onSave, closeModal])
+  }, [clientUniqueId, planUniqueId, selectedAppIds, selectedAppsDetails, onSave, closeModal])
 
-  const handleReset = useCallback(() => {
-    setSelectedApps(new Set(initialSelectedAppIds))
-    toast.info('האפליקציות הנבחרות אופסו למצב ההתחלתי')
-  }, [initialSelectedAppIds])
+  const hasChanges =
+    selectedAppIds.size !== initialSelectedAppIds.size ||
+    [...selectedAppIds].some(id => !initialSelectedAppIds.has(id))
 
-  const hasChanges = useCallback(() => {
-    if (selectedApps.size !== initialSelectedAppIds.size) return true
-    for (let id of selectedApps) if (!initialSelectedAppIds.has(id)) return true
-    return false
-  }, [selectedApps, initialSelectedAppIds])
+  useImperativeHandle(ref, () => ({ submitForm: handleSave }))
 
-  useImperativeHandle(ref, () => ({
-    submitForm: handleSave
-  }))
-
-  if (loading && currentPage === 1) {
+  if (loading) {
     return (
       <div className="p-8">
         <Loader center variant="purple" text="טוען אפליקציות..." />
@@ -144,114 +206,138 @@ export const CustomPlanAppsLayout = forwardRef(({ data }, ref) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-50 rounded-xl p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+    <div className="flex h-[calc(90vh-160px)]" dir="rtl">
+      {/* ── Left: Available apps ── */}
+      <div className="flex flex-col flex-1 min-w-0 p-4">
+        {/* Search & filter */}
+        <div className="flex gap-3 mb-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="חיפוש אפליקציות..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="חיפוש לפי שם או package..."
+              onChange={handleSearchInput}
+              className="w-full pr-10 pl-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1) }}
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+          >
+            <option value="all">כל הקטגוריות</option>
+            {categories.map(cat => (
+              <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
+            ))}
+          </select>
+        </div>
 
-          <div className="md:w-64">
-            <select
-              value={selectedCategory}
-              onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1) }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="all">כל הקטגוריות</option>
-              {categories.map(cat => (
-                <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
+        {/* Apps grid */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {loadingApps ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader center variant="purple" text="טוען..." />
+            </div>
+          ) : availableApps.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-gray-400">
+              <Package className="w-10 h-10 mb-2" />
+              <p className="text-sm">לא נמצאו אפליקציות</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {availableApps.map(app => (
+                <AppCard
+                  key={app.app_id}
+                  app={app}
+                  isSelected={selectedAppIds.has(app.app_id)}
+                  onToggle={handleToggle}
+                />
               ))}
-            </select>
-          </div>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center space-x-4">
+        {/* Pagination */}
+        {pagination && pagination.total_pages > 1 && (
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 text-sm">
             <button
-              onClick={handleSelectAll}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-            >
-              {availableApps.length > 0 && availableApps.every(app => selectedApps.has(app.app_id)) ? 'בטל בחירת הכל' : 'בחר הכל'}
-            </button>
-          </div>
-          <div className="text-sm text-gray-600">נבחרו {selectedApps.size} אפליקציות</div>
-        </div>
-      </div>
-
-      {loadingGrid ? (
-        <Loader center variant="purple" text="טוען..." />
-      ) : availableApps.length === 0 ? (
-        <div className="text-center py-12">
-          <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">לא נמצאו אפליקציות</h3>
-          <p className="text-gray-500">נסה לשנות את החיפוש או הסינון</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {availableApps.map(app => (
-            <AppCard
-              key={app.app_id}
-              app={app}
-              isSelected={selectedApps.has(app.app_id)}
-              onToggle={handleAppToggle}
-            />
-          ))}
-        </div>
-      )}
-
-      {pagination && pagination.total_pages > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-            <span className="px-4 py-2 text-sm text-gray-600">
+            <span className="text-gray-500">
               עמוד {currentPage} מתוך {pagination.total_pages}
+              {pagination.total && <span className="text-gray-400"> · {pagination.total} אפליקציות</span>}
             </span>
             <button
-              onClick={() => setCurrentPage(prev => Math.min(pagination.total_pages, prev + 1))}
+              onClick={() => setCurrentPage(p => Math.min(pagination.total_pages, p + 1))}
               disabled={currentPage === pagination.total_pages}
-              className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
           </div>
-          <div className="text-sm text-gray-500">{pagination.total} אפליקציות בסך הכל</div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div className="flex items-center justify-between pt-4 border-t">
-        <div className="text-sm text-gray-600">נבחרו {selectedApps.size} אפליקציות</div>
-        <div className="flex items-center space-x-3">
-          {hasChanges() && (
-            <button onClick={handleReset} className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
-              איפוס
+      {/* Vertical divider */}
+      <div className="w-px bg-gray-200 my-4 flex-shrink-0" />
+
+      {/* ── Right: Selected apps ── */}
+      <div className="flex flex-col w-[420px] flex-shrink-0 p-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold text-gray-800">נבחרו</p>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+            hasChanges ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'
+          }`}>
+            {selectedAppIds.size} אפליקציות
+          </span>
+        </div>
+
+        {/* Selected tiles grid */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {selectedAppsDetails.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 text-gray-300 text-center px-4">
+              <Package className="w-8 h-8 mb-2" />
+              <p className="text-xs">לחץ על אפליקציות משמאל להוספה</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {selectedAppsDetails.map(app => (
+                <SelectedTile key={app.app_id} app={app} onRemove={removeApp} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="mt-3 space-y-2">
+          {hasChanges && (
+            <button
+              onClick={handleReset}
+              className="w-full py-2 border border-gray-200 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              בטל שינויים
             </button>
           )}
-          <button onClick={closeModal} className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
-            ביטול
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !hasChanges()}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-          >
-            {saving ? (
-              <Loader size="sm" variant="white" text="שומר..." />
-            ) : (
-              <span>שמור שינויים</span>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={closeModal}
+              className="flex-1 py-2 border border-gray-200 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              סגור
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || !hasChanges}
+              className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? 'שומר...' : 'שמור'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
