@@ -1093,6 +1093,89 @@ class ApiClient {
       body: { id, response_text: responseText, admin_name: adminName },
     });
   }
+
+  // ── Distributions: Contacts ────────────────────────────────────────────────
+
+  async getContacts(params = {}) {
+    const query = new URLSearchParams({ resource: 'contacts', ...params }).toString();
+    return this.apiRequest(`distributions?${query}`);
+  }
+
+  async createContact(data) {
+    return this.apiRequest('distributions?resource=contacts', { method: 'POST', body: data });
+  }
+
+  async batchInsertContacts(contacts) {
+    return this.apiRequest('distributions?resource=contacts&action=batch_insert', {
+      method: 'POST',
+      body: { contacts },
+    });
+  }
+
+  async updateContact(id, data) {
+    return this.apiRequest(`distributions?resource=contacts&id=${id}`, { method: 'PUT', body: data });
+  }
+
+  async deleteContact(id) {
+    return this.apiRequest(`distributions?resource=contacts&id=${id}`, { method: 'DELETE' });
+  }
+
+  async updateContactStatus(id, field, value) {
+    return this.apiRequest('distributions?resource=contacts&action=update_status', {
+      method: 'POST',
+      body: { id, field, value },
+    });
+  }
+
+  async sendContactMail(contactId, subject, body, email = null) {
+    return this.apiRequest('distributions?resource=contacts&action=send_mail', {
+      method: 'POST',
+      body: { contact_id: contactId, subject, body, ...(email ? { email } : {}) },
+    });
+  }
+
+  // ── Distributions: Templates ───────────────────────────────────────────────
+
+  async getTemplates() {
+    return this.apiRequest('distributions?resource=templates');
+  }
+
+  async createTemplate(data) {
+    return this.apiRequest('distributions?resource=templates', { method: 'POST', body: data });
+  }
+
+  async updateTemplate(id, data) {
+    return this.apiRequest(`distributions?resource=templates&id=${id}`, { method: 'PUT', body: data });
+  }
+
+  async deleteTemplate(id) {
+    return this.apiRequest(`distributions?resource=templates&id=${id}`, { method: 'DELETE' });
+  }
+
+  // ── Distributions: Tasks ───────────────────────────────────────────────────
+
+  async getDistributionTasks() {
+    return this.apiRequest('distributions?resource=tasks');
+  }
+
+  async createDistributionTask(data) {
+    return this.apiRequest('distributions?resource=tasks', { method: 'POST', body: data });
+  }
+
+  async updateDistributionTask(id, data) {
+    return this.apiRequest(`distributions?resource=tasks&id=${id}`, { method: 'PUT', body: data });
+  }
+
+  async deleteDistributionTask(id) {
+    return this.apiRequest(`distributions?resource=tasks&id=${id}`, { method: 'DELETE' });
+  }
+
+  async updateDistributionTaskStatus(id, status) {
+    return this.apiRequest('distributions?resource=tasks&action=update_status', {
+      method: 'POST',
+      body: { id, status },
+    });
+  }
 }
 
 // Create a singleton instance

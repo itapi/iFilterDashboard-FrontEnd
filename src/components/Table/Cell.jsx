@@ -172,9 +172,11 @@ export const Cell = ({ row, column, data = [], validations = null, onDataUpdate 
             ref={inputRef}
             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             value={editValue}
-            onChange={handleChange}
+            onChange={(e) => {
+              setEditValue(e.target.value)
+              handleSave(e.target.value)
+            }}
             onKeyDown={handleKeyDown}
-            onBlur={handleBlur}
           >
             {column.options?.map((option) => (
               <option key={option.value} value={option.value}>

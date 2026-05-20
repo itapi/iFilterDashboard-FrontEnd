@@ -32,7 +32,13 @@
       "Read(/C:\\Users\\itamary_binaa\\Downloads\\iFilterDashboard-main\\src\\components/**)",
       "Read(/C:\\Users\\itamary_binaa\\Downloads\\iFilterDashboard-main\\src\\components/**)",
       "Read(/C:\\Users\\itamary_binaa\\Downloads\\iFilterDashboard-main\\src\\components/**)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\itamary_binaa\\\\Downloads\\\\itapi\\\\iFilterDashboard-main\\\\iFilterDashboard-BackEnd\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "PowerShell(node -e \"const crypto = require\\('crypto'\\); console.log\\('ready'\\)\")",
+      "PowerShell(php -r \"echo password_hash\\('itapi123', PASSWORD_DEFAULT\\);\")",
+      "Bash(cmd *)"
     ],
     "deny": [],
     "ask": []

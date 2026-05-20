@@ -18,6 +18,7 @@ import SafeBrowserManager from './components/SafeBrowserManager'
 import Sidebar from './components/Sidebar'
 import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
+import Distributions from './components/Distributions'
 import WebInquiriesTable from './components/WebInquiriesTable'
 import Loader from './components/Loader'
 import { ProtectedRoute, SuperAdminRoute, ManagerRoute } from './components/ProtectedRoute'
@@ -94,6 +95,13 @@ function AppContent() {
               <Route path="/admins" element={
                 <SuperAdminRoute showForbidden={true}>
                   <AdminsTable />
+                </SuperAdminRoute>
+              } />
+
+              {/* Distributions - Super Admin only */}
+              <Route path="/distributions" element={
+                <SuperAdminRoute showForbidden={true}>
+                  <Distributions />
                 </SuperAdminRoute>
               } />
 

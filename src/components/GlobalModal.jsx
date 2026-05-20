@@ -22,6 +22,11 @@ import { ReviewRejectLayout } from './Modal/layouts/ReviewRejectLayout'
 import WebInquiryResponseLayout from './Modal/layouts/WebInquiryResponseLayout'
 import { SendCommandLayout } from './Modal/layouts/SendCommandLayout'
 import { UploadFirmwareLayout } from './Modal/layouts/UploadFirmwareLayout'
+import { ContactFormLayout } from './Modal/layouts/ContactFormLayout'
+import { TemplateFormLayout } from './Modal/layouts/TemplateFormLayout'
+import { VcfImportLayout } from './Modal/layouts/VcfImportLayout'
+import { DistributionTaskFormLayout } from './Modal/layouts/DistributionTaskFormLayout'
+import { SendContactMailLayout } from './Modal/layouts/SendContactMailLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -205,6 +210,36 @@ const GlobalModal = () => {
       // Review request reject with notes
       reviewReject: {
         component: <ReviewRejectLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      contactForm: {
+        component: <ContactFormLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      templateForm: {
+        component: <TemplateFormLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      vcfImport: {
+        component: <VcfImportLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      distributionTaskForm: {
+        component: <DistributionTaskFormLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      sendContactMail: {
+        component: <SendContactMailLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
         showFooter: true,
         hasRef: true,
       },
