@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'react-toastify'
-import { Send, RefreshCw, CheckCircle, Clock, XCircle, Layers } from 'lucide-react'
+import { Send, RefreshCw, CheckCircle, Clock, XCircle, Layers, RotateCcw } from 'lucide-react'
 import apiClient from '../utils/api'
 import { useGlobalState } from '../contexts/GlobalStateContext'
 import Loader from './Loader'
@@ -51,6 +51,7 @@ export default function RemoteCommandsManager() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(null)
   const [clients, setClients] = useState([])
+  const [retrying, setRetrying] = useState(null)
 
   const loadCommands = useCallback(async () => {
     try {
@@ -72,6 +73,19 @@ export default function RemoteCommandsManager() {
       .then(res => setClients(res.data?.data || res.data || []))
       .catch(() => {})
   }, [])
+
+  const handleRetry = async (cmd) => {
+    setRetrying(cmd.command_id)
+    try {
+      await apiClient.updateRemoteCommandStatus(cmd.command_id, 'PENDING')
+      toast.success('הפקודה הועברה לסטטוס ממתין')
+      await loadCommands()
+    } catch {
+      toast.error('שגיאה בעדכון סטטוס הפקודה')
+    } finally {
+      setRetrying(null)
+    }
+  }
 
   const handleSendCommand = () => {
     openModal({
@@ -176,6 +190,7 @@ export default function RemoteCommandsManager() {
                 <th className="px-4 py-3 font-medium text-gray-500">נוצר</th>
                 <th className="px-4 py-3 font-medium text-gray-500">בוצע</th>
                 <th className="px-4 py-3 font-medium text-gray-500">Broadcast</th>
+                <th className="px-4 py-3 font-medium text-gray-500">פעולות</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -210,6 +225,19 @@ export default function RemoteCommandsManager() {
                         Broadcast
                       </span>
                     ) : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    {cmd.status === 'FAILED' && (
+                      <button
+                        onClick={() => handleRetry(cmd)}
+                        disabled={retrying === cmd.command_id}
+                        title="נסה שנית"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                      >
+                        <RotateCcw size={12} className={retrying === cmd.command_id ? 'animate-spin' : ''} />
+                        נסה שנית
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

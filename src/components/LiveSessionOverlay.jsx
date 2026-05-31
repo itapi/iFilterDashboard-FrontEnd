@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
+import { useWebNotifications } from '../hooks/useWebNotifications'
 import {
   ArrowRight, Send, Square, Radio, Wifi, WifiOff,
   Clock, AlertCircle, Terminal, Smartphone, Monitor, MonitorOff, Loader,
-  ChevronDown, Zap, ChevronLeft, Circle, LayoutGrid, Keyboard,
+  ChevronDown, Zap, ChevronLeft, Circle, LayoutGrid, Keyboard, Trash2,
 } from 'lucide-react'
 import apiClient from '../utils/api'
 import shellCommands from '../data/shellCommands.json'
@@ -217,7 +218,7 @@ const MessageBubble = ({ message }) => {
         <div className="w-full flex flex-col gap-1 items-end">
           <div
             dir="ltr"
-            className={`w-full px-4 py-3 rounded-2xl rounded-tr-sm text-sm font-mono leading-relaxed whitespace-pre overflow-x-auto shadow-sm text-left ${
+            className={`w-full px-4 py-3 rounded-2xl rounded-tr-sm text-sm font-mono leading-relaxed whitespace-pre overflow-x-auto shadow-sm text-left select-text cursor-text ${
               failed ? 'bg-red-950 text-red-300 border border-red-900' : 'bg-gray-900 text-gray-100'
             }`}
           >
@@ -361,6 +362,7 @@ const QuickCommands = ({ onSelect, disabled }) => {
 // Main overlay
 // ---------------------------------------------------------------------------
 const LiveSessionOverlay = ({ clientId, clientName, sessionId, onClose }) => {
+  const { notify } = useWebNotifications()
 
   // ── Session state ──────────────────────────────────────────────────────────
   const [status,        setStatus]        = useState('connecting')
@@ -825,6 +827,9 @@ const handleScreenFrame = useCallback((buffer) => {
     // Don't capture if a text input is focused
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
 
+    // Let browser handle Ctrl/Meta shortcuts (copy, paste, select-all, etc.)
+    if (e.ctrlKey || e.metaKey) return
+
     e.preventDefault()
 
     const androidKeyCode = KEY_MAP[e.key]
@@ -879,12 +884,14 @@ const handleScreenFrame = useCallback((buffer) => {
       setCanSend(true)
       inputRef.current?.focus()
       if (sessionId) apiClient.markLiveSessionClientConnected(sessionId).catch(() => {})
+      notify('שיחה חיה — לקוח התחבר', `${clientName} מחובר ומוכן לשיחה`)
     })
 
     socket.on('session:client_disconnected', () => {
       setStatus('client_disconnected')
       setCanSend(false)
       addMessage({ kind: 'system', text: 'הלקוח התנתק. ממתין להתחברות מחדש...', timestamp: Date.now() })
+      notify('שיחה חיה — לקוח התנתק', `${clientName} התנתק, ממתין לחיבור מחדש`)
     })
 
     socket.on('session:ended', ({ reason } = {}) => {
@@ -1291,8 +1298,22 @@ const handleScreenFrame = useCallback((buffer) => {
         {/* ── Terminal panel (right, or full-width when no screen) ─────────── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" dir="rtl">
 
+          {/* Messages toolbar */}
+          {messages.length > 0 && (
+            <div className="flex justify-end px-6 pt-3 flex-shrink-0">
+              <button
+                onClick={() => setMessages([])}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                title="נקה היסטוריה"
+              >
+                <Trash2 size={13} />
+                נקה
+              </button>
+            </div>
+          )}
+
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-1">
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-1">
             {messages.length === 0 && (status === 'waiting' || status === 'connecting') && (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-400">
                 <div className="w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center">

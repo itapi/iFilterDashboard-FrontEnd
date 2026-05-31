@@ -20,6 +20,7 @@ import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
 import Distributions from './components/Distributions'
 import WebInquiriesTable from './components/WebInquiriesTable'
+import SettingsPage from './components/SettingsPage'
 import Loader from './components/Loader'
 import { ProtectedRoute, SuperAdminRoute, ManagerRoute } from './components/ProtectedRoute'
 import { GlobalStateProvider, useUser } from './contexts/GlobalStateContext'
@@ -173,12 +174,7 @@ function AppContent() {
               {/* Settings - Super Admin only */}
               <Route path="/settings" element={
                 <SuperAdminRoute showForbidden={true}>
-                  <div className="p-8">
-                    <div className="text-center py-12">
-                      <h2 className="text-2xl font-bold text-gray-900 mb-4">הגדרות מערכת</h2>
-                      <p className="text-gray-600">עמוד זה בפיתוח...</p>
-                    </div>
-                  </div>
+                  <SettingsPage />
                 </SuperAdminRoute>
               } />
             </Routes>

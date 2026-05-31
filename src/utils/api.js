@@ -1062,6 +1062,13 @@ class ApiClient {
     });
   }
 
+  async updateRemoteCommandStatus(commandId, status) {
+    return this.apiRequest('remote-commands?action=update_status', {
+      method: 'PUT',
+      body: { command_id: commandId, status }
+    });
+  }
+
   async sendBroadcastCommand(commandType, commandData = null) {
     return this.apiRequest('remote-commands?action=send_broadcast', {
       method: 'POST',

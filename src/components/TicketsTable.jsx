@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
+import { useWebNotifications } from '../hooks/useWebNotifications'
 import { Table } from './Table/Table'
 import { Toggle } from './Toggle'
 import { RoleGuard } from './RoleGuard'
@@ -18,6 +19,12 @@ import {
   Trash,
   Star
 } from 'lucide-react'
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const POLL_INTERVAL_MS = 30_000
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -51,6 +58,7 @@ const formatRelativeTime = (dateStr) => {
 const TicketsTable = () => {
   const { openModal, closeModal } = useGlobalState()
   const { hasPermission, PERMISSIONS } = usePermissions()
+  const { notify } = useWebNotifications()
 
   const [tickets, setTickets] = useState([])
   const [users, setUsers] = useState([])
@@ -73,10 +81,18 @@ const TicketsTable = () => {
   const itemsPerPage = 25
 
   const isInitialMount = useRef(true)
+  const knownTicketIdsRef = useRef(null) // null = not yet seeded
+  // Always holds the latest filter values for use inside the poll interval
+  const filtersRef = useRef({})
 
   // ---------------------------------------------------------------------------
   // Data loading
   // ---------------------------------------------------------------------------
+
+  // Keep filtersRef current so the poll closure always reads the latest values
+  useEffect(() => {
+    filtersRef.current = buildFilters()
+  }, [statusFilter, searchTerm, sortBy, sortOrder])
 
   useEffect(() => {
     const id = setTimeout(loadData, searchTerm ? 300 : 0)
@@ -113,8 +129,12 @@ const TicketsTable = () => {
         ])
 
         if (ticketsRes.success) {
-          setTickets(ticketsRes.data?.data || ticketsRes.data || [])
+          const initialTickets = ticketsRes.data?.data || ticketsRes.data || []
+          setTickets(initialTickets)
           setHasMore(ticketsRes.data?.pagination?.has_more || false)
+          if (knownTicketIdsRef.current === null) {
+            knownTicketIdsRef.current = new Set(initialTickets.map(t => t.id))
+          }
         }
         if (usersRes.success) setUsers(usersRes.data)
         if (userRes.success && userRes.user) setCurrentUser(userRes.user)
@@ -171,6 +191,36 @@ const TicketsTable = () => {
       console.error('Error updating filter counts:', err)
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Background poll — silent refetch + new-ticket notifications
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await apiClient.getTicketsWithDetails(1, itemsPerPage, filtersRef.current)
+        if (!res.success) return
+
+        const fresh = res.data?.data || res.data || []
+
+        // Detect new tickets and notify
+        if (knownTicketIdsRef.current !== null) {
+          fresh
+            .filter(t => !knownTicketIdsRef.current.has(t.id))
+            .forEach(t => notify('פנייה חדשה התקבלה', `${t.client_name} — ${getHebrewSubject(t.subject)}`))
+          knownTicketIdsRef.current = new Set(fresh.map(t => t.id))
+        }
+
+        setTickets(fresh)
+        setHasMore(res.data?.pagination?.has_more || false)
+        setCurrentPage(1)
+        updateFilterCounts()
+      } catch (_) {}
+    }, POLL_INTERVAL_MS)
+
+    return () => clearInterval(interval)
+  }, [notify])
 
   // ---------------------------------------------------------------------------
   // Actions

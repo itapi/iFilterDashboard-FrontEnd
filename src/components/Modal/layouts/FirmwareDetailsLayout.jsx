@@ -227,7 +227,7 @@ export const FirmwareDetailsLayout = ({ data }) => {
             {firmware.firmware_url && (
               <div className="col-span-2">
                 <a
-                  href={`https://ikosher.me/${firmware.firmware_url}`}
+                  href={`https://ikosher.me/iFilter${firmware.firmware_url}`}
                   download
                   target="_blank"
                   rel="noopener noreferrer"

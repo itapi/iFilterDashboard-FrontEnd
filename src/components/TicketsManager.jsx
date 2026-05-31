@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Tooltip } from 'react-tooltip'
 import { toast } from 'react-toastify'
 import apiClient from '../utils/api'
+import { useWebNotifications } from '../hooks/useWebNotifications'
 import {
   MessageCircle,
   Clock,
@@ -120,6 +121,9 @@ const MessageBubble = ({
 }
 
 const TicketsManager = () => {
+  const { notify } = useWebNotifications()
+  const knownTicketIdsRef = useRef(null) // null = not yet initialised
+
   const [tickets, setTickets] = useState([])
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [ticketUpdates, setTicketUpdates] = useState([])
@@ -146,15 +150,42 @@ const TicketsManager = () => {
   useEffect(() => {
     if (selectedTicket) {
       loadTicketUpdates(selectedTicket.id)
-      // Mark ticket as read when opened
       markTicketAsRead(selectedTicket.id)
-      // Poll for updates every 30 seconds
       const interval = setInterval(() => {
         loadTicketUpdates(selectedTicket.id)
       }, 30000)
       return () => clearInterval(interval)
     }
   }, [selectedTicket])
+
+  // Poll for new tickets every 30 seconds and notify
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await apiClient.getTicketsWithDetails()
+        if (!response.success) return
+
+        const fresh = response.data
+        const known = knownTicketIdsRef.current
+
+        if (known !== null) {
+          const newTickets = fresh.filter(t => !known.has(t.id))
+          newTickets.forEach(t => {
+            notify(
+              'פנייה חדשה התקבלה',
+              `${t.client_name} — ${t.subject}`
+            )
+          })
+          if (newTickets.length > 0) {
+            knownTicketIdsRef.current = new Set(fresh.map(t => t.id))
+            setTickets(fresh)
+          }
+        }
+      } catch (_) {}
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [notify])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -188,6 +219,10 @@ const TicketsManager = () => {
 
       if (ticketsResponse.success) {
         setTickets(ticketsResponse.data)
+        // Seed known IDs so the first poll doesn't fire false positives
+        if (knownTicketIdsRef.current === null) {
+          knownTicketIdsRef.current = new Set(ticketsResponse.data.map(t => t.id))
+        }
       }
 
       if (usersResponse.success) {

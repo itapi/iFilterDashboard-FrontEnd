@@ -38,7 +38,8 @@
       "Bash(Sort-Object FullName)",
       "PowerShell(node -e \"const crypto = require\\('crypto'\\); console.log\\('ready'\\)\")",
       "PowerShell(php -r \"echo password_hash\\('itapi123', PASSWORD_DEFAULT\\);\")",
-      "Bash(cmd *)"
+      "Bash(cmd *)",
+      "PowerShell(head *)"
     ],
     "deny": [],
     "ask": []

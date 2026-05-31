@@ -19,7 +19,7 @@ const FirmwareManager = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const itemsPerPage = 25
+  const itemsPerPage = 100
 
   // Track if this is the initial mount
   const isInitialMount = useRef(true)
