@@ -17,7 +17,9 @@ import {
   X,
   Save,
   Paperclip,
-  Loader
+  Loader,
+  Package,
+  Store
 } from 'lucide-react'
 
 /**
@@ -461,6 +463,30 @@ export const TicketDialogLayout = forwardRef(({ data }, ref) => {
             )}
           </div>
         </div>
+
+        {/* App package banner for app_upload / app_update */}
+        {ticket.app_package_name && (
+          <div className="mb-3 flex items-center justify-between gap-3 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Package className="w-4 h-4 text-indigo-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-indigo-400 mb-0.5">Package name</p>
+                <p className="text-sm text-indigo-800 font-mono truncate">{ticket.app_package_name}</p>
+              </div>
+            </div>
+            <a
+              href={`https://play.google.com/store/apps/details?id=${encodeURIComponent(ticket.app_package_name)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
+            >
+              <Store className="w-3.5 h-3.5" />
+              Google Play
+            </a>
+          </div>
+        )}
 
         {/* Ticket Description */}
         <div className="bg-gray-50 rounded-lg p-4">

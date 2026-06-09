@@ -239,6 +239,8 @@ const MessageBubble = ({ message }) => {
     )
   }
 
+
+
   if (message.kind === 'error') {
     return (
       <div className="flex justify-center my-3">

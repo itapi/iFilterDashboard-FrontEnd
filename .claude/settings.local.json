@@ -39,7 +39,8 @@
       "PowerShell(node -e \"const crypto = require\\('crypto'\\); console.log\\('ready'\\)\")",
       "PowerShell(php -r \"echo password_hash\\('itapi123', PASSWORD_DEFAULT\\);\")",
       "Bash(cmd *)",
-      "PowerShell(head *)"
+      "PowerShell(head *)",
+      "Bash(Get-ChildItem *)"
     ],
     "deny": [],
     "ask": []

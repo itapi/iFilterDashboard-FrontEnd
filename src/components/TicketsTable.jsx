@@ -32,6 +32,7 @@ const POLL_INTERVAL_MS = 30_000
 
 const SUBJECT_LABELS = {
   app_upload: 'העלאת אפליקציה',
+  app_update: 'עדכון אפליקציה',
   report: 'דיווח',
   other: 'אחר'
 }
