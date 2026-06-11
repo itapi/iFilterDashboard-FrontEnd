@@ -1076,6 +1076,31 @@ class ApiClient {
     });
   }
 
+  // ── Reseller Registrations methods ────────────────────────────────────────
+
+  async getResellers(page = 1, limit = 25, params = {}) {
+    const query = new URLSearchParams({ page, limit, ...params }).toString();
+    return this.apiRequest(`reseller-registrations?action=with_details&${query}`);
+  }
+
+  async getResellerStatistics() {
+    return this.apiRequest('reseller-registrations?action=statistics');
+  }
+
+  async updateResellerStatus(id, status) {
+    return this.apiRequest('reseller-registrations?action=update_status', {
+      method: 'PUT',
+      body: { id, status },
+    });
+  }
+
+  async acceptReseller(id, isAccepted) {
+    return this.apiRequest('reseller-registrations?action=accept', {
+      method: 'PUT',
+      body: { id, is_accepted: isAccepted },
+    });
+  }
+
   // ── Web Inquiries methods ──────────────────────────────────────────────────
 
   async getWebInquiries(page = 1, limit = 25, params = {}) {

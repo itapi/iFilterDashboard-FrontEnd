@@ -20,6 +20,7 @@ import GlobalModal from './components/GlobalModal'
 import MagiskModules from './components/MagiskModules'
 import Distributions from './components/Distributions'
 import WebInquiriesTable from './components/WebInquiriesTable'
+import ResellersTable from './components/ResellersTable'
 import SettingsPage from './components/SettingsPage'
 import Loader from './components/Loader'
 import { ProtectedRoute, SuperAdminRoute, ManagerRoute } from './components/ProtectedRoute'
@@ -81,6 +82,13 @@ function AppContent() {
               <Route path="/web-inquiries" element={
                 <ManagerRoute showForbidden={true}>
                   <WebInquiriesTable />
+                </ManagerRoute>
+              } />
+
+              {/* Reseller Registrations - Managers and Super Admins */}
+              <Route path="/resellers" element={
+                <ManagerRoute showForbidden={true}>
+                  <ResellersTable />
                 </ManagerRoute>
               } />
 
