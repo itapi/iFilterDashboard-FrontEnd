@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'react-toastify'
 import { Tooltip } from 'react-tooltip'
 import { useNavigate } from 'react-router-dom'
@@ -35,8 +35,8 @@ const ClientsTable = () => {
   const [filterCounts, setFilterCounts] = useState({
     all: 0,
     active: 0,
-    trial: 0,
-    inactive: 0
+    inactive: 0,
+    removed: 0
   })
   const [selectedClients, setSelectedClients] = useState([])
 
@@ -174,8 +174,8 @@ const ClientsTable = () => {
     const counts = {
       all: stats.totals?.all_clients || 0,
       active: stats.plan_status?.active || 0,
-      trial: stats.trial_count || 0, // Now using trial_count for inactive users with trial
-      inactive: stats.plan_status?.inactive || 0
+      inactive: stats.plan_status?.inactive || 0,
+      removed: stats.plan_status?.removed || 0
     }
     setFilterCounts(counts)
   }
@@ -263,20 +263,15 @@ const ClientsTable = () => {
   const getStatusBadge = (status, client) => {
     const statusConfig = {
       active: { color: 'bg-green-100 text-green-800', label: 'פעיל', icon: CheckCircle },
-      trial: { color: 'bg-blue-100 text-blue-800', label: 'ניסיון', icon: Zap },
-      inactive: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X },
+      inactive: { color: 'bg-blue-100 text-blue-800', label: 'ניסיון', icon: Zap },
+      removed: { color: 'bg-red-100 text-red-700', label: 'הוסר', icon: UserX },
       // Legacy status mapping for backward compatibility
       expired: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X },
       suspended: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיל', icon: X },
       pending: { color: 'bg-gray-100 text-gray-800', label: 'לא פעיل', icon: X }
     }
 
-    // Check if inactive user has active trial (remaining trial days)
-    const daysRemaining = calculateDaysRemaining(client)
-    const isActiveTrial = status === 'inactive' && client.trial_expiry_date && daysRemaining > 0
-
-    // If inactive with active trial, show trial badge
-    const config = isActiveTrial ? statusConfig.trial : (statusConfig[status] || statusConfig.inactive)
+    const config = statusConfig[status] || statusConfig.inactive
     const Icon = config.icon
     const daysRemainingText = getDaysRemainingText(client)
     const tooltipId = `status-tooltip-${client?.client_unique_id || Math.random()}`
@@ -333,11 +328,13 @@ const ClientsTable = () => {
     const now = new Date()
     let expiryDate = null
 
-    // inactive = trial users, active = paid users
+    // inactive = trial users, active = paid users, removed = no expiry
     if (client.plan_status === 'inactive' && client.trial_expiry_date) {
       expiryDate = new Date(client.trial_expiry_date)
     } else if (client.plan_status === 'active' && client.plan_expiry_date) {
       expiryDate = new Date(client.plan_expiry_date)
+    } else if (client.plan_status === 'removed') {
+      return null
     }
 
     if (!expiryDate) return null
@@ -501,7 +498,8 @@ const ClientsTable = () => {
           >
             <option value="">שנה סטטוס</option>
             <option value="active">פעיל</option>
-            <option value="inactive">לא פעיל / ניסיון</option>
+            <option value="inactive">ניסיון</option>
+            <option value="removed">הוסר</option>
           </select>
           
           <button
@@ -628,24 +626,24 @@ const ClientsTable = () => {
                     count: filterCounts.all,
                     icon: <Users className="w-4 h-4" />
                   },
-                  { 
-                    id: 'active', 
-                    label: 'פעילים', 
+                  {
+                    id: 'active',
+                    label: 'פעילים',
                     count: filterCounts.active,
                     icon: <CheckCircle className="w-4 h-4" />
                   },
-                  { 
-                    id: 'trial', 
-                    label: 'ניסיון', 
-                    count: filterCounts.trial,
+                  {
+                    id: 'inactive',
+                    label: 'ניסיון',
+                    count: filterCounts.inactive,
                     icon: <Zap className="w-4 h-4" />
                   },
-                  { 
-                    id: 'inactive', 
-                    label: 'לא פעילים', 
-                    count: filterCounts.inactive,
-                    icon: <X className="w-4 h-4" />
-  }
+                  {
+                    id: 'removed',
+                    label: 'הוסרו',
+                    count: filterCounts.removed,
+                    icon: <UserX className="w-4 h-4" />
+                  }
                 ]}
                 value={statusFilter}
                 onChange={handleFilterChange}

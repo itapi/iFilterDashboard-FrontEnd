@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'react-toastify'
 import { Users, Search, X, Check, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
 import apiClient from '../utils/api'
+import { useGlobalState } from '../contexts/GlobalStateContext'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -46,7 +47,7 @@ const StatCard = ({ label, value, accent }) => (
 )
 
 // ─── Reseller row card ────────────────────────────────────────────────────────
-const ResellerCard = ({ reseller, onStatusChange, onAcceptToggle }) => {
+const ResellerCard = ({ reseller, onStatusChange, onAcceptToggle, openModal }) => {
   const cfg = STATUS_CONFIG[reseller.status] || STATUS_CONFIG.new
   const [statusLoading, setStatusLoading] = useState(false)
   const [acceptLoading, setAcceptLoading] = useState(false)
@@ -77,6 +78,18 @@ const ResellerCard = ({ reseller, onStatusChange, onAcceptToggle }) => {
       if (res.success) {
         onAcceptToggle(reseller.id, newVal)
         toast.success(newVal ? 'המשווק אושר' : 'האישור בוטל')
+        if (newVal) {
+          openModal({
+            layout: 'sendResellerMail',
+            title: `שלח מייל אישור ל-${reseller.full_name}`,
+            size: 'lg',
+            confirmText: 'שלח מייל',
+            cancelText: 'ביטול',
+            showConfirmButton: true,
+            showCancelButton: true,
+            data: { reseller },
+          })
+        }
       } else {
         throw new Error(res.message)
       }
@@ -191,6 +204,7 @@ const ResellerCard = ({ reseller, onStatusChange, onAcceptToggle }) => {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const ResellersTable = () => {
+  const { openModal } = useGlobalState()
   const [resellers, setResellers]           = useState([])
   const [stats, setStats]                   = useState(null)
   const [initialLoading, setInitialLoading] = useState(true)
@@ -406,6 +420,7 @@ const ResellersTable = () => {
               reseller={reseller}
               onStatusChange={handleStatusChange}
               onAcceptToggle={handleAcceptToggle}
+              openModal={openModal}
             />
           ))}
 

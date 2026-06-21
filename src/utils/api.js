@@ -1101,6 +1101,13 @@ class ApiClient {
     });
   }
 
+  async sendResellerMail(id, subject, body, email = null) {
+    return this.apiRequest('reseller-registrations?action=send_mail', {
+      method: 'POST',
+      body: { id, subject, body, ...(email ? { email } : {}) },
+    });
+  }
+
   // ── Web Inquiries methods ──────────────────────────────────────────────────
 
   async getWebInquiries(page = 1, limit = 25, params = {}) {

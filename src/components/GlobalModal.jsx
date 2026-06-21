@@ -27,6 +27,7 @@ import { TemplateFormLayout } from './Modal/layouts/TemplateFormLayout'
 import { VcfImportLayout } from './Modal/layouts/VcfImportLayout'
 import { DistributionTaskFormLayout } from './Modal/layouts/DistributionTaskFormLayout'
 import { SendContactMailLayout } from './Modal/layouts/SendContactMailLayout'
+import { SendResellerMailLayout } from './Modal/layouts/SendResellerMailLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -240,6 +241,12 @@ const GlobalModal = () => {
 
       sendContactMail: {
         component: <SendContactMailLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
+      sendResellerMail: {
+        component: <SendResellerMailLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
         showFooter: true,
         hasRef: true,
       },

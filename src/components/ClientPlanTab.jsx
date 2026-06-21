@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { toast } from 'react-toastify'
 import EditableSection from './EditableSection'
 import { useModal } from '../contexts/GlobalStateContext'
@@ -15,7 +15,8 @@ import {
   ArrowRight,
   CheckCircle,
   X,
-  Zap
+  Zap,
+  UserX
 } from 'lucide-react'
 
 /**
@@ -81,18 +82,14 @@ const ClientPlanTab = ({
   }
 
   const getStatusBadge = (status) => {
-    // Check if inactive user has active trial (remaining trial days)
-    const daysRemaining = calculateDaysRemaining(client)
-    const isActiveTrial = status === 'inactive' && client.trial_expiry_date && daysRemaining > 0
 
     const statusConfig = {
       active: { color: 'bg-green-100 text-green-800 border-green-200', label: 'פעיל', icon: CheckCircle },
-      trial: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'ניסיון', icon: Zap },
-      inactive: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X }
+      inactive: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'ניסיון', icon: Zap },
+      removed: { color: 'bg-red-100 text-red-700 border-red-200', label: 'הוסר', icon: UserX }
     }
 
-    // If inactive with active trial, show trial badge
-    const config = isActiveTrial ? statusConfig.trial : (statusConfig[status] || statusConfig.inactive)
+    const config = statusConfig[status] || statusConfig.inactive
     const Icon = config.icon
 
     return (
@@ -113,7 +110,6 @@ const ClientPlanTab = ({
 
   // Get days until expiry (calculated on the fly)
   const getDaysUntilExpiry = () => {
-    const daysRemaining = calculateDaysRemaining(client)
     return daysRemaining !== null ? daysRemaining : client.days_until_expiry || 0
   }
 

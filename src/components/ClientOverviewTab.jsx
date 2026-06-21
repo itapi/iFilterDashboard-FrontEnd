@@ -1,4 +1,4 @@
-import { User, Mail, Phone, Settings, Calendar, CheckCircle, X, Zap } from 'lucide-react'
+﻿import { User, Mail, Phone, Settings, Calendar, CheckCircle, X, Zap, UserX } from 'lucide-react'
 import EditableSection from './EditableSection'
 
 /**
@@ -50,21 +50,17 @@ const ClientOverviewTab = ({ client, clientUniqueId, onClientUpdate, apiClient }
   }
 
   const getStatusBadge = (status) => {
-    // Check if inactive user has active trial (remaining trial days)
-    const daysRemaining = calculateDaysRemaining(client)
-    const isActiveTrial = status === 'inactive' && client.trial_expiry_date && daysRemaining > 0
 
     const statusConfig = {
       active: { color: 'bg-green-100 text-green-800 border-green-200', label: 'פעיל', icon: CheckCircle },
-      trial: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'ניסיון', icon: Zap },
-      inactive: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X },
+      inactive: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'ניסיון', icon: Zap },
+      removed: { color: 'bg-red-100 text-red-700 border-red-200', label: 'הוסר', icon: UserX },
       expired: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X },
       suspended: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X },
       pending: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'לא פעיל', icon: X }
     }
 
-    // If inactive with active trial, show trial badge
-    const config = isActiveTrial ? statusConfig.trial : (statusConfig[status] || statusConfig.inactive)
+    const config = statusConfig[status] || statusConfig.inactive
     const Icon = config.icon
     const daysRemainingText = getDaysRemainingText(client)
 
