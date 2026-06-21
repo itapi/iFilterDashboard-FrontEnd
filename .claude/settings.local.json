@@ -40,7 +40,8 @@
       "PowerShell(php -r \"echo password_hash\\('itapi123', PASSWORD_DEFAULT\\);\")",
       "Bash(cmd *)",
       "PowerShell(head *)",
-      "Bash(Get-ChildItem *)"
+      "Bash(Get-ChildItem *)",
+      "Artifact"
     ],
     "deny": [],
     "ask": []

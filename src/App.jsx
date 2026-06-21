@@ -21,6 +21,7 @@ import MagiskModules from './components/MagiskModules'
 import Distributions from './components/Distributions'
 import WebInquiriesTable from './components/WebInquiriesTable'
 import ResellersTable from './components/ResellersTable'
+import ResellerHub from './components/ResellerHub'
 import SettingsPage from './components/SettingsPage'
 import Loader from './components/Loader'
 import { ProtectedRoute, SuperAdminRoute, ManagerRoute } from './components/ProtectedRoute'
@@ -89,6 +90,13 @@ function AppContent() {
               <Route path="/resellers" element={
                 <ManagerRoute showForbidden={true}>
                   <ResellersTable />
+                </ManagerRoute>
+              } />
+
+              {/* Reseller Hub - Managers and Super Admins */}
+              <Route path="/reseller-hub" element={
+                <ManagerRoute showForbidden={true}>
+                  <ResellerHub />
                 </ManagerRoute>
               } />
 
