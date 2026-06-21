@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import Login from './components/Login'
 import Apps from './components/Apps'
@@ -21,6 +21,7 @@ import MagiskModules from './components/MagiskModules'
 import Distributions from './components/Distributions'
 import WebInquiriesTable from './components/WebInquiriesTable'
 import ResellersTable from './components/ResellersTable'
+import ResellerSetupPassword from './components/ResellerSetupPassword'
 import ResellerHub from './components/ResellerHub'
 import SettingsPage from './components/SettingsPage'
 import Loader from './components/Loader'
@@ -32,6 +33,12 @@ import './App.css'
 // Main App Component that uses GlobalStateContext
 function AppContent() {
   const { user, isLoggedIn, loading, logout } = useUser()
+  const location = useLocation()
+
+  // Public route — accessible without login
+  if (location.pathname === '/reseller/setup-password') {
+    return <ResellerSetupPassword />
+  }
 
   if (loading) {
     return (
@@ -46,7 +53,7 @@ function AppContent() {
   }
 
   return (
-    <Router basename="/iFilterDashboard-FrontEnd">
+    <>
       <div className="min-h-screen flex" style={{ background: 'var(--if-bg)' }} dir="rtl">
           <Sidebar />
           <main className="flex-1 overflow-hidden">
@@ -197,19 +204,7 @@ function AppContent() {
           </main>
         </div>
       <GlobalModal />
-      <ToastContainer
-        position="top-left"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={true}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
-    </Router>
+    </>
   )
 }
 
@@ -217,7 +212,21 @@ function AppContent() {
 function App() {
   return (
     <GlobalStateProvider>
-      <AppContent />
+      <Router basename="/iFilterDashboard-FrontEnd">
+        <AppContent />
+        <ToastContainer
+          position="top-left"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={true}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
+      </Router>
     </GlobalStateProvider>
   )
 }

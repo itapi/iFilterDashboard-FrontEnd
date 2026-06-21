@@ -104,17 +104,17 @@ body {
   outline-offset: 2px;
 }
 
-/* ─── Global color overrides: replace Tailwind blue/purple with iFilter charcoal ─── */
+/* ─── Global color overrides: remap Tailwind blue/purple → iFilter accent palette ─── */
 
-/* Blue backgrounds → charcoal */
+/* Blue backgrounds → accent blue */
 .bg-blue-500, .bg-blue-600, .bg-blue-700 {
-  background-color: #31353a !important;
+  background-color: #497fc5 !important;
 }
 .hover\:bg-blue-600:hover, .hover\:bg-blue-700:hover {
-  background-color: #1e2124 !important;
+  background-color: #3a6ab8 !important;
 }
 
-/* Purple backgrounds → charcoal */
+/* Purple backgrounds → charcoal (intentional brand override) */
 .bg-purple-600, .bg-purple-700, .bg-purple-500 {
   background-color: #31353a !important;
 }
@@ -122,51 +122,59 @@ body {
   background-color: #1e2124 !important;
 }
 
-/* Gradient buttons (from-blue / to-blue) → solid charcoal */
+/* Gradient buttons (from-blue) → accent blue gradient */
 .bg-gradient-to-r.from-blue-500,
 .bg-gradient-to-r.from-blue-600,
 .bg-gradient-to-br.from-blue-500,
 .bg-gradient-to-br.from-blue-600 {
-  background: #31353a !important;
+  background: linear-gradient(135deg, #497fc5, #3a6ab8) !important;
   background-image: none !important;
 }
 
-/* Blue text → charcoal */
-.text-blue-600, .text-blue-700 {
-  color: #31353a !important;
-}
-.text-blue-500 { color: #31353a !important; }
+/* Blue text → accent blue */
+.text-blue-600, .text-blue-700 { color: #3a6ab8 !important; }
+.text-blue-500                  { color: #497fc5 !important; }
 
 /* Purple text → charcoal */
 .text-purple-600, .text-purple-700 { color: #31353a !important; }
 
-/* Active/hover states using blue-50/100 */
-.bg-blue-50  { background-color: #f6f8f9 !important; }
-.bg-blue-100 { background-color: #edf0f2 !important; }
+/* Active/hover tinted backgrounds */
+.bg-blue-50  { background-color: #eef3fb !important; }
+.bg-blue-100 { background-color: #dce8f7 !important; }
 
 /* Borders */
-.border-blue-200 { border-color: #e0e3e6 !important; }
-.border-blue-500 { border-color: #31353a !important; }
+.border-blue-200 { border-color: #c3d8f0 !important; }
+.border-blue-500 { border-color: #497fc5 !important; }
 .border-purple-500 { border-color: #31353a !important; }
 
 /* Focus rings */
 .focus\:ring-blue-500:focus,
 .focus\:ring-purple-500:focus {
-  --tw-ring-color: rgba(49, 53, 58, 0.35) !important;
+  --tw-ring-color: rgba(73, 127, 197, 0.35) !important;
 }
 
-/* Logo icon gradients in other components */
+/* Logo icon gradients */
 .from-blue-500.to-blue-600,
 .from-blue-400.to-blue-600 {
-  background: #31353a !important;
+  background: linear-gradient(135deg, #497fc5, #3a6ab8) !important;
   background-image: none !important;
 }
 
-/* Purple gradient avatar/badge */
+/* Purple gradient avatar/badge → charcoal */
 .from-purple-500.to-pink-500 {
   background: #31353a !important;
   background-image: none !important;
 }
+
+/* Green / teal accent overrides (keep emerald readable) */
+.text-green-600  { color: #1aa061 !important; }
+.text-emerald-600 { color: #1aa061 !important; }
+.bg-green-50     { background-color: #edfbf4 !important; }
+.bg-emerald-50   { background-color: #edfbf4 !important; }
+
+/* Amber / yellow status badge */
+.text-yellow-600, .text-amber-600 { color: #c07d0a !important; }
+.bg-yellow-50, .bg-amber-50       { background-color: #fdf7e3 !important; }
 
 /* Drag cursor */
 .cursor-grabbing {

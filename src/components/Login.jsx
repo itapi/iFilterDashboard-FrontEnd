@@ -191,10 +191,10 @@ const styles = {
     justifyContent: 'center',
     width: '64px',
     height: '64px',
-    background: '#1e2124',
+    background: 'linear-gradient(135deg, #1e2124 0%, #2d4a6e 60%, #497fc5 100%)',
     borderRadius: '20px',
     marginBottom: '16px',
-    boxShadow: '0 10px 25px rgba(30, 33, 36, 0.25)',
+    boxShadow: '0 12px 28px rgba(73, 127, 197, 0.35)',
   },
   logoTitle: {
     fontSize: '2.2rem',
@@ -213,10 +213,10 @@ const styles = {
   logoDivider: {
     width: '48px',
     height: '3px',
-    background: '#31353a',
+    background: 'linear-gradient(90deg, #497fc5, #3a6ab8)',
     borderRadius: '2px',
     margin: '16px auto 0',
-    opacity: 0.2,
+    opacity: 0.6,
   },
   form: {
     display: 'flex',
@@ -277,7 +277,7 @@ const styles = {
   submitBtn: {
     width: '100%',
     padding: '15px 28px',
-    background: '#31353a',
+    background: 'linear-gradient(135deg, #31353a 0%, #497fc5 100%)',
     color: 'white',
     border: 'none',
     borderRadius: '50px',
@@ -286,8 +286,8 @@ const styles = {
     fontWeight: 700,
     cursor: 'pointer',
     marginTop: '6px',
-    boxShadow: '0 10px 20px rgba(49, 53, 58, 0.2)',
-    transition: 'background 0.2s, transform 0.2s, box-shadow 0.2s',
+    boxShadow: '0 10px 24px rgba(73, 127, 197, 0.35)',
+    transition: 'opacity 0.2s, transform 0.2s, box-shadow 0.2s',
   },
   submitBtnDisabled: {
     opacity: 0.6,

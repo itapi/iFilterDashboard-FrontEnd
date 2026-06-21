@@ -1076,35 +1076,46 @@ class ApiClient {
     });
   }
 
-  // ── Reseller Registrations methods ────────────────────────────────────────
+  // ── Resellers methods ─────────────────────────────────────────────────────
 
   async getResellers(page = 1, limit = 25, params = {}) {
     const query = new URLSearchParams({ page, limit, ...params }).toString();
-    return this.apiRequest(`reseller-registrations?action=with_details&${query}`);
+    return this.apiRequest(`resellers?action=with_details&${query}`);
   }
 
   async getResellerStatistics() {
-    return this.apiRequest('reseller-registrations?action=statistics');
+    return this.apiRequest('resellers?action=statistics');
   }
 
   async updateResellerStatus(id, status) {
-    return this.apiRequest('reseller-registrations?action=update_status', {
+    return this.apiRequest('resellers?action=update_status', {
       method: 'PUT',
       body: { id, status },
     });
   }
 
   async acceptReseller(id, isAccepted) {
-    return this.apiRequest('reseller-registrations?action=accept', {
+    return this.apiRequest('resellers?action=accept', {
       method: 'PUT',
       body: { id, is_accepted: isAccepted },
     });
   }
 
   async sendResellerMail(id, subject, body, email = null) {
-    return this.apiRequest('reseller-registrations?action=send_mail', {
+    return this.apiRequest('resellers?action=send_mail', {
       method: 'POST',
       body: { id, subject, body, ...(email ? { email } : {}) },
+    });
+  }
+
+  async validateResellerToken(token) {
+    return this.apiRequest(`resellers?action=validate_token&token=${encodeURIComponent(token)}`);
+  }
+
+  async setupResellerPassword(token, password) {
+    return this.apiRequest('resellers?action=setup_password', {
+      method: 'POST',
+      body: { token, password },
     });
   }
 
@@ -1214,6 +1225,24 @@ class ApiClient {
       method: 'POST',
       body: { id, status },
     });
+  }
+
+  // Reseller Hub API
+  async getResellerHubItems(section = null) {
+    const qs = section ? `?section=${section}` : ''
+    return this.apiRequest(`reseller-hub${qs}`)
+  }
+
+  async createResellerHubItem(data) {
+    return this.apiRequest('reseller-hub', { method: 'POST', body: data });
+  }
+
+  async updateResellerHubItem(id, data) {
+    return this.apiRequest(`reseller-hub?id=${id}`, { method: 'PUT', body: data });
+  }
+
+  async deleteResellerHubItem(id) {
+    return this.apiRequest(`reseller-hub?id=${id}`, { method: 'DELETE' });
   }
 }
 

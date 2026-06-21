@@ -41,7 +41,8 @@
       "Bash(cmd *)",
       "PowerShell(head *)",
       "Bash(Get-ChildItem *)",
-      "Artifact"
+      "Artifact",
+      "PowerShell(Remove-Item *)"
     ],
     "deny": [],
     "ask": []

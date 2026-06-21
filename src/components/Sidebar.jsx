@@ -20,195 +20,82 @@ const Sidebar = () => {
 
   const allMenuItems = [
     {
-      id: 'apps',
-      path: '/apps',
-      name: 'אפליקציות',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-      )
-    },
-    {
-      id: 'category-plans',
-      path: '/category-plans',
-      name: 'תכניות סינון',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-        </svg>
-      )
-    },
-    {
-      id: 'communities',
-      path: '/communities',
-      name: 'קהילות',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
+      id: 'representatives',
+      name: 'נציגים',
+      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.COMMUNITY_MANAGER],
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
-      )
+      ),
+      submenu: [
+        { id: 'clients',       path: '/clients',       name: 'לקוחות',        allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.COMMUNITY_MANAGER] },
+        { id: 'tickets',       path: '/tickets',       name: 'פניות לקוחות',  allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.COMMUNITY_MANAGER] },
+        { id: 'web-inquiries', path: '/web-inquiries', name: 'פניות אתר',     allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER] },
+        { id: 'communities',   path: '/communities',   name: 'קהילות',        allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER] },
+      ]
     },
     {
-      id: 'tickets',
-      path: '/tickets',
-      name: 'פניות לקוחות',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.COMMUNITY_MANAGER],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-      )
-    },
-    {
-      id: 'resellers',
-      path: '/resellers',
-      name: 'משווקים / סוכנים',
+      id: 'resellers-group',
+      name: 'משווקים',
       allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-      )
+      ),
+      submenu: [
+        { id: 'resellers',    path: '/resellers',    name: 'משווקים / סוכנים' },
+        { id: 'reseller-hub', path: '/reseller-hub', name: 'מרכז משאבים למשווקים' },
+      ]
     },
     {
-      id: 'reseller-hub',
-      path: '/reseller-hub',
-      name: 'מרכז משאבים למשווקים',
+      id: 'system',
+      name: 'מערכת',
       allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 12h6m-6-4h6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
         </svg>
-      )
+      ),
+      submenu: [
+        { id: 'apps',            path: '/apps',                   name: 'אפליקציות' },
+        { id: 'category-plans',  path: '/category-plans',         name: 'תכניות סינון' },
+        { id: 'safe-browser',    path: '/safe-browser',           name: 'SafeBrowser' },
+        { id: 'remote-commands', path: '/remote-commands',        name: 'פקודות מרחוק' },
+        { id: 'magisk-modules',  path: '/uploads/magisk-modules', name: 'מודולי Magisk' },
+        { id: 'xposed-modules',  path: '/uploads/xposed-modules', name: 'מודולי Xposed' },
+        { id: 'required-apps',   path: '/uploads/required-apps',  name: 'אפליקציות נדרשות' },
+        { id: 'other-uploads',   path: '/uploads/other',          name: 'קבצים אחרים' },
+      ]
     },
     {
-      id: 'web-inquiries',
-      path: '/web-inquiries',
-      name: 'פניות אתר',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-        </svg>
-      )
-    },
-    {
-      id: 'clients',
-      path: '/clients',
-      name: 'לקוחות',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER, ROLES.COMMUNITY_MANAGER],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      )
-    },
-    {
-      id: 'admins',
-      path: '/admins',
-      name: 'משתמשי מערכת',
+      id: 'super-admin',
+      name: 'ניהול עליון',
       allowedRoles: [ROLES.SUPER_ADMIN],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-        </svg>
-      )
-    },
-    {
-      id: 'broadcast-messages',
-      path: '/broadcast-messages',
-      name: 'הודעות משודרות',
-      allowedRoles: [ROLES.SUPER_ADMIN],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-        </svg>
-      )
-    },
-    {
-      id: 'distributions',
-      path: '/distributions',
-      name: 'הפצות',
-      allowedRoles: [ROLES.SUPER_ADMIN],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l-3-3m3 3l3-3" />
-        </svg>
-      )
-    },
-    {
-      id: 'safe-browser',
-      path: '/safe-browser',
-      name: 'SafeBrowser',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
-      )
-    },
-    {
-      id: 'remote-commands',
-      path: '/remote-commands',
-      name: 'פקודות מרחוק',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    {
-      id: 'firmwares',
-      path: '/firmwares',
-      name: 'ניהול קושחות',
-      allowedRoles: [ROLES.SUPER_ADMIN],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    {
-      id: 'uploads',
-      path: '/uploads',
-      name: 'העלאות קבצים',
-      allowedRoles: [ROLES.SUPER_ADMIN, ROLES.MANAGER],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-        </svg>
       ),
       submenu: [
-        { id: 'magisk-modules',  path: '/uploads/magisk-modules',  name: 'מודולי Magisk' },
-        { id: 'xposed-modules',  path: '/uploads/xposed-modules',  name: 'מודולי Xposed' },
-        { id: 'required-apps',   path: '/uploads/required-apps',   name: 'אפליקציות נדרשות' },
-        { id: 'other-uploads',   path: '/uploads/other',           name: 'קבצים אחרים' }
+        { id: 'admins',              path: '/admins',              name: 'משתמשי מערכת' },
+        { id: 'settings',            path: '/settings',            name: 'הגדרות' },
+        { id: 'firmwares',           path: '/firmwares',           name: 'ניהול קושחות' },
+        { id: 'distributions',       path: '/distributions',       name: 'הפצות' },
+        { id: 'broadcast-messages',  path: '/broadcast-messages',  name: 'הודעות משודרות' },
       ]
     },
-    {
-      id: 'settings',
-      path: '/settings',
-      name: 'הגדרות',
-      allowedRoles: [ROLES.SUPER_ADMIN],
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      )
-    }
   ]
 
   const menuItems = useMemo(() => {
-    return allMenuItems.filter(item => {
-      if (!item.allowedRoles) return true
-      return hasAnyRole(item.allowedRoles)
-    })
+    return allMenuItems
+      .filter(item => !item.allowedRoles || hasAnyRole(item.allowedRoles))
+      .map(item => ({
+        ...item,
+        submenu: item.submenu?.filter(sub => !sub.allowedRoles || hasAnyRole(sub.allowedRoles))
+      }))
+      .filter(item => !item.submenu || item.submenu.length > 0)
   }, [allMenuItems, hasAnyRole])
 
   const sidebarW = isCollapsed ? '72px' : '272px'
@@ -246,10 +133,11 @@ const Sidebar = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
               width: '38px', height: '38px',
-              background: '#1e2124',
+              background: 'linear-gradient(135deg, #1e2124 0%, #2d4a6e 100%)',
               borderRadius: '12px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
+              boxShadow: '0 4px 12px rgba(30,33,36,0.3)',
             }}>
               <svg width="20" height="20" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
@@ -264,9 +152,10 @@ const Sidebar = () => {
         {isCollapsed && (
           <div style={{
             width: '38px', height: '38px',
-            background: '#1e2124',
+            background: 'linear-gradient(135deg, #1e2124 0%, #2d4a6e 100%)',
             borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(30,33,36,0.3)',
           }}>
             <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -331,10 +220,11 @@ const Sidebar = () => {
                         fontWeight: 600,
                         fontFamily: 'Assistant, sans-serif',
                         transition: 'all 0.2s',
-                        background: hasActive ? '#31353a' : 'transparent',
+                        background: hasActive ? 'linear-gradient(135deg, #497fc5 0%, #3a6ab8 100%)' : 'transparent',
                         color: hasActive ? 'white' : '#31353a',
+                        boxShadow: hasActive ? '0 4px 14px rgba(73,127,197,0.3)' : 'none',
                       }}
-                      onMouseEnter={e => { if (!hasActive) e.currentTarget.style.background = '#f0f2f5' }}
+                      onMouseEnter={e => { if (!hasActive) e.currentTarget.style.background = '#eef3fb' }}
                       onMouseLeave={e => { if (!hasActive) e.currentTarget.style.background = 'transparent' }}
                     >
                       <span style={{ flexShrink: 0, opacity: hasActive ? 1 : 0.6 }}>{item.icon}</span>
@@ -369,11 +259,12 @@ const Sidebar = () => {
                                   fontWeight: isSubActive ? 700 : 500,
                                   fontFamily: 'Assistant, sans-serif',
                                   textDecoration: 'none',
-                                  background: isSubActive ? '#31353a' : 'transparent',
+                                  background: isSubActive ? 'linear-gradient(135deg, #497fc5 0%, #3a6ab8 100%)' : 'transparent',
                                   color: isSubActive ? 'white' : '#5e656e',
                                   transition: 'all 0.2s',
+                                  boxShadow: isSubActive ? '0 3px 10px rgba(73,127,197,0.25)' : 'none',
                                 }}
-                                onMouseEnter={e => { if (!isSubActive) e.currentTarget.style.background = '#f0f2f5' }}
+                                onMouseEnter={e => { if (!isSubActive) e.currentTarget.style.background = '#eef3fb' }}
                                 onMouseLeave={e => { if (!isSubActive) e.currentTarget.style.background = 'transparent' }}
                               >
                                 <span style={{
@@ -406,11 +297,12 @@ const Sidebar = () => {
                       fontFamily: 'Assistant, sans-serif',
                       textDecoration: 'none',
                       transition: 'all 0.2s',
-                      background: isActive ? '#31353a' : 'transparent',
+                      background: isActive ? 'linear-gradient(135deg, #497fc5 0%, #3a6ab8 100%)' : 'transparent',
                       color: isActive ? 'white' : '#31353a',
+                      boxShadow: isActive ? '0 4px 14px rgba(73,127,197,0.3)' : 'none',
                     }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#f0f2f5' }}
-                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = isActive ? '#31353a' : 'transparent' }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#eef3fb' }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = isActive ? 'linear-gradient(135deg, #497fc5 0%, #3a6ab8 100%)' : 'transparent' }}
                   >
                     <span style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
                     {!isCollapsed && (
@@ -453,10 +345,11 @@ const Sidebar = () => {
         }}>
           <div style={{
             width: '34px', height: '34px',
-            background: '#31353a',
+            background: 'linear-gradient(135deg, #497fc5 0%, #3a6ab8 100%)',
             borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
+            boxShadow: '0 3px 10px rgba(73,127,197,0.35)',
           }}>
             <span style={{ color: 'white', fontSize: '0.85rem', fontWeight: 700 }}>
               {userInitials || user?.first_name?.charAt(0) || 'U'}

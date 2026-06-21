@@ -28,6 +28,7 @@ import { VcfImportLayout } from './Modal/layouts/VcfImportLayout'
 import { DistributionTaskFormLayout } from './Modal/layouts/DistributionTaskFormLayout'
 import { SendContactMailLayout } from './Modal/layouts/SendContactMailLayout'
 import { SendResellerMailLayout } from './Modal/layouts/SendResellerMailLayout'
+import { ResellerHubItemLayout } from './Modal/layouts/ResellerHubItemLayout'
 
 const GlobalModal = () => {
   const { state, closeModal } = useGlobalState()
@@ -251,6 +252,12 @@ const GlobalModal = () => {
         hasRef: true,
       },
 
+      resellerHubItem: {
+        component: <ResellerHubItemLayout ref={getLayoutRef(modal.id)} data={modal.data} />,
+        showFooter: true,
+        hasRef: true,
+      },
+
       // Custom layout for passing React components directly
       custom: {
         component: modal.content,
@@ -353,6 +360,9 @@ const GlobalModal = () => {
               aria-modal="true"
               aria-labelledby={modal.title ? `modal-title-${modal.id}` : undefined}
             >
+              {/* Accent bar */}
+              <div style={{ height: '4px', background: 'linear-gradient(90deg, #497fc5, #3a6ab8)', flexShrink: 0 }} />
+
               {/* Header */}
               {modal.title && (
                 <div style={{
@@ -447,7 +457,7 @@ const GlobalModal = () => {
                       onClick={() => handleConfirm(modal)}
                       style={{
                         padding: '9px 24px',
-                        background: '#31353a',
+                        background: 'linear-gradient(135deg, #497fc5 0%, #3a6ab8 100%)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '50px',
@@ -455,11 +465,11 @@ const GlobalModal = () => {
                         fontSize: '0.9rem',
                         fontWeight: 700,
                         cursor: 'pointer',
-                        boxShadow: '0 4px 12px rgba(49,53,58,0.2)',
-                        transition: 'background 0.15s, transform 0.15s',
+                        boxShadow: '0 4px 14px rgba(73,127,197,0.35)',
+                        transition: 'opacity 0.15s, transform 0.15s',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#1e2124'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#31353a'; e.currentTarget.style.transform = 'translateY(0)' }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = '0.88'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)' }}
                     >
                       {modal.confirmText || 'אישור'}
                     </button>
