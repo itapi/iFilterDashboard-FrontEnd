@@ -71,32 +71,39 @@ const ResellerCard = ({ reseller, onStatusChange, onAcceptToggle, openModal }) =
   }
 
   const handleAcceptToggle = async () => {
-    setAcceptLoading(true)
-    try {
-      const newVal = !reseller.is_accepted
-      const res = await apiClient.acceptReseller(reseller.id, newVal)
-      if (res.success) {
-        onAcceptToggle(reseller.id, newVal)
-        toast.success(newVal ? 'המשווק אושר' : 'האישור בוטל')
-        if (newVal) {
-          openModal({
-            layout: 'sendResellerMail',
-            title: `שלח מייל אישור ל-${reseller.full_name}`,
-            size: 'lg',
-            confirmText: 'שלח מייל',
-            cancelText: 'ביטול',
-            showConfirmButton: true,
-            showCancelButton: true,
-            data: { reseller },
-          })
+    if (!reseller.is_accepted) {
+      // Show modal first — modal handles accept + send
+      openModal({
+        layout: 'sendResellerMail',
+        title: `אשר ושלח מייל ל-${reseller.full_name}`,
+        size: 'lg',
+        confirmText: 'אשר ושלח מייל',
+        cancelText: 'ביטול',
+        showConfirmButton: true,
+        showCancelButton: true,
+        data: {
+          reseller,
+          onAccepted: (id) => {
+            onAcceptToggle(id, true)
+          },
+        },
+      })
+    } else {
+      // Revoke — no modal needed
+      setAcceptLoading(true)
+      try {
+        const res = await apiClient.acceptReseller(reseller.id, false)
+        if (res.success) {
+          onAcceptToggle(reseller.id, false)
+          toast.success('האישור בוטל')
+        } else {
+          throw new Error(res.message)
         }
-      } else {
-        throw new Error(res.message)
+      } catch {
+        toast.error('שגיאה בעדכון האישור')
+      } finally {
+        setAcceptLoading(false)
       }
-    } catch (err) {
-      toast.error('שגיאה בעדכון האישור')
-    } finally {
-      setAcceptLoading(false)
     }
   }
 

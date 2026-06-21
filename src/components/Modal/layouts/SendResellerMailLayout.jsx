@@ -30,16 +30,27 @@ export const SendResellerMailLayout = forwardRef(({ data }, ref) => {
       return
     }
 
-    try {
-      setSending(true)
-      const res = await apiClient.sendResellerMail(reseller.id, subject, body, email.trim())
-      if (!res.success) throw new Error(res.message)
+    setSending(true)
+    const promise = (async () => {
+      const acceptRes = await apiClient.acceptReseller(reseller.id, true)
+      if (!acceptRes.success) throw new Error(acceptRes.error || 'שגיאה באישור המשווק')
 
-      toast.success('מייל נשלח בהצלחה')
-      data?.onSent?.(reseller.id)
+      const mailRes = await apiClient.sendResellerMail(reseller.id, subject, body, email.trim())
+      if (!mailRes.success) throw new Error(mailRes.error || 'שגיאה בשליחת המייל')
+    })()
+
+    toast.promise(promise, {
+      pending: 'מאשר ושולח מייל...',
+      success: { render: 'המשווק אושר והמייל נשלח בהצלחה', autoClose: 3000 },
+      error:   { render: ({ data }) => data?.message || 'שגיאה' },
+    })
+
+    try {
+      await promise
+      data?.onAccepted?.(reseller.id)
       closeModal()
-    } catch (e) {
-      toast.error(e.message || 'שגיאה בשליחת המייל')
+    } catch {
+      // error already shown by toast.promise
     } finally {
       setSending(false)
     }

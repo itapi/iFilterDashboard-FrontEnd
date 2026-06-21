@@ -1109,11 +1109,11 @@ class ApiClient {
   }
 
   async validateResellerToken(token) {
-    return this.apiRequest(`resellers?action=validate_token&token=${encodeURIComponent(token)}`);
+    return this.apiRequest(`reseller-setup?action=validate_token&token=${encodeURIComponent(token)}`);
   }
 
   async setupResellerPassword(token, password) {
-    return this.apiRequest('resellers?action=setup_password', {
+    return this.apiRequest('reseller-setup?action=setup_password', {
       method: 'POST',
       body: { token, password },
     });
