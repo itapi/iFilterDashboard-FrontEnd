@@ -323,22 +323,31 @@ const GlobalModal = () => {
           >
             {/* Backdrop */}
             <div
-              className={`absolute inset-0 backdrop-blur-sm transition-all duration-300 ${
-                isTopModal ? 'bg-black/40' : 'bg-black/20'
-              }`}
               style={{
-                animation: 'fadeIn 300ms ease-out'
+                position: 'absolute',
+                inset: 0,
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                background: isTopModal ? 'rgba(30,33,36,0.55)' : 'rgba(30,33,36,0.25)',
+                animation: 'ifModalFadeIn 300ms ease-out',
               }}
             />
 
             {/* Modal Content */}
             <div
-              className={`relative w-full ${getSizeClasses(modal.size)} max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-300 ${
-                !isTopModal ? 'opacity-95 scale-95' : ''
-              }`}
+              className={`relative w-full ${getSizeClasses(modal.size)}`}
               style={{
+                maxHeight: '90vh',
+                background: '#ffffff',
+                borderRadius: '28px',
+                boxShadow: '0 25px 60px rgba(30,33,36,0.2)',
+                border: '1px solid rgba(237,240,242,0.8)',
+                overflow: 'hidden',
+                transform: isTopModal ? 'scale(1)' : 'scale(0.97)',
+                opacity: isTopModal ? 1 : 0.95,
+                transition: 'transform 0.3s, opacity 0.3s',
                 zIndex: zIndex + 1,
-                animation: 'modalSlideIn 300ms ease-out'
+                animation: 'ifModalSlideIn 300ms cubic-bezier(0.34,1.1,0.64,1)',
               }}
               role="dialog"
               aria-modal="true"
@@ -346,54 +355,115 @@ const GlobalModal = () => {
             >
               {/* Header */}
               {modal.title && (
-                <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50">
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '22px 28px',
+                  borderBottom: '1px solid #f0f2f5',
+                }}>
                   <h2
                     id={`modal-title-${modal.id}`}
-                    className="text-xl font-bold text-gray-900 flex-1 truncate"
+                    style={{
+                      fontSize: '1.15rem',
+                      fontWeight: 800,
+                      color: '#1e2124',
+                      margin: 0,
+                      flex: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      fontFamily: 'Assistant, sans-serif',
+                    }}
                   >
                     {modal.title}
                   </h2>
                   {isTopModal && (
                     <button
                       onClick={() => handleCloseModal(modal)}
-                      className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                       aria-label="סגור"
+                      style={{
+                        flexShrink: 0,
+                        marginRight: '12px',
+                        width: '34px',
+                        height: '34px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '10px',
+                        color: '#9ca3af',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s, color 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f0f2f5'; e.currentTarget.style.color = '#31353a' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af' }}
                     >
-                      <X className="w-5 h-5" />
+                      <X size={18} />
                     </button>
                   )}
                 </div>
               )}
 
               {/* Body */}
-              <div
-                className="overflow-y-auto"
-                style={{ maxHeight: 'calc(90vh - 140px)' }}
-              >
+              <div style={{ overflowY: 'auto', maxHeight: 'calc(90vh - 140px)' }}>
                 {currentLayout.component}
               </div>
 
               {/* Footer */}
               {showFooter && isTopModal && (
-                <div className="p-6 border-t border-gray-100 bg-gray-50">
-                  <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
-                    {modal.showCancelButton && (
-                      <button
-                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                        onClick={() => handleCloseModal(modal)}
-                      >
-                        {modal.cancelText || 'ביטול'}
-                      </button>
-                    )}
-                    {modal.showConfirmButton && (
-                      <button
-                        className="px-6 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                        onClick={() => handleConfirm(modal)}
-                      >
-                        {modal.confirmText || 'אישור'}
-                      </button>
-                    )}
-                  </div>
+                <div style={{
+                  padding: '18px 28px',
+                  borderTop: '1px solid #f0f2f5',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '10px',
+                  flexWrap: 'wrap',
+                }}>
+                  {modal.showCancelButton && (
+                    <button
+                      onClick={() => handleCloseModal(modal)}
+                      style={{
+                        padding: '9px 22px',
+                        border: '1.5px solid #e0e3e6',
+                        background: 'transparent',
+                        color: '#31353a',
+                        borderRadius: '50px',
+                        fontFamily: 'Assistant, sans-serif',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f6f8f9'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {modal.cancelText || 'ביטול'}
+                    </button>
+                  )}
+                  {modal.showConfirmButton && (
+                    <button
+                      onClick={() => handleConfirm(modal)}
+                      style={{
+                        padding: '9px 24px',
+                        background: '#31353a',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50px',
+                        fontFamily: 'Assistant, sans-serif',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(49,53,58,0.2)',
+                        transition: 'background 0.15s, transform 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#1e2124'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#31353a'; e.currentTarget.style.transform = 'translateY(0)' }}
+                    >
+                      {modal.confirmText || 'אישור'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -403,24 +473,13 @@ const GlobalModal = () => {
 
       {/* Custom CSS for animations */}
       <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
+        @keyframes ifModalFadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
         }
-
-        @keyframes modalSlideIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
+        @keyframes ifModalSlideIn {
+          from { opacity: 0; transform: scale(0.93) translateY(-12px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </>

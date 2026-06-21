@@ -35,7 +35,7 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--if-bg)' }}>
         <Loader text="טוען..." />
       </div>
     )
@@ -47,7 +47,7 @@ function AppContent() {
 
   return (
     <Router basename="/iFilterDashboard-FrontEnd">
-      <div className="min-h-screen bg-gray-50 flex" dir="rtl">
+      <div className="min-h-screen flex" style={{ background: 'var(--if-bg)' }} dir="rtl">
           <Sidebar />
           <main className="flex-1 overflow-hidden">
             <Routes>

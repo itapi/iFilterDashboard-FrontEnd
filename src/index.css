@@ -1,11 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --font-family-sans: "Rubik", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-family-sans: "Assistant", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 @layer base {
-  /* Global button cursor styles with maximum specificity */
+  :root {
+    --if-primary:    #31353a;
+    --if-dark:       #1e2124;
+    --if-muted:      #5e656e;
+    --if-bg:         #f6f8f9;
+    --if-bg-alt:     #f9fafb;
+    --if-border:     #edf0f2;
+    --if-accent:     #497fc5;
+    --if-gold:       #f39c12;
+    --if-green:      #2ecc71;
+  }
+
   button:not(:disabled):not([disabled]),
   [role="button"]:not(:disabled):not([disabled]),
   input[type="button"]:not(:disabled):not([disabled]),
@@ -23,12 +34,11 @@
 }
 
 @layer utilities {
-  /* Override any Tailwind cursor utilities on buttons */
   button:not(:disabled):not([disabled]),
   [role="button"]:not(:disabled):not([disabled]) {
     cursor: pointer !important;
   }
-  
+
   button.cursor-default:not(:disabled):not([disabled]),
   button.cursor-auto:not(:disabled):not([disabled]),
   button.cursor-text:not(:disabled):not([disabled]) {

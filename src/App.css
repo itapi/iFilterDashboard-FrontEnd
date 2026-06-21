@@ -1,141 +1,211 @@
-/* Hebrew RTL Support */
+/* iFilter Dashboard — Global Styles */
 body {
-  font-family: 'Rubik', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Assistant', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   direction: rtl;
+  background-color: var(--if-bg);
+  color: var(--if-primary);
+  line-height: 1.6;
 }
 
-/* Override Tailwind default direction */
 [dir="rtl"] {
   text-align: right;
 }
 
-/* Ensure proper spacing for RTL */
 [dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
   --tw-space-x-reverse: 1;
 }
 
-/* Custom scrollbar for Hebrew content */
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--if-bg);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: #d0d4d8;
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: #b0b5bb;
 }
 
-/* Modern Animations */
+/* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  10%, 30%, 50%, 70%, 90% {
-    transform: translateX(-5px);
-  }
-  20%, 40%, 60%, 80% {
-    transform: translateX(5px);
-  }
+  0%, 100%                          { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90%           { transform: translateX(-5px); }
+  20%, 40%, 60%, 80%                { transform: translateX(5px); }
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
 }
 
 @keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
 }
 
-/* Animation Classes */
-.animate-fadeIn {
-  animation: fadeIn 0.6s ease-out;
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-.animate-slideIn {
-  animation: slideIn 0.4s ease-out;
+@keyframes star-glow {
+  0%   { transform: scale(1) rotate(0deg); opacity: 0.8; }
+  100% { transform: scale(1.15) rotate(15deg); opacity: 1; }
 }
 
-.animate-shake {
-  animation: shake 0.5s ease-in-out;
-}
+/* Animation helpers */
+.animate-fadeIn    { animation: fadeIn 0.6s ease-out; }
+.animate-slideIn   { animation: slideIn 0.4s ease-out; }
+.animate-shake     { animation: shake 0.5s ease-in-out; }
+.animate-pulse     { animation: pulse 2s infinite; }
+.animate-bounce    { animation: bounce 1s infinite; }
 
-.animate-pulse {
-  animation: pulse 2s infinite;
-}
-
-.animate-bounce {
-  animation: bounce 1s infinite;
-}
-
-/* Smooth transitions for all interactive elements */
+/* Smooth transitions for interactive elements */
 * {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
 
-/* Glassmorphism effect */
+/* Glassmorphism */
 .glass {
   background: rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-/* Gradient text */
+/* iFilter brand gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--if-primary) 0%, var(--if-accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Custom focus states */
+/* Focus state */
 .focus-visible:focus {
-  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline: 2px solid rgba(49, 53, 58, 0.4);
   outline-offset: 2px;
 }
 
-/* Drag cursor states */
+/* ─── Global color overrides: replace Tailwind blue/purple with iFilter charcoal ─── */
+
+/* Blue backgrounds → charcoal */
+.bg-blue-500, .bg-blue-600, .bg-blue-700 {
+  background-color: #31353a !important;
+}
+.hover\:bg-blue-600:hover, .hover\:bg-blue-700:hover {
+  background-color: #1e2124 !important;
+}
+
+/* Purple backgrounds → charcoal */
+.bg-purple-600, .bg-purple-700, .bg-purple-500 {
+  background-color: #31353a !important;
+}
+.hover\:bg-purple-600:hover, .hover\:bg-purple-700:hover {
+  background-color: #1e2124 !important;
+}
+
+/* Gradient buttons (from-blue / to-blue) → solid charcoal */
+.bg-gradient-to-r.from-blue-500,
+.bg-gradient-to-r.from-blue-600,
+.bg-gradient-to-br.from-blue-500,
+.bg-gradient-to-br.from-blue-600 {
+  background: #31353a !important;
+  background-image: none !important;
+}
+
+/* Blue text → charcoal */
+.text-blue-600, .text-blue-700 {
+  color: #31353a !important;
+}
+.text-blue-500 { color: #31353a !important; }
+
+/* Purple text → charcoal */
+.text-purple-600, .text-purple-700 { color: #31353a !important; }
+
+/* Active/hover states using blue-50/100 */
+.bg-blue-50  { background-color: #f6f8f9 !important; }
+.bg-blue-100 { background-color: #edf0f2 !important; }
+
+/* Borders */
+.border-blue-200 { border-color: #e0e3e6 !important; }
+.border-blue-500 { border-color: #31353a !important; }
+.border-purple-500 { border-color: #31353a !important; }
+
+/* Focus rings */
+.focus\:ring-blue-500:focus,
+.focus\:ring-purple-500:focus {
+  --tw-ring-color: rgba(49, 53, 58, 0.35) !important;
+}
+
+/* Logo icon gradients in other components */
+.from-blue-500.to-blue-600,
+.from-blue-400.to-blue-600 {
+  background: #31353a !important;
+  background-image: none !important;
+}
+
+/* Purple gradient avatar/badge */
+.from-purple-500.to-pink-500 {
+  background: #31353a !important;
+  background-image: none !important;
+}
+
+/* Drag cursor */
 .cursor-grabbing {
   cursor: -webkit-grabbing !important;
   cursor: grabbing !important;
+}
+
+/* iFilter button base */
+.btn-ifilter {
+  padding: 12px 28px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-ifilter-main {
+  background: var(--if-primary);
+  color: white;
+  border: none;
+  box-shadow: 0 10px 20px rgba(49, 53, 58, 0.2);
+}
+.btn-ifilter-main:hover {
+  background: var(--if-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(49, 53, 58, 0.3);
+}
+
+.btn-ifilter-outline {
+  background: transparent;
+  color: var(--if-primary);
+  border: 2px solid var(--if-primary);
+}
+.btn-ifilter-outline:hover {
+  background: rgba(49, 53, 58, 0.05);
 }

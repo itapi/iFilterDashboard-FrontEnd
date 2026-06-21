@@ -110,6 +110,7 @@ const ClientPlanTab = ({
 
   // Get days until expiry (calculated on the fly)
   const getDaysUntilExpiry = () => {
+    const daysRemaining = calculateDaysRemaining(client)
     return daysRemaining !== null ? daysRemaining : client.days_until_expiry || 0
   }
 
