@@ -39,15 +39,16 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}) {
+    const { skipAuthRedirect, ...fetchOptions } = options;
     const url = `${this.baseURL}/${endpoint}`;
-    
+
     const config = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...fetchOptions.headers,
       },
-      ...options,
+      ...fetchOptions,
     };
 
     if (this.token) {
@@ -63,13 +64,18 @@ class ApiClient {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Clear authentication data
+          if (skipAuthRedirect) {
+            // Login attempt with wrong credentials — return the error body so the caller can show it
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              return await response.json();
+            }
+            return { success: false, error: 'Authentication failed' };
+          }
+          // Expired session — clear state and redirect
           this.clearToken();
           localStorage.removeItem('iFilter_userData');
-
-          // Redirect to login page (respecting the router basename)
           window.location.href = '/iFilterDashboard-FrontEnd/login';
-
           throw new Error('Session expired. Please login again.');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -113,16 +119,16 @@ class ApiClient {
 
   // Authentication methods
   async login(username, password) {
-    const response = await this.post('auth.php', {
-      action: 'login',
-      username,
-      password,
+    const response = await this.request('auth.php', {
+      method: 'POST',
+      body: { action: 'login', username, password },
+      skipAuthRedirect: true,
     });
-    
+
     if (response.success && response.token) {
       this.setToken(response.token);
     }
-    
+
     return response;
   }
 

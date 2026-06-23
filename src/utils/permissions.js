@@ -12,14 +12,16 @@
 export const ROLES = {
   SUPER_ADMIN: 'super_admin',
   MANAGER: 'manager',
-  COMMUNITY_MANAGER: 'community_manager'
+  COMMUNITY_MANAGER: 'community_manager',
+  RESELLER: 'reseller'
 }
 
 // Role hierarchy (higher number = more permissions)
 export const ROLE_HIERARCHY = {
   [ROLES.SUPER_ADMIN]: 3,
   [ROLES.MANAGER]: 2,
-  [ROLES.COMMUNITY_MANAGER]: 1
+  [ROLES.COMMUNITY_MANAGER]: 1,
+  [ROLES.RESELLER]: 0
 }
 
 // ============================================================================
@@ -146,6 +148,10 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.MANAGE_PLAN_APPS,
     PERMISSIONS.VIEW_APPS,
     PERMISSIONS.VIEW_REPORTS
+  ],
+
+  [ROLES.RESELLER]: [
+    PERMISSIONS.VIEW_DASHBOARD
   ]
 }
 
@@ -357,7 +363,8 @@ export const getRoleDisplayName = (role) => {
   const roleNames = {
     [ROLES.SUPER_ADMIN]: 'מנהל על',
     [ROLES.MANAGER]: 'מנהל',
-    [ROLES.COMMUNITY_MANAGER]: 'מנהל קהילה'
+    [ROLES.COMMUNITY_MANAGER]: 'מנהל קהילה',
+    [ROLES.RESELLER]: 'משווק'
   }
   return roleNames[role] || role
 }
@@ -371,7 +378,8 @@ export const getRoleBadgeColor = (role) => {
   const colors = {
     [ROLES.SUPER_ADMIN]: 'bg-purple-100 text-purple-800 border-purple-200',
     [ROLES.MANAGER]: 'bg-blue-100 text-blue-800 border-blue-200',
-    [ROLES.COMMUNITY_MANAGER]: 'bg-green-100 text-green-800 border-green-200'
+    [ROLES.COMMUNITY_MANAGER]: 'bg-green-100 text-green-800 border-green-200',
+    [ROLES.RESELLER]: 'bg-orange-100 text-orange-800 border-orange-200'
   }
   return colors[role] || 'bg-gray-100 text-gray-800 border-gray-200'
 }

@@ -100,11 +100,11 @@ function AppContent() {
                 </ManagerRoute>
               } />
 
-              {/* Reseller Hub - Managers and Super Admins */}
+              {/* Reseller Hub - Managers, Super Admins, and Resellers */}
               <Route path="/reseller-hub" element={
-                <ManagerRoute showForbidden={true}>
+                <ProtectedRoute allowedRoles={['super_admin', 'manager', 'reseller']} showForbidden={true}>
                   <ResellerHub />
-                </ManagerRoute>
+                </ProtectedRoute>
               } />
 
               {/* Tickets - Accessible to all roles (filtered by permissions in component) */}
